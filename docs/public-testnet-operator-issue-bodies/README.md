@@ -24,26 +24,12 @@ Use this table when creating issues through the GitHub web UI or another issue t
 
 | Slot | Title | Labels | Body file |
 | --- | --- | --- | --- |
-| deployer-1 | [Public testnet operator]: deployer-1 deployer | public-testnet, operator | docs/public-testnet-operator-issue-bodies/deployer-1.md |
-| indexer-1 | [Public testnet operator]: indexer-1 api-indexer | public-testnet, operator | docs/public-testnet-operator-issue-bodies/indexer-1.md |
-| indexer-2 | [Public testnet operator]: indexer-2 api-indexer | public-testnet, operator | docs/public-testnet-operator-issue-bodies/indexer-2.md |
-| replay-1 | [Public testnet operator]: replay-1 replay-verifier | public-testnet, operator | docs/public-testnet-operator-issue-bodies/replay-1.md |
-| replay-2 | [Public testnet operator]: replay-2 replay-verifier | public-testnet, operator | docs/public-testnet-operator-issue-bodies/replay-2.md |
-| replay-3 | [Public testnet operator]: replay-3 replay-verifier | public-testnet, operator | docs/public-testnet-operator-issue-bodies/replay-3.md |
-| steward-1 | [Public testnet operator]: steward-1 community-steward | public-testnet, operator | docs/public-testnet-operator-issue-bodies/steward-1.md |
-| steward-2 | [Public testnet operator]: steward-2 community-steward | public-testnet, operator | docs/public-testnet-operator-issue-bodies/steward-2.md |
+| none | No slots currently need new tracking issues. | none | none |
 
 ## GitHub CLI Commands
 
 ```sh
-gh issue create --title "[Public testnet operator]: deployer-1 deployer" --label public-testnet --label operator --body-file docs/public-testnet-operator-issue-bodies/deployer-1.md
-gh issue create --title "[Public testnet operator]: indexer-1 api-indexer" --label public-testnet --label operator --body-file docs/public-testnet-operator-issue-bodies/indexer-1.md
-gh issue create --title "[Public testnet operator]: indexer-2 api-indexer" --label public-testnet --label operator --body-file docs/public-testnet-operator-issue-bodies/indexer-2.md
-gh issue create --title "[Public testnet operator]: replay-1 replay-verifier" --label public-testnet --label operator --body-file docs/public-testnet-operator-issue-bodies/replay-1.md
-gh issue create --title "[Public testnet operator]: replay-2 replay-verifier" --label public-testnet --label operator --body-file docs/public-testnet-operator-issue-bodies/replay-2.md
-gh issue create --title "[Public testnet operator]: replay-3 replay-verifier" --label public-testnet --label operator --body-file docs/public-testnet-operator-issue-bodies/replay-3.md
-gh issue create --title "[Public testnet operator]: steward-1 community-steward" --label public-testnet --label operator --body-file docs/public-testnet-operator-issue-bodies/steward-1.md
-gh issue create --title "[Public testnet operator]: steward-2 community-steward" --label public-testnet --label operator --body-file docs/public-testnet-operator-issue-bodies/steward-2.md
+# No gh issue create commands are needed because every eligible slot already has a tracking issue.
 ```
 
 ## Roster Tracking Commands
@@ -51,14 +37,7 @@ gh issue create --title "[Public testnet operator]: steward-2 community-steward"
 After creating each issue, replace the placeholder with the public issue URL or number and record it on the roster:
 
 ```sh
-pnpm testnet:update-roster-slot -- --slot deployer-1 --tracking-issue <deployer-1-issue-url-or-number>
-pnpm testnet:update-roster-slot -- --slot indexer-1 --tracking-issue <indexer-1-issue-url-or-number>
-pnpm testnet:update-roster-slot -- --slot indexer-2 --tracking-issue <indexer-2-issue-url-or-number>
-pnpm testnet:update-roster-slot -- --slot replay-1 --tracking-issue <replay-1-issue-url-or-number>
-pnpm testnet:update-roster-slot -- --slot replay-2 --tracking-issue <replay-2-issue-url-or-number>
-pnpm testnet:update-roster-slot -- --slot replay-3 --tracking-issue <replay-3-issue-url-or-number>
-pnpm testnet:update-roster-slot -- --slot steward-1 --tracking-issue <steward-1-issue-url-or-number>
-pnpm testnet:update-roster-slot -- --slot steward-2 --tracking-issue <steward-2-issue-url-or-number>
+# No roster tracking commands are needed because every eligible slot already has a tracking issue.
 ```
 
 After an operator accepts, capture the assignment fields with `docs/public-testnet-operator-assignment-intake.md`, then record the accepted slot with `pnpm testnet:update-roster-slot`.

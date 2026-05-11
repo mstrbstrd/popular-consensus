@@ -43,9 +43,9 @@ We are preparing the Popular Consensus MVP public testnet and are looking for on
 
 Would someone from your community be willing to run the deployer role for roster slot deployer-1?
 
-Runbook: <public repo URL>/docs/public-testnet-operator-runbook.md
-Tracking issue: <tracking issue URL>
-Issue body: <public repo URL>/docs/public-testnet-operator-issue-bodies/deployer-1.md
+Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-testnet-operator-runbook.md
+Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/1
+Issue body: included in the tracking issue above.
 
 The output we need is a public-testnet operator attestation JSON file with an operator id, contact or public key, organization or independent-individual marker, independence statement, tested commit, chain/RPC details, and deployment hash.
 
@@ -56,7 +56,7 @@ Acceptance fields to collect:
 
 ```text
 slot: deployer-1
-tracking issue:
+tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/1
 operator id:
 contact or public key:
 organization or independent individual:
@@ -78,9 +78,9 @@ We are preparing the Popular Consensus MVP public testnet and need an independen
 
 Would a solo-staker or infrastructure operator from your community be willing to run roster slot replay-1?
 
-Runbook: <public repo URL>/docs/public-testnet-operator-runbook.md
-Tracking issue: <tracking issue URL>
-Issue body: <public repo URL>/docs/public-testnet-operator-issue-bodies/replay-1.md
+Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-testnet-operator-runbook.md
+Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/4
+Issue body: included in the tracking issue above.
 
 The key output is a public-testnet operator attestation JSON file. Replay verifiers independently report transaction and event stream hashes for the same testnet window so maintainers can confirm the hashes match across operators.
 
@@ -91,7 +91,7 @@ Acceptance fields to collect:
 
 ```text
 slot: replay-1
-tracking issue:
+tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/4
 operator id:
 contact or public key:
 organization or independent individual:
@@ -113,9 +113,9 @@ We are preparing the Popular Consensus MVP public testnet and need independently
 
 Would someone from your community be willing to run roster slot indexer-1?
 
-Runbook: <public repo URL>/docs/public-testnet-operator-runbook.md
-Tracking issue: <tracking issue URL>
-Issue body: <public repo URL>/docs/public-testnet-operator-issue-bodies/indexer-1.md
+Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-testnet-operator-runbook.md
+Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/2
+Issue body: included in the tracking issue above.
 
 The output we need is a public API base URL plus a public-testnet operator attestation JSON file with an operator id, contact or public key, organization or independent-individual marker, independence statement, tested commit, chain/RPC details, and replay hashes.
 
@@ -126,7 +126,7 @@ Acceptance fields to collect:
 
 ```text
 slot: indexer-1
-tracking issue:
+tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/2
 operator id:
 contact or public key:
 organization or independent individual:
@@ -148,9 +148,9 @@ We are preparing the Popular Consensus MVP public testnet and need a second inde
 
 Would an open-source maintainer in your network be willing to run roster slot indexer-2?
 
-Runbook: <public repo URL>/docs/public-testnet-operator-runbook.md
-Tracking issue: <tracking issue URL>
-Issue body: <public repo URL>/docs/public-testnet-operator-issue-bodies/indexer-2.md
+Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-testnet-operator-runbook.md
+Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/3
+Issue body: included in the tracking issue above.
 
 The output we need is a public API base URL plus a public-testnet operator attestation JSON file with an operator id, contact or public key, organization or independent-individual marker, independence statement, tested commit, chain/RPC details, and replay hashes.
 
@@ -161,7 +161,7 @@ Acceptance fields to collect:
 
 ```text
 slot: indexer-2
-tracking issue:
+tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/3
 operator id:
 contact or public key:
 organization or independent individual:
@@ -183,9 +183,9 @@ We are preparing the Popular Consensus MVP public testnet and need independent o
 
 Would a maintainer from your network be willing to run roster slot replay-2?
 
-Runbook: <public repo URL>/docs/public-testnet-operator-runbook.md
-Tracking issue: <tracking issue URL>
-Issue body: <public repo URL>/docs/public-testnet-operator-issue-bodies/replay-2.md
+Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-testnet-operator-runbook.md
+Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/5
+Issue body: included in the tracking issue above.
 
 The key output is a public-testnet operator attestation JSON file. Replay verifiers independently report transaction and event stream hashes for the same testnet window so maintainers can confirm the hashes match across operators.
 
@@ -196,7 +196,7 @@ Acceptance fields to collect:
 
 ```text
 slot: replay-2
-tracking issue:
+tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/5
 operator id:
 contact or public key:
 organization or independent individual:
@@ -218,9 +218,9 @@ We are preparing the Popular Consensus MVP public testnet and need a third indep
 
 Would a solo-staker or infrastructure operator from your community be willing to run roster slot replay-3?
 
-Runbook: <public repo URL>/docs/public-testnet-operator-runbook.md
-Tracking issue: <tracking issue URL>
-Issue body: <public repo URL>/docs/public-testnet-operator-issue-bodies/replay-3.md
+Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-testnet-operator-runbook.md
+Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/6
+Issue body: included in the tracking issue above.
 
 The key output is a public-testnet operator attestation JSON file. Replay verifiers independently report transaction and event stream hashes for the same testnet window so maintainers can confirm the hashes match across operators.
 
@@ -231,7 +231,7 @@ Acceptance fields to collect:
 
 ```text
 slot: replay-3
-tracking issue:
+tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/6
 operator id:
 contact or public key:
 organization or independent individual:
@@ -253,9 +253,9 @@ We are preparing the Popular Consensus MVP public testnet for a community-govern
 
 Would someone from your civic-tech community be willing to run roster slot steward-1?
 
-Runbook: <public repo URL>/docs/public-testnet-operator-runbook.md
-Tracking issue: <tracking issue URL>
-Issue body: <public repo URL>/docs/public-testnet-operator-issue-bodies/steward-1.md
+Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-testnet-operator-runbook.md
+Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/7
+Issue body: included in the tracking issue above.
 
 The steward role focuses on governance-process review, emergency/safety drill checks, fork/export review, and a public attestation explaining what was tested. We will also ask for a contact or public key and a short independence statement.
 
@@ -266,7 +266,7 @@ Acceptance fields to collect:
 
 ```text
 slot: steward-1
-tracking issue:
+tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/7
 operator id:
 contact or public key:
 organization or independent individual:
@@ -288,9 +288,9 @@ We are preparing the Popular Consensus MVP public testnet for a community-govern
 
 Would someone from your civic-tech community be willing to run roster slot steward-2?
 
-Runbook: <public repo URL>/docs/public-testnet-operator-runbook.md
-Tracking issue: <tracking issue URL>
-Issue body: <public repo URL>/docs/public-testnet-operator-issue-bodies/steward-2.md
+Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-testnet-operator-runbook.md
+Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/8
+Issue body: included in the tracking issue above.
 
 The steward role focuses on governance-process review, emergency/safety drill checks, fork/export review, and a public attestation explaining what was tested. We will also ask for a contact or public key and a short independence statement.
 
@@ -301,7 +301,7 @@ Acceptance fields to collect:
 
 ```text
 slot: steward-2
-tracking issue:
+tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/8
 operator id:
 contact or public key:
 organization or independent individual:

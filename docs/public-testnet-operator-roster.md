@@ -44,14 +44,14 @@ When submitting attestation or launch-summary evidence through GitHub, use `.git
 
 | Slot | Tracking Issue | Role | Assigned Operator | Contact | Organization | Independence Review | Attestation File | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| deployer-1 | open | deployer | open | open | open | pending | open | unassigned | Publishes deployment hash and chain details. |
-| indexer-1 | open | api-indexer | open | open | open | pending | open | unassigned | Runs first public API/indexer endpoint. |
-| indexer-2 | open | api-indexer | open | open | open | pending | open | unassigned | Runs second independent public API/indexer endpoint. |
-| replay-1 | open | replay-verifier | open | open | open | pending | open | unassigned | Verifies transaction and event stream hashes. |
-| replay-2 | open | replay-verifier | open | open | open | pending | open | unassigned | Verifies transaction and event stream hashes. |
-| replay-3 | open | replay-verifier | open | open | open | pending | open | unassigned | Verifies transaction and event stream hashes. |
-| steward-1 | open | community-steward | open | open | open | pending | open | unassigned | Runs governance and safety drills. |
-| steward-2 | open | community-steward | open | open | open | pending | open | unassigned | Runs governance and safety drills. |
+| deployer-1 | https://github.com/mstrbstrd/popular-consensus/issues/1 | deployer | open | open | open | pending | open | unassigned | Publishes deployment hash and chain details. |
+| indexer-1 | https://github.com/mstrbstrd/popular-consensus/issues/2 | api-indexer | open | open | open | pending | open | unassigned | Runs first public API/indexer endpoint. |
+| indexer-2 | https://github.com/mstrbstrd/popular-consensus/issues/3 | api-indexer | open | open | open | pending | open | unassigned | Runs second independent public API/indexer endpoint. |
+| replay-1 | https://github.com/mstrbstrd/popular-consensus/issues/4 | replay-verifier | open | open | open | pending | open | unassigned | Verifies transaction and event stream hashes. |
+| replay-2 | https://github.com/mstrbstrd/popular-consensus/issues/5 | replay-verifier | open | open | open | pending | open | unassigned | Verifies transaction and event stream hashes. |
+| replay-3 | https://github.com/mstrbstrd/popular-consensus/issues/6 | replay-verifier | open | open | open | pending | open | unassigned | Verifies transaction and event stream hashes. |
+| steward-1 | https://github.com/mstrbstrd/popular-consensus/issues/7 | community-steward | open | open | open | pending | open | unassigned | Runs governance and safety drills. |
+| steward-2 | https://github.com/mstrbstrd/popular-consensus/issues/8 | community-steward | open | open | open | pending | open | unassigned | Runs governance and safety drills. |
 
 ## Coordination Checklist
 
