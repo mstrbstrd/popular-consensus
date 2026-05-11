@@ -1,0 +1,651 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Artifact {
+  hash      String   @id
+  path      String
+  kind      String
+  createdAt DateTime @default(now())
+}
+
+model RegistryEvent {
+  id                    String   @id
+  eventType             String
+  subjectId             String
+  actor                 String
+  previousHash          String?
+  newHash               String
+  sourceType            String   @default("local-devnet")
+  sourceTransactionId   String?
+  sourceTransactionHash String?
+  sourceModule          String?
+  transactionType       String?
+  emittedAt             DateTime @default(now())
+
+  @@index([sourceTransactionId])
+  @@index([sourceModule])
+}
+
+model ProtocolTransactionResult {
+  id              String   @id
+  sourceType      String
+  sourceModule    String
+  transactionType String
+  subjectId       String
+  actor           String
+  eventType       String
+  eventHash       String
+  resultHash      String
+  payloadHash     String
+  payloadJson     String
+  status          String   @default("Applied")
+  createdAt       DateTime @default(now())
+
+  @@index([sourceModule, subjectId])
+  @@index([eventType])
+}
+
+model ProtocolCommitmentRecord {
+  id             String   @id
+  kind           String
+  contractModule String
+  subjectId      String
+  eventType      String
+  sourceEventId  String
+  commitmentHash String
+  payloadHash    String
+  payloadJson    String
+  status         String   @default("Committed")
+  createdAt      DateTime @default(now())
+
+  @@index([kind, subjectId])
+  @@index([eventType])
+  @@index([sourceEventId])
+}
+
+model UserAccount {
+  id          String            @id
+  username    String            @unique
+  profileId   String?           @unique
+  profileHash String?
+  displayName String
+  bio         String?
+  reputation  Int               @default(0)
+  createdAt   DateTime          @default(now())
+  memberships CommunityMember[]
+  communityFollows CommunityFollow[]
+  topicFollows     TopicFollow[]
+
+  @@index([profileHash])
+}
+
+model Community {
+  id                    String            @id
+  slug                  String            @unique
+  name                  String
+  description           String
+  visibility            String            @default("Public")
+  credentialSchemaId    String            @default("credential-vancouver-resident")
+  defaultAuthorityLevel String            @default("Advisory")
+  createdBy             String
+  createdAt             DateTime          @default(now())
+  memberships           CommunityMember[]
+  questions             Question[]
+  forks                 CommunityFork[]
+  follows               CommunityFollow[]
+  frontendConfig        CommunityFrontendConfig?
+  governanceParameterSets GovernanceParameterSet[]
+  emergencySuspensions  CommunityEmergencySuspension[]
+  credentialTrustPolicies CommunityCredentialTrustPolicy[]
+  tallyCommittees       TallyCommittee[]
+  tallyKeySetups        TallyKeySetup[]
+}
+
+model CommunityMember {
+  id          String      @id
+  communityId String
+  userId      String
+  role        String      @default("Member")
+  status      String      @default("Active")
+  createdAt   DateTime    @default(now())
+  community   Community   @relation(fields: [communityId], references: [id])
+  user        UserAccount @relation(fields: [userId], references: [id])
+
+  @@unique([communityId, userId])
+}
+
+model Question {
+  id                    String      @id
+  version               Int         @default(1)
+  title                 String
+  bodyHash              String
+  answerSchemaId        String
+  credentialSchemaId    String
+  communityId           String?
+  topicIds              String[]
+  geoScope              String?
+  sponsorDisclosureHash String?
+  methodologyLabel      String
+  authorityLevel        String      @default("Advisory")
+  opensAt               DateTime
+  closesAt              DateTime
+  challengeWindowEndsAt DateTime
+  proposer              String
+  proposalBondId        String
+  adoptionPolicyId      String?
+  status                String      @default("Submitted")
+  community             Community?  @relation(fields: [communityId], references: [id])
+  poll                  Poll?
+  challenges            Challenge[]
+  challengeAppeals      ChallengeAppeal[]
+  jurorAssignments      JurorAssignment[]
+  discussionPosts       DiscussionPost[]
+  moderationRecords     DiscussionModerationRecord[]
+  archiveRecord         ArchiveRecord?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@index([adoptionPolicyId])
+}
+
+model Challenge {
+  id              String   @id
+  questionId      String
+  reasonCode      String
+  evidenceHash    String
+  challenger      String
+  challengeBondId String
+  jurorPoolId     String
+  ruling          String   @default("Pending")
+  resolutionHash  String?
+  createdAt       DateTime @default(now())
+  question        Question @relation(fields: [questionId], references: [id])
+  appeals         ChallengeAppeal[]
+  jurorAssignments JurorAssignment[]
+}
+
+model CredentialIssuer {
+  id           String   @id
+  publicKey    String
+  schemaIds    String[]
+  metadataHash String
+  stakeId      String?
+  status       String   @default("Active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+}
+
+model CommunityFollow {
+  id          String    @id
+  communityId String
+  userId      String
+  followHash  String
+  createdAt   DateTime  @default(now())
+  community   Community @relation(fields: [communityId], references: [id])
+  user        UserAccount @relation(fields: [userId], references: [id])
+
+  @@index([communityId, createdAt])
+  @@index([userId, createdAt])
+  @@unique([communityId, userId])
+}
+
+model TopicFollow {
+  id         String      @id
+  topicId    String
+  userId     String
+  followHash String
+  createdAt  DateTime    @default(now())
+  user       UserAccount @relation(fields: [userId], references: [id])
+
+  @@index([topicId, createdAt])
+  @@index([userId, createdAt])
+  @@unique([topicId, userId])
+}
+
+model CredentialSchema {
+  id                  String   @id
+  name                String
+  issuerRegistryId    String
+  eligibilityClaimHash String
+  nullifierDomainRule String
+  expiresAfter        Int?
+  revocationRoot      String?
+  status              String   @default("Active")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now()) @updatedAt
+}
+
+model Credential {
+  id          String   @id
+  holderAlias String
+  schemaId    String
+  issuerId    String
+  secretHash  String
+  createdAt   DateTime @default(now())
+
+  @@unique([holderAlias, schemaId, issuerId])
+}
+
+model CredentialRevocation {
+  id             String   @id
+  credentialId   String   @unique
+  schemaId       String
+  issuerId       String
+  revokedBy      String
+  revocationHash String
+  leafHash       String
+  rootHash       String?
+  createdAt      DateTime @default(now())
+
+  @@index([schemaId, createdAt])
+}
+
+model CommunityCredentialTrustPolicy {
+  id                 String    @id
+  communityId        String
+  credentialSchemaId String
+  trustedIssuerIds   String[]
+  mode               String    @default("AllowList")
+  status             String    @default("Active")
+  policyHash         String
+  createdBy          String
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @default(now()) @updatedAt
+  community          Community @relation(fields: [communityId], references: [id])
+
+  @@index([communityId, credentialSchemaId, status])
+}
+
+model TallyCommittee {
+  id               String    @id
+  communityId      String
+  name             String
+  memberIds        String[]
+  threshold        Int
+  status           String    @default("Proposed")
+  metadataHash     String
+  activationHash   String?
+  failureHash      String?
+  createdBy        String
+  activatedBy      String?
+  failedBy         String?
+  failedAt         DateTime?
+  replacementForId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+  community        Community @relation(fields: [communityId], references: [id])
+  keySetups        TallyKeySetup[]
+
+  @@index([communityId, status, createdAt])
+}
+
+model TallyKeySetup {
+  id                         String         @id
+  communityId                String
+  committeeId                String
+  publicKeyId                String
+  publicKeyPem               String
+  publicKeyHash              String
+  memberIds                  String[]
+  memberKeyCommitmentHashes  String[]
+  threshold                  Int
+  transcriptHash             String
+  setupHash                  String
+  status                     String         @default("Active")
+  createdBy                  String
+  demoPrivateKeyPem          String?
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @default(now()) @updatedAt
+  community                  Community      @relation(fields: [communityId], references: [id])
+  committee                  TallyCommittee @relation(fields: [committeeId], references: [id])
+  polls                      Poll[]
+  decryptionShares           TallyDecryptionShare[]
+
+  @@unique([communityId, publicKeyId])
+  @@index([communityId, status, createdAt])
+  @@index([committeeId, status, createdAt])
+}
+
+model Poll {
+  id                    String   @id
+  questionId            String   @unique
+  status                String   @default("Configured")
+  tallyPublicKeyId      String
+  tallyPublicKeyPem     String
+  tallyPrivateKeyPem    String
+  tallyKeySetupId       String?
+  credentialSchemaId    String
+  privacyThreshold      Int      @default(1)
+  resultChallengeEndsAt DateTime
+  createdAt             DateTime @default(now())
+  question              Question @relation(fields: [questionId], references: [id])
+  tallyKeySetup         TallyKeySetup? @relation(fields: [tallyKeySetupId], references: [id])
+  ballots               Ballot[]
+  decryptionShares      TallyDecryptionShare[]
+  result                Result?
+  resultChallenges      ResultChallenge[]
+}
+
+model TallyDecryptionShare {
+  id            String        @id
+  pollId        String
+  questionId    String
+  communityId   String
+  committeeId   String
+  keySetupId    String
+  memberId      String
+  shareHash     String
+  proofHash     String
+  artifactHash  String
+  status        String        @default("Accepted")
+  submittedAt   DateTime      @default(now())
+  poll          Poll          @relation(fields: [pollId], references: [id])
+  keySetup      TallyKeySetup @relation(fields: [keySetupId], references: [id])
+
+  @@unique([pollId, memberId])
+  @@index([pollId, status, submittedAt])
+  @@index([keySetupId, status, submittedAt])
+}
+
+model Bond {
+  id          String    @id
+  owner       String
+  questionId  String?
+  challengeId String?
+  resultChallengeId String?
+  challengeAppealId String?
+  jurorAssignmentId String?
+  amountPc    Int
+  bondType    String
+  status      String    @default("Escrowed")
+  slashedPc   Int       @default(0)
+  refundedPc  Int       @default(0)
+  rewardPc    Int       @default(0)
+  treasuryPc  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  settledAt   DateTime?
+}
+
+model ReputationEvent {
+  id        String   @id
+  account   String
+  reason    String
+  weight    Int
+  sourceId  String
+  createdAt DateTime @default(now())
+}
+
+model Ballot {
+  id                   String   @id
+  pollId               String
+  questionId           String
+  nullifier            String
+  ballotCommitment     String
+  encryptedPayloadHash String
+  encryptedPayloadJson String
+  tallyPublicKeyId     String
+  proofHash            String
+  submittedAt          DateTime @default(now())
+  poll                 Poll     @relation(fields: [pollId], references: [id])
+
+  @@unique([pollId, nullifier])
+}
+
+model Result {
+  id                  String   @id
+  pollId              String   @unique
+  resultArtifactHash  String
+  aggregateCountsHash String
+  tallyProofHash      String
+  tallyPublicationProofHash String?
+  turnout             Int
+  invalidBallots      Int
+  privacyReportHash   String
+  finalStatus         String   @default("Published")
+  publishedAt         DateTime @default(now())
+  poll                Poll     @relation(fields: [pollId], references: [id])
+  resultChallenges    ResultChallenge[]
+}
+
+model ResultChallenge {
+  id              String   @id
+  pollId          String
+  resultId        String
+  reasonCode      String
+  evidenceHash    String
+  challenger      String
+  challengeBondId String
+  jurorPoolId     String
+  ruling          String   @default("Pending")
+  resolutionHash  String?
+  createdAt       DateTime @default(now())
+  poll            Poll     @relation(fields: [pollId], references: [id])
+  result          Result   @relation(fields: [resultId], references: [id])
+  appeals         ChallengeAppeal[]
+  jurorAssignments JurorAssignment[]
+}
+
+model ChallengeAppeal {
+  id                String           @id
+  questionId        String
+  targetType        String
+  challengeId       String?
+  resultChallengeId String?
+  appellantId       String
+  appealBondId      String
+  appealedRuling    String
+  appealHash        String
+  status            String           @default("Pending")
+  resolutionHash    String?
+  resolvedBy        String?
+  createdAt         DateTime         @default(now())
+  resolvedAt        DateTime?
+  question          Question         @relation(fields: [questionId], references: [id])
+  challenge         Challenge?       @relation(fields: [challengeId], references: [id])
+  resultChallenge   ResultChallenge? @relation(fields: [resultChallengeId], references: [id])
+  jurorAssignments  JurorAssignment[]
+
+  @@index([questionId, createdAt])
+  @@index([status, createdAt])
+  @@index([challengeId, createdAt])
+  @@index([resultChallengeId, createdAt])
+  @@unique([challengeId, appellantId])
+  @@unique([resultChallengeId, appellantId])
+}
+
+model JurorAssignment {
+  id                     String           @id
+  questionId             String
+  targetType             String
+  challengeId            String?
+  resultChallengeId      String?
+  challengeAppealId      String?
+  jurorId                String
+  selectedBy             String
+  selectionHash          String
+  conflictDisclosureHash String?
+  conflictStatus         String           @default("PendingDisclosure")
+  status                 String           @default("Selected")
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  question               Question         @relation(fields: [questionId], references: [id])
+  challenge              Challenge?       @relation(fields: [challengeId], references: [id])
+  resultChallenge        ResultChallenge? @relation(fields: [resultChallengeId], references: [id])
+  challengeAppeal        ChallengeAppeal? @relation(fields: [challengeAppealId], references: [id])
+
+  @@index([questionId, createdAt])
+  @@index([jurorId, createdAt])
+  @@index([status, conflictStatus])
+  @@index([challengeId, createdAt])
+  @@index([resultChallengeId, createdAt])
+  @@index([challengeAppealId, createdAt])
+}
+
+model DiscussionPost {
+  id         String   @id
+  questionId String
+  authorId   String
+  kind       String   @default("Comment")
+  bodyHash   String
+  parentId   String?
+  status     String   @default("Published")
+  createdAt  DateTime @default(now())
+  question   Question @relation(fields: [questionId], references: [id])
+  moderationRecords DiscussionModerationRecord[]
+
+  @@index([questionId, createdAt])
+}
+
+model DiscussionModerationRecord {
+  id             String                       @id
+  questionId     String
+  postId         String
+  moderatorId    String
+  action         String
+  reasonCode     String
+  reasonHash     String
+  previousStatus String
+  newStatus      String
+  createdAt      DateTime                     @default(now())
+  question       Question                     @relation(fields: [questionId], references: [id])
+  post           DiscussionPost               @relation(fields: [postId], references: [id])
+  appeals        DiscussionModerationAppeal[]
+
+  @@index([questionId, createdAt])
+  @@index([postId, createdAt])
+}
+
+model DiscussionModerationAppeal {
+  id                 String                     @id
+  moderationRecordId String
+  appellantId        String
+  appealHash         String
+  status             String                     @default("Pending")
+  resolutionHash     String?
+  resolvedBy         String?
+  createdAt          DateTime                   @default(now())
+  resolvedAt         DateTime?
+  moderationRecord   DiscussionModerationRecord @relation(fields: [moderationRecordId], references: [id])
+
+  @@index([moderationRecordId, createdAt])
+  @@index([status, createdAt])
+  @@unique([moderationRecordId, appellantId])
+}
+
+model ArchiveRecord {
+  id          String   @id
+  questionId  String   @unique
+  archiveHash String
+  archivedBy  String
+  createdAt   DateTime @default(now())
+  question    Question @relation(fields: [questionId], references: [id])
+}
+
+model CommunityFork {
+  id                   String    @id
+  sourceCommunityId    String
+  forkName             String
+  forkSlug             String
+  reasonHash           String
+  metadataHash         String
+  sourceExportHash     String
+  sourceManifestHash   String
+  createdBy            String
+  createdAt            DateTime  @default(now())
+  sourceCommunity      Community @relation(fields: [sourceCommunityId], references: [id])
+
+  @@index([sourceCommunityId, createdAt])
+  @@index([forkSlug])
+  @@unique([sourceCommunityId, forkSlug])
+}
+
+model CommunityFrontendConfig {
+  id          String    @id
+  communityId String    @unique
+  configHash  String
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  community   Community @relation(fields: [communityId], references: [id])
+
+  @@index([configHash])
+}
+
+model GovernanceParameterSet {
+  id                              String    @id
+  communityId                     String
+  proposalBondPc                  Int
+  challengeBondPc                 Int
+  appealBondPc                    Int
+  protocolFeePc                   Int
+  successfulChallengeRewardPc     Int
+  failedChallengeProposerRewardPc Int
+  jurorRewardWeight               Int
+  successfulChallengeReputation   Int
+  acceptedAmendmentReputation     Int
+  privacyThreshold                Int
+  challengeWindowHours            Int
+  resultChallengeWindowHours      Int
+  pollDurationHours               Int
+  reputationDecayRule             String
+  proposalHash                    String
+  activationHash                  String?
+  proposedBy                      String
+  activatedBy                     String?
+  status                          String    @default("Proposed")
+  effectiveAt                     DateTime
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @updatedAt
+  community                       Community @relation(fields: [communityId], references: [id])
+
+  @@index([communityId, status, effectiveAt])
+  @@index([proposalHash])
+}
+
+model CommunityEmergencySuspension {
+  id             String     @id
+  communityId    String
+  scope          String     @default("ProtocolActions")
+  reasonHash     String
+  resolutionHash String?
+  suspendedBy    String
+  resolvedBy     String?
+  status         String     @default("Active")
+  createdAt      DateTime   @default(now())
+  resolvedAt     DateTime?
+  updatedAt      DateTime   @updatedAt
+  community      Community  @relation(fields: [communityId], references: [id])
+
+  @@index([communityId, status, createdAt])
+  @@index([reasonHash])
+}
+
+model AdoptionPolicy {
+  id                    String   @id
+  communityId           String
+  authorityLevel        String   @default("Advisory")
+  eligibleQuestionTypes String[]
+  credentialSchemaIds   String[]
+  quorumRuleHash        String
+  approvalRuleHash      String
+  legalHandoffHash      String?
+  forkRuleHash          String
+  effectiveAt           DateTime
+  status                String   @default("Active")
+  proposalHash          String?
+  activationHash        String?
+  suspensionReasonHash  String?
+  proposedBy            String?
+  adoptedBy             String?
+  suspendedBy           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now()) @updatedAt
+
+  @@index([communityId, status])
+}

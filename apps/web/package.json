@@ -1,0 +1,26 @@
+{
+  "name": "@pc/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "build:e2e": "NEXT_DIST_DIR=.next-e2e next build",
+    "start": "next start --port 3000",
+    "start:e2e": "NEXT_DIST_DIR=.next-e2e next start --port 3001",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pc/shared": "workspace:*",
+    "next": "^16.0.5",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3"
+  }
+}

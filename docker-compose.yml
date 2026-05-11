@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: pc
+      POSTGRES_PASSWORD: pc
+      POSTGRES_DB: popular_consensus
+    volumes:
+      - pc_postgres:/var/lib/postgresql/data
+
+volumes:
+  pc_postgres:
+

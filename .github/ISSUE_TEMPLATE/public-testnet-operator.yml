@@ -1,0 +1,100 @@
+name: Public testnet operator
+description: Volunteer or track an independent operator for the Popular Consensus public testnet.
+title: "[Public testnet operator]: "
+labels:
+  - public-testnet
+  - operator
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this issue to coordinate an independent public testnet operator. The completion gate still requires a valid attestation JSON file, maintainer independence review, and a launch summary.
+  - type: dropdown
+    id: role
+    attributes:
+      label: Operator role
+      description: Select the role this operator will run.
+      options:
+        - deployer
+        - api-indexer
+        - replay-verifier
+        - community-steward
+    validations:
+      required: true
+  - type: input
+    id: roster_slot
+    attributes:
+      label: Roster slot
+      description: Match one slot from docs/public-testnet-operator-roster.md.
+      placeholder: replay-1
+    validations:
+      required: true
+  - type: input
+    id: operator_id
+    attributes:
+      label: Operator id
+      description: Public operator id, handle, or key that will appear in the attestation.
+      placeholder: operator-name-or-public-key
+    validations:
+      required: true
+  - type: input
+    id: operator_contact
+    attributes:
+      label: Operator contact
+      description: Contact URL, email, handle, or public key for independence review.
+      placeholder: contact-url-email-handle-or-public-key
+    validations:
+      required: true
+  - type: input
+    id: organization
+    attributes:
+      label: Organization
+      description: Organization name, or independent individual.
+      placeholder: independent individual
+    validations:
+      required: true
+  - type: textarea
+    id: independence_statement
+    attributes:
+      label: Independence statement
+      description: Explain why this operator is independent from maintainers and other operators.
+      placeholder: This operator is not controlled by the project maintainers or sibling operators.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Testnet environment
+      description: Record the testnet window, chain id, RPC URL, API URL if applicable, and community id.
+      placeholder: |
+        Testnet window:
+        Chain id:
+        RPC URL:
+        API base URL:
+        Community id:
+    validations:
+      required: true
+  - type: checkboxes
+    id: operator_checks
+    attributes:
+      label: Operator checklist
+      options:
+        - label: I have read docs/public-testnet-operator-runbook.md.
+          required: true
+        - label: I can provide the required contact and independence statement.
+          required: true
+        - label: I will publish or provide a public-testnet operator attestation JSON file.
+          required: true
+        - label: I understand that maintainers must review operator independence before the final gate can pass.
+          required: true
+  - type: textarea
+    id: attestation_output
+    attributes:
+      label: Attestation output
+      description: Add the attestation file path, content hash, and observations when available.
+      placeholder: |
+        Attestation file:
+        Attestation hash:
+        Observations:
+    validations:
+      required: false

@@ -1,0 +1,17 @@
+node_modules
+.next
+.next-e2e
+dist
+coverage
+.turbo
+.env
+.env.local
+out
+cache
+broadcast
+data
+playwright-report
+test-results
+*.tsbuildinfo
+.DS_Store
+hatch-runs/
