@@ -311,6 +311,10 @@ export async function resetDemoData() {
   await prisma.discussionModerationAppeal.deleteMany();
   await prisma.discussionModerationRecord.deleteMany();
   await prisma.discussionPost.deleteMany();
+  await prisma.dataUnionAccessGrant.deleteMany();
+  await prisma.dataUnionProduct.deleteMany();
+  await prisma.dataUnionConsent.deleteMany();
+  await prisma.dataUnionPolicy.deleteMany();
   await prisma.result.deleteMany();
   await prisma.ballot.deleteMany();
   await prisma.tallyDecryptionShare.deleteMany();

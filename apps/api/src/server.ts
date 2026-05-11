@@ -16,6 +16,7 @@ import { prisma, type Prisma } from "@pc/db";
 import {
   AcceptQuestionRequestSchema,
   ActivateAdoptionPolicyRequestSchema,
+  ActivateDataUnionPolicyRequestSchema,
   ActivateGovernanceParametersRequestSchema,
   ActivateTallyCommitteeRequestSchema,
   AmendmentRequestSchema,
@@ -48,18 +49,23 @@ import {
   FinalizeResultRequestSchema,
   FollowCommunityRequestSchema,
   FollowTopicRequestSchema,
+  GrantDataUnionAccessRequestSchema,
   ImportWalletCredentialRequestSchema,
   JoinCommunityRequestSchema,
   MinimumProtocolCommitments,
   ModerateDiscussionPostRequestSchema,
   ProposeAdoptionPolicyRequestSchema,
+  ProposeDataUnionPolicyRequestSchema,
   ProposeGovernanceParametersRequestSchema,
+  PublishDataUnionProductRequestSchema,
   ReputationReplayRequestSchema,
   ResultChallengeRulingRequestSchema,
   ResolveChallengeAppealRequestSchema,
   ResolveCommunityEmergencySuspensionRequestSchema,
   ResolveModerationAppealRequestSchema,
   RevokeCredentialRequestSchema,
+  RecordDataUnionConsentRequestSchema,
+  RevokeDataUnionConsentRequestSchema,
   SelectJurorRequestSchema,
   SetCommunityCredentialTrustPolicyRequestSchema,
   SetCommunityFrontendConfigRequestSchema,
@@ -75,6 +81,11 @@ import {
   type ChallengeAppealTargetType,
   type CredentialMembershipProof,
   type CredentialIssuerAnnotation,
+  type DataUnionAccessGrant,
+  type DataUnionConsent,
+  type DataUnionPolicy,
+  type DataUnionProduct,
+  type DataUnionRevenueSplit,
   type DiscussionModerationAction,
   type DiscussionPostKind,
   type DiscussionViewKey,
@@ -2958,7 +2969,20 @@ export function buildServer() {
       return reply.code(403).send({ error: "Join this private community to export its records" });
     }
 
-    const [questions, policies, governanceParameterSets, emergencySuspensions, credentialTrustPolicies, tallyCommittees, tallyKeySetups, forks] = await Promise.all([
+    const [
+      questions,
+      policies,
+      governanceParameterSets,
+      emergencySuspensions,
+      credentialTrustPolicies,
+      tallyCommittees,
+      tallyKeySetups,
+      forks,
+      dataUnionPolicies,
+      dataUnionConsents,
+      dataUnionProducts,
+      dataUnionAccessGrants
+    ] = await Promise.all([
       prisma.question.findMany({
         where: { communityId },
         orderBy: { createdAt: "asc" },
@@ -2984,11 +3008,23 @@ export function buildServer() {
       prisma.communityCredentialTrustPolicy.findMany({ where: { communityId }, orderBy: [{ status: "asc" }, { credentialSchemaId: "asc" }, { createdAt: "asc" }] }),
       prisma.tallyCommittee.findMany({ where: { communityId }, orderBy: [{ status: "asc" }, { createdAt: "asc" }] }),
       prisma.tallyKeySetup.findMany({ where: { communityId }, select: TALLY_KEY_SETUP_PUBLIC_SELECT, orderBy: [{ status: "asc" }, { createdAt: "asc" }] }),
-      prisma.communityFork.findMany({ where: { sourceCommunityId: communityId }, orderBy: { createdAt: "asc" } })
+      prisma.communityFork.findMany({ where: { sourceCommunityId: communityId }, orderBy: { createdAt: "asc" } }),
+      prisma.dataUnionPolicy.findMany({ where: { communityId }, orderBy: [{ status: "asc" }, { createdAt: "asc" }] }),
+      prisma.dataUnionConsent.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
+      prisma.dataUnionProduct.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
+      prisma.dataUnionAccessGrant.findMany({
+        where: { communityId, status: "Active" },
+        include: { product: { include: { result: { include: { poll: { select: { questionId: true } } } } } } },
+        orderBy: { createdAt: "asc" }
+      })
     ]);
 
     const questionIds = questions.map((question) => question.id);
     const policyIds = policies.map((policy) => policy.id);
+    const dataUnionPolicyIds = dataUnionPolicies.map((policy) => policy.id);
+    const dataUnionConsentIds = dataUnionConsents.map((consent) => consent.id);
+    const dataUnionProductIds = dataUnionProducts.map((product) => product.id);
+    const dataUnionAccessGrantIds = dataUnionAccessGrants.map((grant) => grant.id);
     const governanceParameterSetIds = governanceParameterSets.map((set) => set.id);
     const emergencySuspensionIds = emergencySuspensions.map((suspension) => suspension.id);
     const challengeIds = questions.flatMap((question) => question.challenges.map((challenge) => challenge.id));
@@ -3008,7 +3044,14 @@ export function buildServer() {
       orderBy: { createdAt: "asc" }
     });
     const credentialIssuerAnnotations = await credentialIssuerAnnotationsForQuestions(questions);
-    const treasuryLedgerEntries = buildTreasuryLedgerEntries(communityId, bonds);
+    const dataUnionPolicyViews = dataUnionPolicies.map(toDataUnionPolicyResponse);
+    const dataUnionConsentViews = dataUnionConsents.map(toDataUnionConsentResponse);
+    const dataUnionProductViews = dataUnionProducts.map(toDataUnionProductResponse);
+    const dataUnionAccessGrantViews = dataUnionAccessGrants.map(toDataUnionAccessGrantResponse);
+    const treasuryLedgerEntries = sortTreasuryLedgerEntries([
+      ...buildTreasuryLedgerEntries(communityId, bonds),
+      ...buildDataUnionTreasuryLedgerEntries(communityId, dataUnionAccessGrants)
+    ]);
     const treasuryLedgerTotals = buildTreasuryLedgerTotals(treasuryLedgerEntries, bonds);
     const moderationRecords = await prisma.discussionModerationRecord.findMany({
       where: { questionId: { in: questionIds } },
@@ -3038,6 +3081,10 @@ export function buildServer() {
         ...emergencySuspensions.flatMap((suspension) => [suspension.suspendedBy, suspension.resolvedBy]),
         ...tallyCommittees.flatMap((committee) => [committee.createdBy, committee.activatedBy, committee.failedBy, ...committee.memberIds]),
         ...tallyKeySetups.flatMap((setup) => [setup.createdBy, ...setup.memberIds]),
+        ...dataUnionPolicyViews.flatMap((policy) => [policy.proposedBy, policy.activatedBy]),
+        ...dataUnionConsentViews.map((consent) => consent.userId),
+        ...dataUnionProductViews.map((product) => product.createdBy),
+        ...dataUnionAccessGrantViews.map((grant) => grant.grantedBy),
         ...questions.map((question) => question.proposer),
         ...questions.flatMap((question) => question.discussionPosts.map((post) => post.authorId)),
         ...questions.flatMap((question) => question.challenges.map((challenge) => challenge.challenger)),
@@ -3055,6 +3102,10 @@ export function buildServer() {
       communityId,
       ...questionIds,
       ...policyIds,
+      ...dataUnionPolicyIds,
+      ...dataUnionConsentIds,
+      ...dataUnionProductIds,
+      ...dataUnionAccessGrantIds,
       ...governanceParameterSetIds,
       ...emergencySuspensionIds,
       ...bonds.map((bond) => bond.id)
@@ -3076,6 +3127,10 @@ export function buildServer() {
         credentialTrustPolicies,
         tallyCommittees,
         tallyKeySetups,
+        dataUnionPolicyViews,
+        dataUnionConsentViews,
+        dataUnionProductViews,
+        dataUnionAccessGrantViews,
         moderationRecords,
         moderationAppeals,
         challengeAppeals,
@@ -3103,6 +3158,10 @@ export function buildServer() {
       credentialTrustPolicies,
       tallyCommittees,
       tallyKeySetups,
+      dataUnionPolicies: dataUnionPolicyViews,
+      dataUnionConsents: dataUnionConsentViews,
+      dataUnionProducts: dataUnionProductViews,
+      dataUnionAccessGrants: dataUnionAccessGrantViews,
       questions: questions.map(toCommunityExportQuestion),
       moderationRecords,
       moderationAppeals,
@@ -3136,6 +3195,10 @@ export function buildServer() {
           credentialTrustPolicies,
           tallyCommittees,
           tallyKeySetups,
+          dataUnionPolicyViews,
+          dataUnionConsentViews,
+          dataUnionProductViews,
+          dataUnionAccessGrantViews,
           moderationRecords,
           moderationAppeals,
           challengeAppeals,
@@ -3832,6 +3895,455 @@ export function buildServer() {
     return { parameterSet: activated, activationArtifact };
   });
 
+  app.get("/communities/:communityId/data-union", async (request, reply) => {
+    const { communityId } = request.params as { communityId: string };
+    const { userId } = request.query as { userId?: string };
+    const community = await prisma.community.findUnique({ where: { id: communityId } });
+    if (!community) return reply.code(404).send({ error: "Community not found" });
+    if (!(await canReadCommunity(communityId, userId))) {
+      return reply.code(403).send({ error: "Join this private community to view data-union records" });
+    }
+
+    const [policies, consents, products, accessGrants] = await Promise.all([
+      prisma.dataUnionPolicy.findMany({ where: { communityId }, orderBy: [{ status: "asc" }, { createdAt: "asc" }] }),
+      prisma.dataUnionConsent.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
+      prisma.dataUnionProduct.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
+      prisma.dataUnionAccessGrant.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] })
+    ]);
+    const policyViews = policies.map(toDataUnionPolicyResponse);
+    const consentViews = consents.map(toDataUnionConsentResponse);
+    const productViews = products.map(toDataUnionProductResponse);
+    const accessGrantViews = accessGrants.map(toDataUnionAccessGrantResponse);
+    const activePolicy = activeDataUnionPolicy(policyViews);
+    return {
+      protocol: buildDataUnionProtocol(communityId, activePolicy, policyViews, consentViews, productViews, accessGrantViews),
+      communityId,
+      activePolicy,
+      policies: policyViews,
+      consents: consentViews,
+      products: productViews,
+      accessGrants: accessGrantViews
+    };
+  });
+
+  app.post("/communities/:communityId/data-union/policies", async (request, reply) => {
+    const { communityId } = request.params as { communityId: string };
+    const input = ProposeDataUnionPolicyRequestSchema.parse(request.body ?? {});
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    if (!stewardCheck) return;
+    if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
+
+    const policyId = `data-union-policy-${nanoid(10)}`;
+    const purposeHash = hashJson({ purpose: input.purpose });
+    const consentRevocationRuleHash = hashJson({ consentRevocationRule: input.consentRevocationRule });
+    const revenueSplitHash = hashJson(input.revenueSplit);
+    const policyArtifact = await artifactStore.write(
+      withArtifactSchema("data-union-policy", {
+        policyId,
+        communityId,
+        title: input.title,
+        purpose: input.purpose,
+        purposeHash,
+        allowedProductTypes: input.allowedProductTypes,
+        minimumCohortSize: input.minimumCohortSize,
+        consentRevocationRule: input.consentRevocationRule,
+        consentRevocationRuleHash,
+        dataRetentionDays: input.dataRetentionDays,
+        revenueSplit: input.revenueSplit,
+        revenueSplitHash,
+        proposedBy: input.steward,
+        privacyBoundary: "aggregate-products-only-no-raw-ballots"
+      })
+    );
+    await storeArtifact(policyArtifact, "data-union-policy");
+    const policyProposedEvent = prepareProtocolEvent({
+      eventType: "DataUnionPolicyProposed",
+      subjectId: policyId,
+      actor: input.steward,
+      previousHash: null,
+      newHash: policyArtifact.hash
+    });
+    const policy = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, policyProposedEvent);
+      const created = await tx.dataUnionPolicy.create({
+        data: {
+          id: policyId,
+          communityId,
+          title: input.title,
+          purposeHash,
+          allowedProductTypes: input.allowedProductTypes,
+          minimumCohortSize: input.minimumCohortSize,
+          consentRevocationRuleHash,
+          dataRetentionDays: input.dataRetentionDays,
+          revenueSplitJson: JSON.stringify(input.revenueSplit),
+          status: "Proposed",
+          policyHash: policyArtifact.hash,
+          proposedBy: input.steward
+        }
+      });
+      await recordProtocolCommitments(protocolEvent, tx);
+      return created;
+    });
+    return { policy: toDataUnionPolicyResponse(policy), policyArtifact };
+  });
+
+  app.post("/communities/:communityId/data-union/policies/:policyId/activate", async (request, reply) => {
+    const { communityId, policyId } = request.params as { communityId: string; policyId: string };
+    const input = ActivateDataUnionPolicyRequestSchema.parse(request.body ?? {});
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    if (!stewardCheck) return;
+    if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
+
+    const policy = await prisma.dataUnionPolicy.findUnique({ where: { id: policyId } });
+    if (!policy || policy.communityId !== communityId) return reply.code(404).send({ error: "Data-union policy not found" });
+    if (policy.status !== "Proposed") return reply.code(409).send({ error: "Only proposed data-union policies can be activated" });
+    const effectiveAt = input.effectiveAt !== undefined ? new Date(input.effectiveAt) : new Date();
+    const activationArtifact = await artifactStore.write(
+      withArtifactSchema("data-union-policy-activation", {
+        communityId,
+        policyId,
+        activatedBy: input.steward,
+        activationRecord: input.activationRecord,
+        policyHash: policy.policyHash,
+        effectiveAt: effectiveAt.getTime()
+      })
+    );
+    await storeArtifact(activationArtifact, "data-union-policy-activation");
+    const policyActivatedEvent = prepareProtocolEvent({
+      eventType: "DataUnionPolicyActivated",
+      subjectId: policyId,
+      actor: input.steward,
+      previousHash: policy.policyHash,
+      newHash: activationArtifact.hash
+    });
+    const activated = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, policyActivatedEvent);
+      await tx.dataUnionPolicy.updateMany({ where: { communityId, status: "Active" }, data: { status: "Suspended" } });
+      const active = await tx.dataUnionPolicy.update({
+        where: { id: policyId },
+        data: {
+          status: "Active",
+          activationHash: activationArtifact.hash,
+          activatedBy: input.steward,
+          effectiveAt
+        }
+      });
+      await recordProtocolCommitments(protocolEvent, tx);
+      return active;
+    });
+    return { policy: toDataUnionPolicyResponse(activated), activationArtifact };
+  });
+
+  app.post("/communities/:communityId/data-union/consents", async (request, reply) => {
+    const { communityId } = request.params as { communityId: string };
+    const input = RecordDataUnionConsentRequestSchema.parse(request.body ?? {});
+    if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
+
+    const [community, user, membership] = await Promise.all([
+      prisma.community.findUnique({ where: { id: communityId } }),
+      prisma.userAccount.findUnique({ where: { id: input.userId } }),
+      prisma.communityMember.findUnique({ where: { communityId_userId: { communityId, userId: input.userId } } })
+    ]);
+    if (!community || !user) return reply.code(404).send({ error: "Community or account not found" });
+    if (!membership || membership.status !== "Active") return reply.code(403).send({ error: "Join this community before opting in to its data union" });
+
+    const policy = input.policyId
+      ? await prisma.dataUnionPolicy.findUnique({ where: { id: input.policyId } })
+      : await prisma.dataUnionPolicy.findFirst({
+          where: { communityId, status: "Active" },
+          orderBy: [{ effectiveAt: "desc" }, { createdAt: "desc" }]
+        });
+    if (!policy || policy.communityId !== communityId) return reply.code(404).send({ error: "Active data-union policy not found" });
+    if (policy.status !== "Active") return reply.code(409).send({ error: "Data-union consent requires an active policy" });
+
+    const existing = await prisma.dataUnionConsent.findUnique({
+      where: { policyId_userId_scope: { policyId: policy.id, userId: input.userId, scope: input.scope } }
+    });
+    const consentId = existing?.id ?? `data-union-consent-${nanoid(10)}`;
+    const consentArtifact = await artifactStore.write(
+      withArtifactSchema("data-union-consent", {
+        consentId,
+        communityId,
+        policyId: policy.id,
+        userId: input.userId,
+        scope: input.scope,
+        consentStatement: input.consentStatement,
+        policyHash: policy.policyHash,
+        activationHash: policy.activationHash,
+        recordedAt: Date.now()
+      })
+    );
+    await storeArtifact(consentArtifact, "data-union-consent");
+    const consentRecordedEvent = prepareProtocolEvent({
+      eventType: "DataUnionConsentRecorded",
+      subjectId: consentId,
+      actor: input.userId,
+      previousHash: existing?.consentHash ?? null,
+      newHash: consentArtifact.hash
+    });
+    const consent = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, consentRecordedEvent);
+      const upserted = await tx.dataUnionConsent.upsert({
+        where: { policyId_userId_scope: { policyId: policy.id, userId: input.userId, scope: input.scope } },
+        update: {
+          status: "Active",
+          consentHash: consentArtifact.hash,
+          revokedHash: null,
+          revokedAt: null
+        },
+        create: {
+          id: consentId,
+          communityId,
+          policyId: policy.id,
+          userId: input.userId,
+          scope: input.scope,
+          status: "Active",
+          consentHash: consentArtifact.hash
+        }
+      });
+      await recordProtocolCommitments(protocolEvent, tx);
+      return upserted;
+    });
+    return { consent: toDataUnionConsentResponse(consent), consentArtifact };
+  });
+
+  app.post("/communities/:communityId/data-union/consents/:consentId/revoke", async (request, reply) => {
+    const { communityId, consentId } = request.params as { communityId: string; consentId: string };
+    const input = RevokeDataUnionConsentRequestSchema.parse(request.body ?? {});
+    if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
+    const consent = await prisma.dataUnionConsent.findUnique({ where: { id: consentId }, include: { policy: true } });
+    if (!consent || consent.communityId !== communityId) return reply.code(404).send({ error: "Data-union consent not found" });
+    if (consent.userId !== input.userId) return reply.code(403).send({ error: "Only the consenting member can revoke this data-union consent" });
+    if (consent.status === "Revoked") return reply.code(409).send({ error: "Data-union consent is already revoked" });
+    const revocationArtifact = await artifactStore.write(
+      withArtifactSchema("data-union-consent-revocation", {
+        consentId,
+        communityId,
+        policyId: consent.policyId,
+        userId: input.userId,
+        scope: consent.scope,
+        consentHash: consent.consentHash,
+        policyHash: consent.policy.policyHash,
+        revocationReason: input.revocationReason,
+        revokedAt: Date.now()
+      })
+    );
+    await storeArtifact(revocationArtifact, "data-union-consent-revocation");
+    const consentRevokedEvent = prepareProtocolEvent({
+      eventType: "DataUnionConsentRevoked",
+      subjectId: consentId,
+      actor: input.userId,
+      previousHash: consent.consentHash,
+      newHash: revocationArtifact.hash
+    });
+    const revoked = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, consentRevokedEvent);
+      const updated = await tx.dataUnionConsent.update({
+        where: { id: consentId },
+        data: {
+          status: "Revoked",
+          revokedHash: revocationArtifact.hash,
+          revokedAt: new Date()
+        }
+      });
+      await recordProtocolCommitments(protocolEvent, tx);
+      return updated;
+    });
+    return { consent: toDataUnionConsentResponse(revoked), revocationArtifact };
+  });
+
+  app.post("/communities/:communityId/data-union/products", async (request, reply) => {
+    const { communityId } = request.params as { communityId: string };
+    const input = PublishDataUnionProductRequestSchema.parse(request.body ?? {});
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    if (!stewardCheck) return;
+    if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
+
+    const policy = input.policyId
+      ? await prisma.dataUnionPolicy.findUnique({ where: { id: input.policyId } })
+      : await prisma.dataUnionPolicy.findFirst({
+          where: { communityId, status: "Active" },
+          orderBy: [{ effectiveAt: "desc" }, { createdAt: "desc" }]
+        });
+    if (!policy || policy.communityId !== communityId) return reply.code(404).send({ error: "Active data-union policy not found" });
+    if (policy.status !== "Active") return reply.code(409).send({ error: "Data-union product publication requires an active policy" });
+    if (!policy.allowedProductTypes.includes(input.productType)) return reply.code(409).send({ error: "Product type is not allowed by the active data-union policy" });
+
+    const result = await prisma.result.findUnique({
+      where: { id: input.resultId },
+      include: { poll: { include: { question: true } } }
+    });
+    if (!result || result.poll.question.communityId !== communityId) return reply.code(404).send({ error: "Result not found in this community" });
+    if (!["Published", "Finalized", "Corrected"].includes(result.finalStatus)) {
+      return reply.code(409).send({ error: "Only published or finalized aggregate results can become data-union products" });
+    }
+    const activeConsentCount = await prisma.dataUnionConsent.count({
+      where: { communityId, policyId: policy.id, status: "Active", scope: "AggregateAnalytics" }
+    });
+    const cohortSize = Math.min(result.turnout, activeConsentCount);
+    if (cohortSize < policy.minimumCohortSize) {
+      return reply.code(409).send({
+        error: "Data-union product does not meet the policy cohort threshold",
+        cohortSize,
+        minimumCohortSize: policy.minimumCohortSize,
+        resultTurnout: result.turnout,
+        activeConsentCount
+      });
+    }
+
+    const productId = `data-union-product-${nanoid(10)}`;
+    const descriptionHash = hashJson({ description: input.description });
+    const methodologyHash = hashJson({ methodology: input.methodology });
+    const privacyReport = {
+      productId,
+      communityId,
+      policyId: policy.id,
+      resultId: result.id,
+      productType: input.productType,
+      minimumCohortSize: policy.minimumCohortSize,
+      cohortSize,
+      resultTurnout: result.turnout,
+      activeConsentCount,
+      sourceResultPrivacyReportHash: result.privacyReportHash,
+      rawBallotsIncluded: false,
+      identifiableResponsesIncluded: false,
+      notes: input.privacyNotes
+    };
+    const privacyReportHash = hashJson(privacyReport);
+    const dataProductArtifact = await artifactStore.write(
+      withArtifactSchema("data-union-product", {
+        productId,
+        communityId,
+        policyId: policy.id,
+        resultId: result.id,
+        pollId: result.pollId,
+        questionId: result.poll.questionId,
+        productType: input.productType,
+        title: input.title,
+        description: input.description,
+        descriptionHash,
+        methodology: input.methodology,
+        methodologyHash,
+        aggregateResultReferences: {
+          resultArtifactHash: result.resultArtifactHash,
+          aggregateCountsHash: result.aggregateCountsHash,
+          tallyProofHash: result.tallyProofHash,
+          tallyPublicationProofHash: result.tallyPublicationProofHash,
+          privacyReportHash: result.privacyReportHash
+        },
+        privacyReport,
+        privacyReportHash,
+        cohortSize,
+        minimumCohortSize: policy.minimumCohortSize,
+        revenueSplit: parseDataUnionRevenueSplit(policy.revenueSplitJson),
+        pricePc: input.pricePc,
+        publishedBy: input.steward
+      })
+    );
+    await storeArtifact(dataProductArtifact, "data-union-product");
+    const productPublishedEvent = prepareProtocolEvent({
+      eventType: "DataUnionProductPublished",
+      subjectId: productId,
+      actor: input.steward,
+      previousHash: result.resultArtifactHash,
+      newHash: dataProductArtifact.hash
+    });
+    const product = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, productPublishedEvent);
+      const created = await tx.dataUnionProduct.create({
+        data: {
+          id: productId,
+          communityId,
+          policyId: policy.id,
+          resultId: result.id,
+          productType: input.productType,
+          title: input.title,
+          descriptionHash,
+          dataProductHash: dataProductArtifact.hash,
+          privacyReportHash,
+          methodologyHash,
+          minimumCohortSize: policy.minimumCohortSize,
+          cohortSize,
+          pricePc: input.pricePc,
+          status: "Published",
+          createdBy: input.steward
+        }
+      });
+      await recordProtocolCommitments(protocolEvent, tx);
+      return created;
+    });
+    return { product: toDataUnionProductResponse(product), productArtifact: dataProductArtifact };
+  });
+
+  app.post("/communities/:communityId/data-union/products/:productId/access-grants", async (request, reply) => {
+    const { communityId, productId } = request.params as { communityId: string; productId: string };
+    const input = GrantDataUnionAccessRequestSchema.parse(request.body ?? {});
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    if (!stewardCheck) return;
+    if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
+
+    const product = await prisma.dataUnionProduct.findUnique({ where: { id: productId }, include: { policy: true } });
+    if (!product || product.communityId !== communityId) return reply.code(404).send({ error: "Data-union product not found" });
+    if (product.status !== "Published") return reply.code(409).send({ error: "Only published data-union products can receive access grants" });
+    const paymentPc = input.paymentPc ?? product.pricePc;
+    const split = splitDataUnionPayment(paymentPc, parseDataUnionRevenueSplit(product.policy.revenueSplitJson));
+    const grantId = `data-union-access-${nanoid(10)}`;
+    const purposeHash = hashJson({ accessPurpose: input.accessPurpose });
+    const licenseHash = hashJson({ license: input.license });
+    const accessArtifact = await artifactStore.write(
+      withArtifactSchema("data-union-access-grant", {
+        grantId,
+        communityId,
+        productId,
+        buyerId: input.buyerId,
+        buyerType: input.buyerType,
+        accessPurpose: input.accessPurpose,
+        purposeHash,
+        license: input.license,
+        licenseHash,
+        paymentPc,
+        revenueSplit: parseDataUnionRevenueSplit(product.policy.revenueSplitJson),
+        treasuryPc: split.treasuryPc,
+        participantPoolPc: split.participantPoolPc,
+        operatorPoolPc: split.operatorPoolPc,
+        productHash: product.dataProductHash,
+        grantedBy: input.steward
+      })
+    );
+    await storeArtifact(accessArtifact, "data-union-access-grant");
+    const accessGrantedEvent = prepareProtocolEvent({
+      eventType: "DataUnionAccessGranted",
+      subjectId: grantId,
+      actor: input.steward,
+      previousHash: product.dataProductHash,
+      newHash: accessArtifact.hash
+    });
+    const grant = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, accessGrantedEvent);
+      const created = await tx.dataUnionAccessGrant.create({
+        data: {
+          id: grantId,
+          communityId,
+          productId,
+          buyerId: input.buyerId,
+          buyerType: input.buyerType,
+          purposeHash,
+          licenseHash,
+          paymentPc,
+          treasuryPc: split.treasuryPc,
+          participantPoolPc: split.participantPoolPc,
+          operatorPoolPc: split.operatorPoolPc,
+          accessHash: accessArtifact.hash,
+          status: "Active",
+          grantedBy: input.steward
+        }
+      });
+      await recordProtocolCommitments(protocolEvent, tx);
+      return created;
+    });
+    return { accessGrant: toDataUnionAccessGrantResponse(grant), accessArtifact };
+  });
+
   app.get("/communities/:communityId/treasury/ledger", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const { userId, questionId, accountId } = request.query as { userId?: string; questionId?: string; accountId?: string };
@@ -3853,7 +4365,29 @@ export function buildServer() {
           orderBy: { createdAt: "asc" }
         })
       : [];
-    const allEntries = buildTreasuryLedgerEntries(communityId, bonds);
+    const dataUnionAccessGrants = await prisma.dataUnionAccessGrant.findMany({
+      where: {
+        communityId,
+        status: "Active",
+        ...(questionId
+          ? {
+              product: {
+                result: {
+                  poll: {
+                    questionId
+                  }
+                }
+              }
+            }
+          : {})
+      },
+      include: { product: { include: { result: { include: { poll: { select: { questionId: true } } } } } } },
+      orderBy: { createdAt: "asc" }
+    });
+    const allEntries = sortTreasuryLedgerEntries([
+      ...buildTreasuryLedgerEntries(communityId, bonds),
+      ...buildDataUnionTreasuryLedgerEntries(communityId, dataUnionAccessGrants)
+    ]);
     const entries = accountId ? allEntries.filter((entry) => entry.accountId === accountId) : allEntries;
     const scopedBonds = accountId ? bonds.filter((bond) => entries.some((entry) => entry.bondId === bond.id)) : bonds;
     const totals = buildTreasuryLedgerTotals(entries, scopedBonds);
@@ -5018,6 +5552,13 @@ type CommunityExportCommunityFollowInput = Prisma.CommunityFollowGetPayload<Reco
 type CommunityExportTopicFollowInput = Prisma.TopicFollowGetPayload<Record<string, never>>;
 type CommunityExportReputationEventInput = Prisma.ReputationEventGetPayload<Record<string, never>>;
 type TreasuryLedgerBondInput = Prisma.BondGetPayload<Record<string, never>>;
+type DataUnionPolicyInput = Prisma.DataUnionPolicyGetPayload<Record<string, never>>;
+type DataUnionConsentInput = Prisma.DataUnionConsentGetPayload<Record<string, never>>;
+type DataUnionProductInput = Prisma.DataUnionProductGetPayload<Record<string, never>>;
+type DataUnionAccessGrantInput = Prisma.DataUnionAccessGrantGetPayload<Record<string, never>>;
+type DataUnionAccessGrantLedgerInput = Prisma.DataUnionAccessGrantGetPayload<{
+  include: { product: { include: { result: { include: { poll: { select: { questionId: true } } } } } } };
+}>;
 type CredentialIssuerAnnotationQuestionInput = { id: string; credentialSchemaId: string };
 
 function parsePageQuery(query: unknown): PageRequest {
@@ -6788,6 +7329,73 @@ function buildTreasuryLedgerEntries(communityId: string, bonds: TreasuryLedgerBo
     return bondEntries;
   });
 
+  return sortTreasuryLedgerEntries(entries);
+}
+
+function buildDataUnionTreasuryLedgerEntries(communityId: string, grants: DataUnionAccessGrantLedgerInput[]): TreasuryLedgerEntry[] {
+  const treasuryAccountId = treasuryAccountForCommunity(communityId);
+  const participantPoolAccountId = participantPoolAccountForCommunity(communityId);
+  const operatorPoolAccountId = operatorPoolAccountForCommunity(communityId);
+  const entries = grants.flatMap((grant) => {
+    const base = {
+      communityId,
+      bondId: null,
+      bondType: null,
+      sourceType: "DataUnionAccessGrant" as const,
+      sourceId: grant.id,
+      questionId: grant.product.result.poll.questionId,
+      challengeId: null,
+      resultChallengeId: null,
+      challengeAppealId: null,
+      dataUnionProductId: grant.productId,
+      dataUnionAccessGrantId: grant.id,
+      createdAt: grant.createdAt
+    };
+
+    return [
+      treasuryLedgerEntry({
+        ...base,
+        accountId: dataBuyerAccount(grant.buyerId),
+        accountRole: "DataBuyer",
+        entryType: "DataUnionPayment",
+        direction: "Debit",
+        amountPc: grant.paymentPc,
+        balanceImpactPc: -grant.paymentPc
+      }),
+      treasuryLedgerEntry({
+        ...base,
+        accountId: treasuryAccountId,
+        accountRole: "CommunityTreasury",
+        entryType: "DataUnionRevenue",
+        direction: "Credit",
+        amountPc: grant.treasuryPc,
+        balanceImpactPc: grant.treasuryPc
+      }),
+      treasuryLedgerEntry({
+        ...base,
+        accountId: participantPoolAccountId,
+        accountRole: "ParticipantPool",
+        entryType: "ParticipantPoolCredit",
+        direction: "Credit",
+        amountPc: grant.participantPoolPc,
+        balanceImpactPc: grant.participantPoolPc
+      }),
+      treasuryLedgerEntry({
+        ...base,
+        accountId: operatorPoolAccountId,
+        accountRole: "OperatorPool",
+        entryType: "OperatorPoolCredit",
+        direction: "Credit",
+        amountPc: grant.operatorPoolPc,
+        balanceImpactPc: grant.operatorPoolPc
+      })
+    ];
+  });
+
+  return sortTreasuryLedgerEntries(entries);
+}
+
+function sortTreasuryLedgerEntries(entries: TreasuryLedgerEntry[]): TreasuryLedgerEntry[] {
   return entries.sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime() || left.id.localeCompare(right.id));
 }
 
@@ -6804,7 +7412,10 @@ function buildTreasuryLedgerTotals(entries: TreasuryLedgerEntry[], bonds: Treasu
     escrowedPc: sumEntries(entries, "Escrow"),
     refundedPc: sumEntries(entries, "Refund"),
     rewardedPc: sumEntries(entries, "Reward"),
-    treasuryPc: sumEntries(entries, "TreasuryFee"),
+    treasuryPc: sumEntries(entries, "TreasuryFee") + sumEntries(entries, "DataUnionRevenue"),
+    dataUnionRevenuePc: sumEntries(entries, "DataUnionPayment"),
+    participantPoolPc: sumEntries(entries, "ParticipantPoolCredit"),
+    operatorPoolPc: sumEntries(entries, "OperatorPoolCredit"),
     openEscrowPc: bonds.filter((bond) => bond.status === "Escrowed").reduce((sum, bond) => sum + bond.amountPc, 0),
     treasuryBalancePc: entries
       .filter((entry) => entry.accountRole === "CommunityTreasury")
@@ -6828,6 +7439,8 @@ function buildTreasuryLedgerProtocol(
       accountId: filters.accountId,
       entryIds: entries.map((entry) => entry.id),
       bondIds: uniqueStrings(entries.map((entry) => entry.bondId)),
+      dataUnionProductIds: uniqueStrings(entries.map((entry) => entry.dataUnionProductId)),
+      dataUnionAccessGrantIds: uniqueStrings(entries.map((entry) => entry.dataUnionAccessGrantId)),
       accountIds: uniqueStrings(entries.map((entry) => entry.accountId)),
       questionIds: uniqueStrings(entries.map((entry) => entry.questionId))
     },
@@ -6841,17 +7454,226 @@ function buildTreasuryLedgerProtocol(
       refundedPc: totals.refundedPc,
       rewardedPc: totals.rewardedPc,
       treasuryPc: totals.treasuryPc,
+      dataUnionRevenuePc: totals.dataUnionRevenuePc,
+      participantPoolPc: totals.participantPoolPc,
+      operatorPoolPc: totals.operatorPoolPc,
       openEscrowPc: totals.openEscrowPc,
       treasuryBalancePc: totals.treasuryBalancePc,
       participantNetPc: totals.participantNetPc
     },
     authority: {
-      accountingModel: "bond-derived-ledger",
+      accountingModel: "bond-and-data-union-ledger",
       unit: "PC",
-      source: "local-devnet-bond-events",
-      treasuryAccountId: treasuryAccountForCommunity(communityId)
+      source: "local-devnet-bond-and-data-union-events",
+      treasuryAccountId: treasuryAccountForCommunity(communityId),
+      participantPoolAccountId: participantPoolAccountForCommunity(communityId),
+      operatorPoolAccountId: operatorPoolAccountForCommunity(communityId)
     }
   };
+}
+
+function buildDataUnionProtocol(
+  communityId: string,
+  activePolicy: DataUnionPolicy | null,
+  policies: DataUnionPolicy[],
+  consents: DataUnionConsent[],
+  products: DataUnionProduct[],
+  accessGrants: DataUnionAccessGrant[]
+) {
+  return {
+    protocol: "popular-consensus",
+    schemaVersion: "data-union-v0",
+    ids: {
+      communityId,
+      activePolicyId: activePolicy?.id ?? null,
+      policyIds: policies.map((policy) => policy.id),
+      consentIds: consents.map((consent) => consent.id),
+      memberIdsWithActiveConsent: uniqueStrings(consents.filter((consent) => consent.status === "Active").map((consent) => consent.userId)),
+      productIds: products.map((product) => product.id),
+      resultIds: uniqueStrings(products.map((product) => product.resultId)),
+      accessGrantIds: accessGrants.map((grant) => grant.id),
+      buyerIds: uniqueStrings(accessGrants.map((grant) => grant.buyerId))
+    },
+    hashes: {
+      dataUnionStateHash: hashJson({ policies, consents, products, accessGrants }),
+      activePolicyHash: activePolicy?.policyHash ?? null,
+      policyHashes: policies.map((policy) => policy.policyHash),
+      activationHashes: compactHashArray(policies.map((policy) => policy.activationHash)),
+      consentHashes: consents.map((consent) => consent.consentHash),
+      revokedHashes: compactHashArray(consents.map((consent) => consent.revokedHash)),
+      dataProductHashes: products.map((product) => product.dataProductHash),
+      productPrivacyReportHashes: products.map((product) => product.privacyReportHash),
+      accessHashes: accessGrants.map((grant) => grant.accessHash)
+    },
+    statuses: {
+      activePolicyStatus: activePolicy ? "Active" : "Missing",
+      policyCount: policies.length,
+      activeConsentCount: consents.filter((consent) => consent.status === "Active").length,
+      revokedConsentCount: consents.filter((consent) => consent.status === "Revoked").length,
+      productCount: products.length,
+      publishedProductCount: products.filter((product) => product.status === "Published").length,
+      accessGrantCount: accessGrants.length,
+      activeAccessGrantCount: accessGrants.filter((grant) => grant.status === "Active").length,
+      totalAccessPaymentPc: accessGrants.reduce((sum, grant) => sum + grant.paymentPc, 0),
+      communityTreasuryPc: accessGrants.reduce((sum, grant) => sum + grant.treasuryPc, 0),
+      participantPoolPc: accessGrants.reduce((sum, grant) => sum + grant.participantPoolPc, 0),
+      operatorPoolPc: accessGrants.reduce((sum, grant) => sum + grant.operatorPoolPc, 0)
+    },
+    authority: {
+      module: "DataUnionRegistry",
+      consentModel: "member-opt-in-and-member-revocable-for-future-use",
+      productBoundary: "published-aggregate-results-and-methodology-only",
+      privacyBoundary: "no-raw-ballots-no-identifiable-responses",
+      minimumCohortSize: activePolicy?.minimumCohortSize ?? null,
+      revenueSplit: activePolicy?.revenueSplit ?? null,
+      treasuryAccountId: treasuryAccountForCommunity(communityId),
+      participantPoolAccountId: participantPoolAccountForCommunity(communityId),
+      operatorPoolAccountId: operatorPoolAccountForCommunity(communityId)
+    }
+  };
+}
+
+function toDataUnionPolicyResponse(policy: DataUnionPolicyInput): DataUnionPolicy {
+  return {
+    id: policy.id,
+    communityId: policy.communityId,
+    title: policy.title,
+    purposeHash: policy.purposeHash,
+    allowedProductTypes: policy.allowedProductTypes as DataUnionPolicy["allowedProductTypes"],
+    minimumCohortSize: policy.minimumCohortSize,
+    consentRevocationRuleHash: policy.consentRevocationRuleHash,
+    dataRetentionDays: policy.dataRetentionDays,
+    revenueSplit: parseDataUnionRevenueSplit(policy.revenueSplitJson),
+    status: policy.status as DataUnionPolicy["status"],
+    policyHash: policy.policyHash,
+    activationHash: policy.activationHash,
+    proposedBy: policy.proposedBy,
+    activatedBy: policy.activatedBy,
+    effectiveAt: policy.effectiveAt,
+    createdAt: policy.createdAt,
+    updatedAt: policy.updatedAt
+  };
+}
+
+function toDataUnionConsentResponse(consent: DataUnionConsentInput): DataUnionConsent {
+  return {
+    id: consent.id,
+    communityId: consent.communityId,
+    policyId: consent.policyId,
+    userId: consent.userId,
+    scope: consent.scope as DataUnionConsent["scope"],
+    status: consent.status as DataUnionConsent["status"],
+    consentHash: consent.consentHash,
+    revokedHash: consent.revokedHash,
+    createdAt: consent.createdAt,
+    revokedAt: consent.revokedAt,
+    updatedAt: consent.updatedAt
+  };
+}
+
+function toDataUnionProductResponse(product: DataUnionProductInput): DataUnionProduct {
+  return {
+    id: product.id,
+    communityId: product.communityId,
+    policyId: product.policyId,
+    resultId: product.resultId,
+    productType: product.productType as DataUnionProduct["productType"],
+    title: product.title,
+    descriptionHash: product.descriptionHash,
+    dataProductHash: product.dataProductHash,
+    privacyReportHash: product.privacyReportHash,
+    methodologyHash: product.methodologyHash,
+    minimumCohortSize: product.minimumCohortSize,
+    cohortSize: product.cohortSize,
+    pricePc: product.pricePc,
+    status: product.status as DataUnionProduct["status"],
+    createdBy: product.createdBy,
+    createdAt: product.createdAt,
+    updatedAt: product.updatedAt
+  };
+}
+
+function toDataUnionAccessGrantResponse(grant: DataUnionAccessGrantInput): DataUnionAccessGrant {
+  return {
+    id: grant.id,
+    communityId: grant.communityId,
+    productId: grant.productId,
+    buyerId: grant.buyerId,
+    buyerType: grant.buyerType as DataUnionAccessGrant["buyerType"],
+    purposeHash: grant.purposeHash,
+    licenseHash: grant.licenseHash,
+    paymentPc: grant.paymentPc,
+    treasuryPc: grant.treasuryPc,
+    participantPoolPc: grant.participantPoolPc,
+    operatorPoolPc: grant.operatorPoolPc,
+    accessHash: grant.accessHash,
+    status: grant.status as DataUnionAccessGrant["status"],
+    grantedBy: grant.grantedBy,
+    createdAt: grant.createdAt,
+    revokedAt: grant.revokedAt
+  };
+}
+
+function activeDataUnionPolicy<T extends { status: string; effectiveAt?: Date | string | number | null; createdAt: Date | string | number }>(policies: T[]): T | null {
+  return (
+    policies
+      .filter((policy) => policy.status === "Active")
+      .sort(
+        (left, right) =>
+          new Date(right.effectiveAt ?? right.createdAt).getTime() - new Date(left.effectiveAt ?? left.createdAt).getTime() ||
+          String(right.createdAt).localeCompare(String(left.createdAt))
+      )[0] ?? null
+  );
+}
+
+function parseDataUnionRevenueSplit(value: string): DataUnionRevenueSplit {
+  try {
+    const parsed = JSON.parse(value);
+    const communityTreasuryPercent = Number(parsed?.communityTreasuryPercent);
+    const participantPoolPercent = Number(parsed?.participantPoolPercent);
+    const operatorPoolPercent = Number(parsed?.operatorPoolPercent);
+    if (
+      Number.isInteger(communityTreasuryPercent) &&
+      Number.isInteger(participantPoolPercent) &&
+      Number.isInteger(operatorPoolPercent) &&
+      communityTreasuryPercent >= 0 &&
+      participantPoolPercent >= 0 &&
+      operatorPoolPercent >= 0 &&
+      communityTreasuryPercent + participantPoolPercent + operatorPoolPercent === 100
+    ) {
+      return { communityTreasuryPercent, participantPoolPercent, operatorPoolPercent };
+    }
+  } catch {
+    // Fall through to the MVP default split for old or malformed local records.
+  }
+  return { communityTreasuryPercent: 70, participantPoolPercent: 20, operatorPoolPercent: 10 };
+}
+
+function splitDataUnionPayment(paymentPc: number, revenueSplit: DataUnionRevenueSplit) {
+  const allocations = [
+    { key: "treasuryPc" as const, percent: revenueSplit.communityTreasuryPercent },
+    { key: "participantPoolPc" as const, percent: revenueSplit.participantPoolPercent },
+    { key: "operatorPoolPc" as const, percent: revenueSplit.operatorPoolPercent }
+  ].map((allocation) => {
+    const exact = (paymentPc * allocation.percent) / 100;
+    return {
+      ...allocation,
+      value: Math.floor(exact),
+      remainder: exact - Math.floor(exact)
+    };
+  });
+  let allocated = allocations.reduce((sum, allocation) => sum + allocation.value, 0);
+  for (const allocation of [...allocations].sort((left, right) => right.remainder - left.remainder)) {
+    if (allocated >= paymentPc) break;
+    allocation.value += 1;
+    allocated += 1;
+  }
+  const byKey = Object.fromEntries(allocations.map((allocation) => [allocation.key, allocation.value])) as {
+    treasuryPc: number;
+    participantPoolPc: number;
+    operatorPoolPc: number;
+  };
+  return byKey;
 }
 
 function buildCredentialTrustPoliciesProtocol(communityId: string, policies: CommunityCredentialTrustPolicyView[]) {
@@ -7341,6 +8163,9 @@ function treasuryLedgerEntry(input: Omit<TreasuryLedgerEntry, "id">): TreasuryLe
     id: hashJson({
       communityId: input.communityId,
       bondId: input.bondId,
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      dataUnionAccessGrantId: input.dataUnionAccessGrantId,
       accountId: input.accountId,
       entryType: input.entryType,
       amountPc: input.amountPc,
@@ -7361,6 +8186,18 @@ function normalizeBondType(value: string): TreasuryLedgerEntry["bondType"] {
 
 function treasuryAccountForCommunity(communityId: string) {
   return `community:${communityId}:treasury`;
+}
+
+function participantPoolAccountForCommunity(communityId: string) {
+  return `community:${communityId}:data-union:participant-pool`;
+}
+
+function operatorPoolAccountForCommunity(communityId: string) {
+  return `community:${communityId}:data-union:operator-pool`;
+}
+
+function dataBuyerAccount(buyerId: string) {
+  return `data-buyer:${buyerId}`;
 }
 
 async function credentialIssuerAnnotationsForQuestions(questions: CredentialIssuerAnnotationQuestionInput[]): Promise<CredentialIssuerAnnotation[]> {
@@ -7503,6 +8340,10 @@ function buildCommunityExportProtocol(
   credentialTrustPolicies: CommunityCredentialTrustPolicyView[],
   tallyCommittees: TallyCommitteeView[],
   tallyKeySetups: TallyKeySetupView[],
+  dataUnionPolicies: DataUnionPolicy[],
+  dataUnionConsents: DataUnionConsent[],
+  dataUnionProducts: DataUnionProduct[],
+  dataUnionAccessGrants: DataUnionAccessGrant[],
   moderationRecords: CommunityExportModerationRecordInput[],
   moderationAppeals: CommunityExportModerationAppealInput[],
   challengeAppeals: CommunityExportChallengeAppealInput[],
@@ -7560,6 +8401,12 @@ function buildCommunityExportProtocol(
       tallyPublicKeyIds: tallyKeySetups.map((setup) => setup.publicKeyId),
       tallyDecryptionShareIds: tallyDecryptionShares.map((share) => share.id),
       tallyDecryptionShareMemberIds: uniqueStrings(tallyDecryptionShares.map((share) => share.memberId)),
+      dataUnionPolicyIds: dataUnionPolicies.map((policy) => policy.id),
+      activeDataUnionPolicyId: activeDataUnionPolicy(dataUnionPolicies)?.id ?? null,
+      dataUnionConsentIds: dataUnionConsents.map((consent) => consent.id),
+      dataUnionProductIds: dataUnionProducts.map((product) => product.id),
+      dataUnionAccessGrantIds: dataUnionAccessGrants.map((grant) => grant.id),
+      dataUnionBuyerIds: uniqueStrings(dataUnionAccessGrants.map((grant) => grant.buyerId)),
       policyIds: policies.map((policy) => policy.id),
       archiveRecordIds: archives.map((archive) => archive.id),
       eventIds: events.map((event) => event.id),
@@ -7600,6 +8447,13 @@ function buildCommunityExportProtocol(
       tallyDecryptionShareHashes: tallyDecryptionShares.map((share) => share.shareHash),
       tallyDecryptionShareProofHashes: tallyDecryptionShares.map((share) => share.proofHash),
       tallyDecryptionShareArtifactHashes: tallyDecryptionShares.map((share) => share.artifactHash),
+      dataUnionPolicyHashes: dataUnionPolicies.map((policy) => policy.policyHash),
+      dataUnionPolicyActivationHashes: compactHashArray(dataUnionPolicies.map((policy) => policy.activationHash)),
+      dataUnionConsentHashes: dataUnionConsents.map((consent) => consent.consentHash),
+      dataUnionRevocationHashes: compactHashArray(dataUnionConsents.map((consent) => consent.revokedHash)),
+      dataUnionProductHashes: dataUnionProducts.map((product) => product.dataProductHash),
+      dataUnionProductPrivacyReportHashes: dataUnionProducts.map((product) => product.privacyReportHash),
+      dataUnionAccessHashes: dataUnionAccessGrants.map((grant) => grant.accessHash),
       profileHashes: compactHashArray(profiles.map((profile) => profile.profileHash)),
       communityFollowHashes: communityFollows.map((follow) => follow.followHash),
       topicFollowHashes: topicFollows.map((follow) => follow.followHash),
@@ -7648,6 +8502,13 @@ function buildCommunityExportProtocol(
       activeTallyKeySetup: Boolean(activeTallyKeySetup(tallyKeySetups)),
       tallyDecryptionShareCount: tallyDecryptionShares.length,
       acceptedTallyDecryptionShareCount: tallyDecryptionShares.filter((share) => share.status === "Accepted").length,
+      dataUnionPolicyCount: dataUnionPolicies.length,
+      activeDataUnionPolicy: Boolean(activeDataUnionPolicy(dataUnionPolicies)),
+      dataUnionConsentCount: dataUnionConsents.length,
+      activeDataUnionConsentCount: dataUnionConsents.filter((consent) => consent.status === "Active").length,
+      dataUnionProductCount: dataUnionProducts.length,
+      dataUnionAccessGrantCount: dataUnionAccessGrants.length,
+      dataUnionRevenuePc: dataUnionAccessGrants.reduce((sum, grant) => sum + grant.paymentPc, 0),
       questionCount: questions.length,
       policyCount: policies.length,
       archiveCount: archives.length,
@@ -7662,8 +8523,12 @@ function buildCommunityExportProtocol(
       memberRoles: community.memberships.map((member) => ({ userId: member.userId, role: member.role, status: member.status })),
       challengeAppealModel: "losing-side-appeal-bond",
       jurorSelectionRule: "community-curator-with-no-party-conflict",
-      treasuryAccountingModel: "bond-derived-ledger",
+      treasuryAccountingModel: "bond-and-data-union-ledger",
       treasuryAccountId: treasuryAccountForCommunity(community.id),
+      dataUnionRule: "community-governed opt-in aggregate products with steward-granted buyer access",
+      dataUnionPrivacyBoundary: "raw ballots and identifiable responses are excluded from products and exports",
+      dataUnionParticipantPoolAccountId: participantPoolAccountForCommunity(community.id),
+      dataUnionOperatorPoolAccountId: operatorPoolAccountForCommunity(community.id),
       credentialIssuerAnnotationRule: "non-active credential issuers are annotated on affected questions by credential schema",
       credentialTrustPolicyRule: "active community credential trust policies restrict accepted issuers by credential schema",
       tallyCommitteeRule: "active committee metadata is public before threshold key setup replaces the local coordinator",
@@ -7790,6 +8655,10 @@ function collectCommunityExportArtifactReferences(
   credentialTrustPolicies: CommunityCredentialTrustPolicyView[] = [],
   tallyCommittees: TallyCommitteeView[] = [],
   tallyKeySetups: TallyKeySetupView[] = [],
+  dataUnionPolicies: DataUnionPolicy[] = [],
+  dataUnionConsents: DataUnionConsent[] = [],
+  dataUnionProducts: DataUnionProduct[] = [],
+  dataUnionAccessGrants: DataUnionAccessGrant[] = [],
   moderationRecords: CommunityExportModerationRecordInput[] = [],
   moderationAppeals: CommunityExportModerationAppealInput[] = [],
   challengeAppeals: CommunityExportChallengeAppealInput[] = [],
@@ -7838,6 +8707,24 @@ function collectCommunityExportArtifactReferences(
 
   for (const setup of tallyKeySetups) {
     add("tally-key-setup", setup.setupHash, "tally-key-setup");
+  }
+
+  for (const policy of dataUnionPolicies) {
+    add("data-union-policy", policy.policyHash, "data-union-policy");
+    add("data-union-policy-activation", policy.activationHash, "data-union-policy-activation");
+  }
+
+  for (const consent of dataUnionConsents) {
+    add("data-union-consent", consent.consentHash, "data-union-consent");
+    add("data-union-consent-revocation", consent.revokedHash, "data-union-consent-revocation");
+  }
+
+  for (const product of dataUnionProducts) {
+    add("data-union-product", product.dataProductHash, "data-union-product");
+  }
+
+  for (const grant of dataUnionAccessGrants) {
+    add("data-union-access-grant", grant.accessHash, "data-union-access-grant");
   }
 
   for (const question of questions) {

@@ -105,6 +105,10 @@ model Community {
   credentialTrustPolicies CommunityCredentialTrustPolicy[]
   tallyCommittees       TallyCommittee[]
   tallyKeySetups        TallyKeySetup[]
+  dataUnionPolicies     DataUnionPolicy[]
+  dataUnionConsents     DataUnionConsent[]
+  dataUnionProducts     DataUnionProduct[]
+  dataUnionAccessGrants DataUnionAccessGrant[]
 }
 
 model CommunityMember {
@@ -411,6 +415,107 @@ model Result {
   publishedAt         DateTime @default(now())
   poll                Poll     @relation(fields: [pollId], references: [id])
   resultChallenges    ResultChallenge[]
+  dataUnionProducts   DataUnionProduct[]
+}
+
+model DataUnionPolicy {
+  id                        String              @id
+  communityId               String
+  title                     String
+  purposeHash               String
+  allowedProductTypes       String[]
+  minimumCohortSize         Int                 @default(25)
+  consentRevocationRuleHash String
+  dataRetentionDays         Int                 @default(365)
+  revenueSplitJson          String
+  status                    String              @default("Proposed")
+  policyHash                String
+  activationHash            String?
+  proposedBy                String
+  activatedBy               String?
+  effectiveAt               DateTime?
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @default(now()) @updatedAt
+  community                 Community           @relation(fields: [communityId], references: [id])
+  consents                  DataUnionConsent[]
+  products                  DataUnionProduct[]
+
+  @@index([communityId, status, createdAt])
+  @@index([policyHash])
+}
+
+model DataUnionConsent {
+  id           String          @id
+  communityId  String
+  policyId     String
+  userId       String
+  scope        String          @default("AggregateAnalytics")
+  status       String          @default("Active")
+  consentHash  String
+  revokedHash  String?
+  createdAt    DateTime        @default(now())
+  revokedAt    DateTime?
+  updatedAt    DateTime        @default(now()) @updatedAt
+  community    Community       @relation(fields: [communityId], references: [id])
+  policy       DataUnionPolicy @relation(fields: [policyId], references: [id])
+
+  @@unique([policyId, userId, scope])
+  @@index([communityId, status, createdAt])
+  @@index([userId, status, createdAt])
+}
+
+model DataUnionProduct {
+  id                String                 @id
+  communityId       String
+  policyId          String
+  resultId          String
+  productType       String                 @default("AggregateResultDataset")
+  title             String
+  descriptionHash   String
+  dataProductHash   String
+  privacyReportHash String
+  methodologyHash   String
+  minimumCohortSize Int
+  cohortSize        Int
+  pricePc           Int                    @default(0)
+  status            String                 @default("Published")
+  createdBy         String
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @default(now()) @updatedAt
+  community         Community              @relation(fields: [communityId], references: [id])
+  policy            DataUnionPolicy        @relation(fields: [policyId], references: [id])
+  result            Result                 @relation(fields: [resultId], references: [id])
+  accessGrants      DataUnionAccessGrant[]
+
+  @@index([communityId, status, createdAt])
+  @@index([policyId, status, createdAt])
+  @@index([resultId])
+  @@index([dataProductHash])
+}
+
+model DataUnionAccessGrant {
+  id                String           @id
+  communityId       String
+  productId         String
+  buyerId           String
+  buyerType         String           @default("ApprovedCustomer")
+  purposeHash       String
+  licenseHash       String
+  paymentPc         Int              @default(0)
+  treasuryPc        Int              @default(0)
+  participantPoolPc Int              @default(0)
+  operatorPoolPc    Int              @default(0)
+  accessHash        String
+  status            String           @default("Active")
+  grantedBy         String
+  createdAt         DateTime         @default(now())
+  revokedAt         DateTime?
+  community         Community        @relation(fields: [communityId], references: [id])
+  product           DataUnionProduct @relation(fields: [productId], references: [id])
+
+  @@index([communityId, status, createdAt])
+  @@index([productId, status, createdAt])
+  @@index([buyerId, status, createdAt])
 }
 
 model ResultChallenge {

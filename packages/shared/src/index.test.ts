@@ -224,6 +224,7 @@ describe("public API v0 response contracts", () => {
       "jurorAssignments",
       "governanceParameters",
       "treasuryLedger",
+      "dataUnion",
       "stewardPowers",
       "upgradeSafety",
       "credentialTrustPolicies",
@@ -411,6 +412,7 @@ describe("canonical appchain boundary", () => {
         "AdoptionRegistry",
         "ResultArchive",
         "CredentialRegistry",
+        "DataUnionRegistry",
         "SocialGraph"
       ])
     );
@@ -447,7 +449,8 @@ describe("minimum protocol commitments", () => {
       "ruling",
       "result-hash",
       "adoption-policy",
-      "archive"
+      "archive",
+      "data-union"
     ]);
     for (const commitment of MinimumProtocolCommitments) {
       ProtocolCommitmentSchema.parse(commitment);

@@ -13,6 +13,7 @@ import {
   PublicApiV0CommunityExportResponseSchema,
   PublicApiV0CommunityImportReplayResponseSchema,
   PublicApiV0CommitmentsResponseSchema,
+  PublicApiV0DataUnionResponseSchema,
   PublicApiV0DiscoveryResponseSchema,
   PublicApiV0CredentialTrustPoliciesResponseSchema,
   PublicApiV0GovernanceParametersResponseSchema,
@@ -135,10 +136,10 @@ describe("api", () => {
     PublicApiV0MinimumCommitmentsResponseSchema.parse(commitments.json());
     expect(commitments.json().protocol).toMatchObject({
       schemaVersion: "minimum-commitments-v0",
-      statuses: { commitmentCount: 7 }
+      statuses: { commitmentCount: 8 }
     });
     expect(commitments.json().commitments.map((commitment: { kind: string }) => commitment.kind)).toEqual(
-      expect.arrayContaining(["question-version", "bond", "challenge", "ruling", "result-hash", "adoption-policy", "archive"])
+      expect.arrayContaining(["question-version", "bond", "challenge", "ruling", "result-hash", "adoption-policy", "archive", "data-union"])
     );
     const boundary = await app.inject({ method: "GET", url: "/public/protocol/appchain-boundary" });
     expect(boundary.statusCode).toBe(200);
@@ -152,7 +153,8 @@ describe("api", () => {
         "PollManager",
         "TallyManager",
         "AdoptionRegistry",
-        "ResultArchive"
+        "ResultArchive",
+        "DataUnionRegistry"
       ])
     );
     const readiness = await app.inject({ method: "GET", url: "/public/protocol/testnet-readiness" });
@@ -3029,6 +3031,256 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
     );
   });
 
+  it("runs the data-union MVP lifecycle with consent, aggregate product access, revenue ledger, and revocation", async () => {
+    const initial = await app.inject({ method: "GET", url: "/communities/community-vancouver/data-union" });
+    expect(initial.statusCode).toBe(200);
+    const initialDataUnion = PublicApiV0DataUnionResponseSchema.parse(initial.json());
+    expect(initialDataUnion).toMatchObject({
+      activePolicy: null,
+      policies: [],
+      products: [],
+      protocol: { schemaVersion: "data-union-v0", statuses: { activePolicyStatus: "Missing" } }
+    });
+
+    const blockedPolicy = await app.inject({
+      method: "POST",
+      url: "/communities/community-vancouver/data-union/policies",
+      payload: { steward: "demo-resident", minimumCohortSize: 1 }
+    });
+    expect(blockedPolicy.statusCode).toBe(403);
+
+    const policyProposal = await app.inject({
+      method: "POST",
+      url: "/communities/community-vancouver/data-union/policies",
+      payload: {
+        steward: "demo-curator",
+        title: "Aggregate transit research data union",
+        purpose: "Allow opt-in aggregate transit poll products to be licensed to approved research buyers.",
+        minimumCohortSize: 1,
+        revenueSplit: { communityTreasuryPercent: 60, participantPoolPercent: 30, operatorPoolPercent: 10 }
+      }
+    });
+    expect(policyProposal.statusCode).toBe(200);
+    const policyId = policyProposal.json().policy.id as string;
+    expect(policyProposal.json().policy).toMatchObject({
+      id: policyId,
+      status: "Proposed",
+      minimumCohortSize: 1,
+      revenueSplit: { communityTreasuryPercent: 60, participantPoolPercent: 30, operatorPoolPercent: 10 }
+    });
+    expect(policyProposal.json().policyArtifact.value).toMatchObject({
+      artifactKind: "data-union-policy",
+      schemaVersion: "pc-data-union-policy-v1",
+      policyId,
+      privacyBoundary: "aggregate-products-only-no-raw-ballots"
+    });
+
+    const policyActivation = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/policies/${policyId}/activate`,
+      payload: { steward: "demo-curator", activationRecord: "Community approved the aggregate data-union policy for the MVP." }
+    });
+    expect(policyActivation.statusCode).toBe(200);
+    expect(policyActivation.json().policy).toMatchObject({ id: policyId, status: "Active", activatedBy: "demo-curator" });
+
+    const consent = await app.inject({
+      method: "POST",
+      url: "/communities/community-vancouver/data-union/consents",
+      payload: {
+        userId: "demo-resident",
+        policyId,
+        scope: "AggregateAnalytics",
+        consentStatement: "I opt in to aggregate-only data products for this community."
+      }
+    });
+    expect(consent.statusCode).toBe(200);
+    const consentId = consent.json().consent.id as string;
+    expect(consent.json().consent).toMatchObject({ id: consentId, status: "Active", userId: "demo-resident" });
+    expect(consent.json().consentArtifact.value).toMatchObject({ artifactKind: "data-union-consent", policyId, userId: "demo-resident" });
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/questions",
+      payload: {
+        title: "Should aggregate transit data products fund community operations?",
+        body: "A poll used to prove opt-in aggregate data products can route revenue into community-controlled pools.",
+        sponsorDisclosure: "Demo data-union sponsor",
+        proposer: "demo-proposer"
+      }
+    });
+    expect(created.statusCode).toBe(200);
+    const questionId = created.json().question.id as string;
+    const pollId = created.json().question.poll.id as string;
+    expect((await app.inject({ method: "POST", url: `/questions/${questionId}/accept`, payload: { curator: "demo-curator" } })).statusCode).toBe(200);
+
+    const credential = await app.inject({
+      method: "POST",
+      url: "/credentials/demo-resident",
+      payload: { holderAlias: "demo-resident" }
+    });
+    expect(credential.statusCode).toBe(200);
+    const issued = credential.json().credential;
+    const vote = await app.inject({
+      method: "POST",
+      url: `/polls/${pollId}/vote`,
+      payload: { credentialId: issued.credentialId, credentialSecret: issued.secret, choice: "support" }
+    });
+    expect(vote.statusCode).toBe(200);
+    expect((await app.inject({ method: "POST", url: `/polls/${pollId}/close`, payload: {} })).statusCode).toBe(200);
+    const tally = await app.inject({ method: "POST", url: `/polls/${pollId}/tally`, payload: {} });
+    expect(tally.statusCode).toBe(200);
+    const resultId = tally.json().result.id as string;
+
+    const product = await app.inject({
+      method: "POST",
+      url: "/communities/community-vancouver/data-union/products",
+      payload: {
+        steward: "demo-curator",
+        policyId,
+        resultId,
+        productType: "AggregateResultDataset",
+        title: "Aggregate transit funding signal",
+        description: "Aggregate support/opposition counts and proof references for approved research buyers.",
+        methodology: "Derived only from the published result artifact and tally publication proof.",
+        pricePc: 1000
+      }
+    });
+    expect(product.statusCode).toBe(200);
+    const productId = product.json().product.id as string;
+    expect(product.json().product).toMatchObject({ id: productId, policyId, resultId, cohortSize: 1, pricePc: 1000 });
+    expect(product.json().productArtifact.value).toMatchObject({
+      artifactKind: "data-union-product",
+      privacyReport: expect.objectContaining({ rawBallotsIncluded: false, identifiableResponsesIncluded: false }),
+      aggregateResultReferences: expect.objectContaining({ resultArtifactHash: tally.json().result.resultArtifactHash })
+    });
+    expect(JSON.stringify(product.json().productArtifact.value)).not.toContain("encryptedPayloadJson");
+
+    const grant = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/products/${productId}/access-grants`,
+      payload: {
+        steward: "demo-curator",
+        buyerId: "metro-research-lab",
+        buyerType: "ResearchPartner",
+        accessPurpose: "Model aggregate public-space sentiment without respondent identification.",
+        paymentPc: 1000
+      }
+    });
+    expect(grant.statusCode).toBe(200);
+    const grantId = grant.json().accessGrant.id as string;
+    expect(grant.json().accessGrant).toMatchObject({
+      id: grantId,
+      productId,
+      buyerId: "metro-research-lab",
+      paymentPc: 1000,
+      treasuryPc: 600,
+      participantPoolPc: 300,
+      operatorPoolPc: 100
+    });
+
+    const overview = await app.inject({ method: "GET", url: "/communities/community-vancouver/data-union" });
+    expect(overview.statusCode).toBe(200);
+    const parsedOverview = PublicApiV0DataUnionResponseSchema.parse(overview.json());
+    expect(parsedOverview).toMatchObject({
+      activePolicy: { id: policyId, status: "Active" },
+      policies: [expect.objectContaining({ id: policyId })],
+      consents: [expect.objectContaining({ id: consentId, status: "Active" })],
+      products: [expect.objectContaining({ id: productId })],
+      accessGrants: [expect.objectContaining({ id: grantId })],
+      protocol: {
+        ids: { activePolicyId: policyId, buyerIds: ["metro-research-lab"] },
+        statuses: {
+          activePolicyStatus: "Active",
+          activeConsentCount: 1,
+          totalAccessPaymentPc: 1000,
+          communityTreasuryPc: 600,
+          participantPoolPc: 300,
+          operatorPoolPc: 100
+        }
+      }
+    });
+
+    const ledger = await app.inject({ method: "GET", url: `/communities/community-vancouver/treasury/ledger?questionId=${questionId}` });
+    expect(ledger.statusCode).toBe(200);
+    PublicApiV0TreasuryLedgerResponseSchema.parse(ledger.json());
+    expect(ledger.json()).toMatchObject({
+      protocol: {
+        ids: {
+          dataUnionProductIds: [productId],
+          dataUnionAccessGrantIds: [grantId],
+          accountIds: expect.arrayContaining([
+            "data-buyer:metro-research-lab",
+            "community:community-vancouver:treasury",
+            "community:community-vancouver:data-union:participant-pool",
+            "community:community-vancouver:data-union:operator-pool"
+          ])
+        },
+        statuses: { dataUnionRevenuePc: 1000, participantPoolPc: 300, operatorPoolPc: 100 }
+      },
+      totals: { dataUnionRevenuePc: 1000, participantPoolPc: 300, operatorPoolPc: 100 }
+    });
+    expect(ledger.json().entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ entryType: "DataUnionPayment", direction: "Debit", amountPc: 1000, dataUnionAccessGrantId: grantId }),
+        expect.objectContaining({ entryType: "DataUnionRevenue", accountRole: "CommunityTreasury", amountPc: 600, dataUnionProductId: productId }),
+        expect.objectContaining({ entryType: "ParticipantPoolCredit", amountPc: 300 }),
+        expect.objectContaining({ entryType: "OperatorPoolCredit", amountPc: 100 })
+      ])
+    );
+
+    const dataUnionTransactions = await app.inject({ method: "GET", url: "/registry/protocol-transactions?sourceModule=DataUnionRegistry&limit=20" });
+    expect(dataUnionTransactions.statusCode).toBe(200);
+    PublicApiV0ProtocolTransactionsResponseSchema.parse(dataUnionTransactions.json());
+    expect(dataUnionTransactions.json().transactions.map((transaction: { eventType: string }) => transaction.eventType)).toEqual(
+      expect.arrayContaining([
+        "DataUnionPolicyProposed",
+        "DataUnionPolicyActivated",
+        "DataUnionConsentRecorded",
+        "DataUnionProductPublished",
+        "DataUnionAccessGranted"
+      ])
+    );
+
+    const revoked = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/consents/${consentId}/revoke`,
+      payload: { userId: "demo-resident", revocationReason: "Revoking future aggregate-product participation." }
+    });
+    expect(revoked.statusCode).toBe(200);
+    expect(revoked.json().consent).toMatchObject({ id: consentId, status: "Revoked" });
+
+    const blockedSecondProduct = await app.inject({
+      method: "POST",
+      url: "/communities/community-vancouver/data-union/products",
+      payload: {
+        steward: "demo-curator",
+        policyId,
+        resultId,
+        title: "Blocked aggregate product after revocation",
+        description: "This should fail because active consent no longer meets threshold."
+      }
+    });
+    expect(blockedSecondProduct.statusCode).toBe(409);
+    expect(blockedSecondProduct.json()).toMatchObject({ error: "Data-union product does not meet the policy cohort threshold" });
+
+    const communityExport = await app.inject({ method: "GET", url: "/communities/community-vancouver/export?userId=demo-curator" });
+    expect(communityExport.statusCode).toBe(200);
+    PublicApiV0CommunityExportResponseSchema.parse(communityExport.json());
+    expect(communityExport.json().protocol).toMatchObject({
+      ids: { activeDataUnionPolicyId: policyId, dataUnionProductIds: [productId], dataUnionAccessGrantIds: [grantId] },
+      statuses: { dataUnionPolicyCount: 1, dataUnionConsentCount: 1, dataUnionProductCount: 1, dataUnionAccessGrantCount: 1, dataUnionRevenuePc: 1000 },
+      authority: { dataUnionPrivacyBoundary: "raw ballots and identifiable responses are excluded from products and exports" }
+    });
+    expect(communityExport.json().bundle.manifest.references).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "data-union-policy", hash: policyProposal.json().policyArtifact.hash }),
+        expect.objectContaining({ kind: "data-union-consent-revocation", hash: revoked.json().revocationArtifact.hash }),
+        expect.objectContaining({ kind: "data-union-product", hash: product.json().productArtifact.hash }),
+        expect.objectContaining({ kind: "data-union-access-grant", hash: grant.json().accessArtifact.hash })
+      ])
+    );
+  });
+
   it("publishes steward powers and enforces emergency suspension rules", async () => {
     const powers = await app.inject({ method: "GET", url: "/communities/community-vancouver/steward-powers" });
     expect(powers.statusCode).toBe(200);
@@ -3345,7 +3597,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
           treasuryBalancePc: 5,
           participantNetPc: { "demo-proposer": -100, "demo-challenger": 45 }
         },
-        authority: { accountingModel: "bond-derived-ledger", unit: "PC" }
+        authority: { accountingModel: "bond-and-data-union-ledger", unit: "PC" }
       },
       totals: {
         entryCount: 5,

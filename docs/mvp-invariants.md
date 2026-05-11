@@ -85,6 +85,8 @@ Individual ballot contents must remain private by default.
 - API vote responses must not expose raw encrypted payload JSON.
 - Result APIs must return aggregates and proof/artifact references, not individual choices.
 - Result artifacts must not include credential secrets or private identity evidence.
+- Data-union products must reference published aggregate result artifacts only; they must not include raw ballots, encrypted payloads, credential secrets, or identifiable responses.
+- Data-union product publication must require active member consent count and result turnout to meet the active policy cohort threshold.
 
 Covered by:
 - privacy package tests

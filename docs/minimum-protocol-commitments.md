@@ -13,6 +13,7 @@ This is the MVP commitment set that must be anchored outside the application dat
 | Result hash | Aggregate counts, tally proof, privacy report, turnout, invalid ballots, and final status | `ResultPublished`, `ResultCorrected`, `ResultFinalized` | `result-artifact`, `result-artifact-correction` | `ResultArchive` |
 | Adoption policy | Authority level, quorum rule, approval rule, legal handoff, fork rule, activation, and suspension | `AdoptionPolicyProposed`, `AdoptionPolicyActivated`, `AdoptionPolicySuspended` | `adoption-policy-proposal`, `adoption-policy-activation`, `adoption-policy-suspension` | `AdoptionRegistry` |
 | Archive | Final archive hash, artifact manifest, event snapshot, export bundle, and archived-by authority | `QuestionArchived` | `question-archive`, `artifact-manifest`, `artifact-export-bundle` | `QuestionRegistry` |
+| Data union | Opt-in aggregate data policy, consent, revocation, product, buyer access, and revenue split records | `DataUnionPolicyProposed`, `DataUnionPolicyActivated`, `DataUnionConsentRecorded`, `DataUnionConsentRevoked`, `DataUnionProductPublished`, `DataUnionAccessGranted` | `data-union-policy`, `data-union-policy-activation`, `data-union-consent`, `data-union-consent-revocation`, `data-union-product`, `data-union-access-grant` | `DataUnionRegistry` |
 
 ## Public Contract
 

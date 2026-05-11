@@ -56,7 +56,13 @@ export const ArtifactSchemaVersions = {
   "community-emergency-resolution": "pc-community-emergency-resolution-v1",
   "adoption-policy-proposal": "pc-adoption-policy-proposal-v1",
   "adoption-policy-activation": "pc-adoption-policy-activation-v1",
-  "adoption-policy-suspension": "pc-adoption-policy-suspension-v1"
+  "adoption-policy-suspension": "pc-adoption-policy-suspension-v1",
+  "data-union-policy": "pc-data-union-policy-v1",
+  "data-union-policy-activation": "pc-data-union-policy-activation-v1",
+  "data-union-consent": "pc-data-union-consent-v1",
+  "data-union-consent-revocation": "pc-data-union-consent-revocation-v1",
+  "data-union-product": "pc-data-union-product-v1",
+  "data-union-access-grant": "pc-data-union-access-grant-v1"
 } as const;
 
 export type ArtifactKind = keyof typeof ArtifactSchemaVersions;
