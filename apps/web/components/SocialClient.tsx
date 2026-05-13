@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { BuiltInAnswerSchemas } from "@pc/shared";
+import { BuiltInAnswerSchemas, type AnswerSchema, type BallotResponse } from "@pc/shared";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -73,6 +73,7 @@ type Question = {
     id: string;
     status: string;
     result?: { turnout: number; resultArtifactHash: string; finalStatus?: string } | null;
+    resultChallenges?: Array<{ id: string; reasonCode: string; ruling: string; challenger: string }>;
   } | null;
   challenges: Array<{ id: string; reasonCode: string; ruling: string; challenger: string }>;
 };
@@ -114,6 +115,15 @@ const emptyQuestion = {
   body: "",
   sponsorDisclosure: "",
   answerSchemaId: "answer-binary-support-oppose"
+};
+
+const emptyResponseDraft = {
+  choices: [] as string[],
+  ranking: {} as Record<string, number>,
+  scaleValue: 0,
+  allocations: {} as Record<string, number>,
+  text: "",
+  numericValue: 0
 };
 
 type AuthPayload = {
@@ -209,6 +219,25 @@ function checkStatus(check: Record<string, unknown>) {
   if (typeof check.passed === "boolean") return check.passed ? "Passed" : "Needs review";
   if (typeof check.status === "string") return check.status;
   return "Recorded";
+}
+
+function buildDraftResponse(answerSchema: AnswerSchema, draft: typeof emptyResponseDraft): BallotResponse {
+  if (answerSchema.responseShape === "MultipleChoice") return { type: "multiple_choice", choices: draft.choices };
+  if (answerSchema.responseShape === "RankedChoice") {
+    const ranking = answerSchema.options
+      .map((option) => ({ id: option.id, rank: draft.ranking[option.id] ?? 0 }))
+      .filter((item) => item.rank > 0)
+      .sort((left, right) => left.rank - right.rank)
+      .map((item) => item.id);
+    return { type: "ranked_choice", ranking };
+  }
+  if (answerSchema.responseShape === "Scale") {
+    return { type: "scale", value: draft.scaleValue || answerSchema.validationRules.minValue || 1 };
+  }
+  if (answerSchema.responseShape === "BudgetAllocation") return { type: "budget_allocation", allocations: draft.allocations };
+  if (answerSchema.responseShape === "Numeric") return { type: "numeric", value: draft.numericValue };
+  if (answerSchema.responseShape === "FreeText") return { type: "free_text", text: draft.text };
+  return { type: "single_choice", choice: answerSchema.options[0]?.id ?? "abstain" };
 }
 
 async function apiCall<T>(path: string, init?: RequestInit): Promise<T> {
@@ -813,6 +842,8 @@ export function FeedPageClient() {
   const [discussionDraft, setDiscussionDraft] = useState("");
   const [composeCommunityId, setComposeCommunityId] = useState("");
   const [questionDraft, setQuestionDraft] = useState(emptyQuestion);
+  const [responseDraft, setResponseDraft] = useState(emptyResponseDraft);
+  const [credential, setCredential] = useState<{ credentialId: string; credentialSecret: string } | null>(null);
   const [civicRecord, setCivicRecord] = useState<CivicRecord | null>(null);
   const [replayCheck, setReplayCheck] = useState<ReplayCheck | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -824,11 +855,56 @@ export function FeedPageClient() {
     () => data.questions.find((question) => question.id === selectedQuestionId) ?? data.questions[0] ?? null,
     [data.questions, selectedQuestionId]
   );
+  const activeAnswerSchema = useMemo(
+    () => BuiltInAnswerSchemas.find((schema) => schema.answerSchemaId === selectedQuestion?.answerSchemaId) ?? BuiltInAnswerSchemas[0],
+    [selectedQuestion?.answerSchemaId]
+  );
   const composeCommunity =
     data.communities.find((community) => community.id === composeCommunityId) ??
     data.communities.find((community) => community.id === "community-vancouver") ??
     data.communities[0] ??
     null;
+  const selectedQuestionCommunity = selectedQuestion?.community ?? data.selectedCommunity;
+  const pollStatus = selectedQuestion?.poll?.status ?? "Configured";
+  const pendingChallenge = selectedQuestion?.challenges.find((challenge) => challenge.ruling === "Pending") ?? null;
+  const pendingResultChallenge = selectedQuestion?.poll?.resultChallenges?.find((challenge) => challenge.ruling === "Pending") ?? null;
+  const isPollOpen = pollStatus === "Open";
+  const isActiveUserProposer = Boolean(selectedQuestion && data.activeUser?.id === selectedQuestion.proposer);
+  const isActiveUserChallenger = Boolean(pendingChallenge && data.activeUser?.id === pendingChallenge.challenger);
+  const canCurateSelectedQuestion = ["Owner", "Moderator"].includes(selectedQuestionCommunity?.activeUserRole ?? "");
+  const canChallengeQuestion = Boolean(
+    selectedQuestion && data.activeUser && !isActiveUserProposer && ["Submitted", "Challenged", "Accepted"].includes(selectedQuestion.status)
+  );
+  const canRuleChallenge = Boolean(
+    pendingChallenge && data.activeUser && canCurateSelectedQuestion && !isActiveUserProposer && !isActiveUserChallenger
+  );
+  const canAcceptQuestion = Boolean(
+    selectedQuestion?.poll &&
+      data.activeUser &&
+      canCurateSelectedQuestion &&
+      !isActiveUserProposer &&
+      pollStatus === "Configured" &&
+      ["Submitted", "Accepted"].includes(selectedQuestion.status) &&
+      !pendingChallenge
+  );
+  const canCloseAndTally = Boolean(selectedQuestion?.poll && isPollOpen);
+  const canChallengeResult = Boolean(selectedQuestion?.poll?.result && data.activeUser && !pendingResultChallenge);
+  const canRuleResultChallenge = Boolean(pendingResultChallenge && data.activeUser && canCurateSelectedQuestion);
+  const canFinalizeAndArchive = Boolean(
+    selectedQuestion?.poll?.result &&
+      !pendingResultChallenge &&
+      canCurateSelectedQuestion &&
+      ["Published", "Corrected"].includes(selectedQuestion.poll.result.finalStatus ?? "Published")
+  );
+  const ballotDisabledReason = selectedQuestion?.poll
+    ? !isPollOpen
+      ? pollStatus === "Configured"
+        ? "Voting opens after registry acceptance."
+        : `Voting is disabled while the poll is ${formatStatus(pollStatus)}.`
+      : credential
+      ? ""
+      : "Issue a demo resident credential before submitting an encrypted ballot."
+    : "This question does not have a poll yet.";
   const canPost = Boolean(
     data.activeUser &&
       composeCommunity &&
@@ -977,6 +1053,218 @@ export function FeedPageClient() {
     const payload = await apiCall<{ discussion: DiscussionPost[] }>(`/questions/${selectedQuestion.id}/discussion?${params.toString()}`);
     setDiscussion(payload.discussion ?? []);
     await data.refresh(data.activeUser.id, data.selectedCommunityId);
+  }
+
+  async function runCivicAction(action: () => Promise<void>) {
+    setPending(true);
+    try {
+      await action();
+    } catch (actionError) {
+      data.setMessage(actionError instanceof Error ? actionError.message : "Action failed");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function refreshSelectedQuestion() {
+    await data.refresh(data.activeUser?.id ?? data.activeUserId, data.selectedCommunityId);
+  }
+
+  async function challengeQuestion() {
+    if (!selectedQuestion || !data.activeUser) return;
+    const payload = await apiCall<{ stakedPc: string }>(`/questions/${selectedQuestion.id}/challenges`, {
+      method: "POST",
+      body: JSON.stringify({ challenger: data.activeUser.id })
+    });
+    data.setMessage(`Challenge opened with ${payload.stakedPc} PC stake.`);
+    await refreshSelectedQuestion();
+  }
+
+  async function ruleChallenge(ruling: "Rejected" | "Sustained") {
+    if (!selectedQuestion || !pendingChallenge || !data.activeUser) return;
+    await apiCall(`/questions/${selectedQuestion.id}/challenges/${pendingChallenge.id}/ruling`, {
+      method: "POST",
+      body: JSON.stringify({
+        ruling,
+        juror: data.activeUser.id,
+        resolution:
+          ruling === "Sustained"
+            ? "The challenge is sustained from the social client review panel."
+            : "The challenge is rejected from the social client review panel."
+      })
+    });
+    data.setMessage(ruling === "Sustained" ? "Challenge sustained." : "Challenge rejected.");
+    await refreshSelectedQuestion();
+  }
+
+  async function acceptQuestion() {
+    if (!selectedQuestion || !data.activeUser) return;
+    await apiCall(`/questions/${selectedQuestion.id}/accept`, {
+      method: "POST",
+      body: JSON.stringify({ curator: data.activeUser.id })
+    });
+    data.setMessage("Question accepted and poll opened.");
+    await refreshSelectedQuestion();
+  }
+
+  async function issueCredential() {
+    if (!data.activeUser) return;
+    const payload = await apiCall<{ credential: { credentialId: string; secret: string } }>("/credentials/demo-resident", {
+      method: "POST",
+      body: JSON.stringify({
+        holderAlias: data.activeUser.id,
+        schemaId: selectedQuestionCommunity?.credentialSchemaId ?? undefined
+      })
+    });
+    setCredential({ credentialId: payload.credential.credentialId, credentialSecret: payload.credential.secret });
+    data.setMessage("Demo resident credential issued for encrypted voting.");
+  }
+
+  async function vote(response: BallotResponse, label: string) {
+    if (!selectedQuestion?.poll || !credential) return;
+    await apiCall(`/polls/${selectedQuestion.poll.id}/vote`, {
+      method: "POST",
+      body: JSON.stringify({ ...credential, response })
+    });
+    setResponseDraft(emptyResponseDraft);
+    data.setMessage(`Encrypted ${label} ballot accepted.`);
+    await refreshSelectedQuestion();
+  }
+
+  async function submitDraftResponse() {
+    await vote(buildDraftResponse(activeAnswerSchema, responseDraft), activeAnswerSchema.label.toLowerCase());
+  }
+
+  async function closeAndTally() {
+    if (!selectedQuestion?.poll) return;
+    await apiCall(`/polls/${selectedQuestion.poll.id}/close`, { method: "POST", body: "{}" });
+    await apiCall(`/polls/${selectedQuestion.poll.id}/tally`, { method: "POST", body: "{}" });
+    data.setMessage("Poll closed and aggregate result artifact published.");
+    await refreshSelectedQuestion();
+  }
+
+  async function challengeResult() {
+    if (!selectedQuestion?.poll || !data.activeUser) return;
+    const payload = await apiCall<{ stakedPc: string }>(`/polls/${selectedQuestion.poll.id}/results/challenges`, {
+      method: "POST",
+      body: JSON.stringify({
+        challenger: data.activeUser.id,
+        reasonCode: "PrivacyThresholdViolation",
+        evidence: "Review the published privacy report before finalization."
+      })
+    });
+    data.setMessage(`Result challenge opened with ${payload.stakedPc} PC stake.`);
+    await refreshSelectedQuestion();
+  }
+
+  async function ruleResultChallenge(ruling: "Rejected" | "Sustained") {
+    if (!selectedQuestion?.poll || !pendingResultChallenge || !data.activeUser) return;
+    await apiCall(`/polls/${selectedQuestion.poll.id}/results/challenges/${pendingResultChallenge.id}/ruling`, {
+      method: "POST",
+      body: JSON.stringify({
+        ruling,
+        juror: data.activeUser.id,
+        resolution:
+          ruling === "Sustained"
+            ? "Privacy review sustained from the social client review panel."
+            : "Privacy review rejected from the social client review panel."
+      })
+    });
+    data.setMessage(ruling === "Sustained" ? "Result challenge sustained." : "Result challenge rejected.");
+    await refreshSelectedQuestion();
+  }
+
+  async function finalizeAndArchive() {
+    if (!selectedQuestion?.poll || !data.activeUser) return;
+    await apiCall(`/polls/${selectedQuestion.poll.id}/finalize`, { method: "POST", body: JSON.stringify({ curator: data.activeUser.id }) });
+    await apiCall(`/questions/${selectedQuestion.id}/archive`, { method: "POST", body: JSON.stringify({ curator: data.activeUser.id }) });
+    data.setMessage("Result finalized and public archive published.");
+    await refreshSelectedQuestion();
+  }
+
+  function renderBallotControls() {
+    const disabled = Boolean(ballotDisabledReason) || pending;
+    if (!selectedQuestion?.poll) return null;
+    if (activeAnswerSchema.responseShape === "SingleChoice") {
+      return (
+        <>
+          {activeAnswerSchema.options.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => void runCivicAction(() => vote({ type: "single_choice", choice: option.id }, option.label.toLowerCase()))}
+              disabled={disabled}
+              title={ballotDisabledReason || undefined}
+            >
+              Vote {option.label.toLowerCase()}
+            </button>
+          ))}
+          {activeAnswerSchema.allowsAbstain ? (
+            <button
+              type="button"
+              onClick={() => void runCivicAction(() => vote({ type: "single_choice", choice: "abstain" }, "abstain"))}
+              disabled={disabled}
+              title={ballotDisabledReason || undefined}
+            >
+              Vote abstain
+            </button>
+          ) : null}
+        </>
+      );
+    }
+    if (activeAnswerSchema.responseShape === "MultipleChoice") {
+      return (
+        <div className="ballot-control">
+          {activeAnswerSchema.options.map((option) => (
+            <label key={option.id}>
+              <input
+                type="checkbox"
+                checked={responseDraft.choices.includes(option.id)}
+                onChange={(event) =>
+                  setResponseDraft((current) => ({
+                    ...current,
+                    choices: event.target.checked ? [...current.choices, option.id] : current.choices.filter((choice) => choice !== option.id)
+                  }))
+                }
+                disabled={disabled}
+              />
+              {option.label}
+            </label>
+          ))}
+          <button type="button" onClick={() => void runCivicAction(submitDraftResponse)} disabled={disabled}>
+            Submit response
+          </button>
+        </div>
+      );
+    }
+    if (activeAnswerSchema.responseShape === "Scale") {
+      const min = activeAnswerSchema.validationRules.minValue ?? 1;
+      const max = activeAnswerSchema.validationRules.maxValue ?? 5;
+      const values = Array.from({ length: max - min + 1 }, (_, index) => min + index);
+      return (
+        <>
+          {values.map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => void runCivicAction(() => vote({ type: "scale", value }, String(value)))}
+              disabled={disabled}
+              title={ballotDisabledReason || undefined}
+            >
+              {value}
+            </button>
+          ))}
+        </>
+      );
+    }
+    return (
+      <div className="ballot-control compact">
+        <small>{activeAnswerSchema.label}</small>
+        <button type="button" onClick={() => void runCivicAction(submitDraftResponse)} disabled={disabled} title={ballotDisabledReason || undefined}>
+          Submit default response
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -1178,6 +1466,71 @@ export function FeedPageClient() {
               </div>
             </dl>
             <CivicAuditPanel record={civicRecord} replay={replayCheck} loading={auditLoading} message={auditMessage} />
+            <details className="civic-actions-panel" open>
+              <summary>
+                <span>Civic Actions</span>
+                <small>{data.activeUser ? `Acting as ${data.activeUser.displayName}` : "Sign in to act"}</small>
+              </summary>
+              <div className="action-groups">
+                <section className="action-group">
+                  <div className="group-heading">
+                    <h3>Registry Review</h3>
+                    <p>Challenge wording, resolve review, or accept a ready question into voting.</p>
+                  </div>
+                  <div className="actions">
+                    <button type="button" onClick={() => void runCivicAction(challengeQuestion)} disabled={!canChallengeQuestion || pending}>
+                      Open challenge
+                    </button>
+                    <button type="button" onClick={() => void runCivicAction(() => ruleChallenge("Rejected"))} disabled={!canRuleChallenge || pending}>
+                      Reject challenge
+                    </button>
+                    <button type="button" onClick={() => void runCivicAction(() => ruleChallenge("Sustained"))} disabled={!canRuleChallenge || pending}>
+                      Sustain challenge
+                    </button>
+                    <button type="button" onClick={() => void runCivicAction(acceptQuestion)} disabled={!canAcceptQuestion || pending}>
+                      Accept and open
+                    </button>
+                  </div>
+                  {pendingChallenge ? <small className="action-hint">Pending challenge: {pendingChallenge.reasonCode}</small> : null}
+                </section>
+
+                <section className="action-group">
+                  <div className="group-heading">
+                    <h3>Private Ballot</h3>
+                    <p>{credential ? `Credential ready: ${credential.credentialId}` : "Issue a demo credential, then cast an encrypted ballot."}</p>
+                  </div>
+                  <div className="actions ballot-actions">
+                    <button type="button" onClick={() => void runCivicAction(issueCredential)} disabled={!data.activeUser || pending}>
+                      Issue credential
+                    </button>
+                    {renderBallotControls()}
+                  </div>
+                  {ballotDisabledReason ? <small className="action-hint">{ballotDisabledReason}</small> : null}
+                </section>
+
+                <section className="action-group">
+                  <div className="group-heading">
+                    <h3>Results</h3>
+                    <p>Close the poll, publish aggregate artifacts, handle challenges, then archive.</p>
+                  </div>
+                  <div className="actions">
+                    <button type="button" onClick={() => void runCivicAction(closeAndTally)} disabled={!canCloseAndTally || pending}>
+                      Close and tally
+                    </button>
+                    <button type="button" onClick={() => void runCivicAction(challengeResult)} disabled={!canChallengeResult || pending}>
+                      Challenge result
+                    </button>
+                    <button type="button" onClick={() => void runCivicAction(() => ruleResultChallenge("Rejected"))} disabled={!canRuleResultChallenge || pending}>
+                      Reject result challenge
+                    </button>
+                    <button type="button" onClick={() => void runCivicAction(finalizeAndArchive)} disabled={!canFinalizeAndArchive || pending}>
+                      Finalize and archive
+                    </button>
+                  </div>
+                  {pendingResultChallenge ? <small className="action-hint">Result challenge pending: {pendingResultChallenge.reasonCode}</small> : null}
+                </section>
+              </div>
+            </details>
             <section className="thread-panel">
               <div className="rail-heading">
                 <h3>Thread</h3>

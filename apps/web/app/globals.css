@@ -754,6 +754,44 @@ h3 {
   font-weight: 700;
 }
 
+.civic-actions-panel {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  margin-top: 16px;
+}
+
+.civic-actions-panel summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.civic-actions-panel summary small {
+  color: var(--muted);
+  font-weight: 650;
+  text-align: right;
+}
+
+.civic-actions-panel[open] summary {
+  margin-bottom: 14px;
+}
+
+.civic-actions-panel .actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.civic-actions-panel .ballot-control {
+  grid-column: 1 / -1;
+}
+
+.civic-actions-panel .ballot-control.compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .workflow-summary h3 {
   font-size: 20px;
 }
