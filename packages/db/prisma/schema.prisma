@@ -74,6 +74,8 @@ model UserAccount {
   username    String            @unique
   profileId   String?           @unique
   profileHash String?
+  smartAccountAddress String?    @unique
+  smartAccountKind    String     @default("LocalDemo")
   displayName String
   bio         String?
   reputation  Int               @default(0)
@@ -81,8 +83,75 @@ model UserAccount {
   memberships CommunityMember[]
   communityFollows CommunityFollow[]
   topicFollows     TopicFollow[]
+  authControllers AuthController[]
+  authSessions    AuthSession[]
 
   @@index([profileHash])
+  @@index([smartAccountAddress])
+}
+
+model AuthController {
+  id                  String      @id
+  userId              String
+  kind                String
+  label               String
+  credentialId        String?     @unique
+  publicKeyCose       String?
+  walletAddress       String?
+  aaAccountAddress    String
+  aaAccountKind       String      @default("erc-4337-counterfactual-v0")
+  aaEntryPointAddress String?
+  aaFactoryAddress    String?
+  aaPaymasterAddress  String?
+  aaSalt              String?
+  aaInitCode          String?
+  passkeyPublicKeyX   String?
+  passkeyPublicKeyY   String?
+  signatureScheme     String
+  counter             Int         @default(0)
+  createdAt           DateTime    @default(now())
+  lastUsedAt          DateTime?
+  user                UserAccount @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([walletAddress])
+  @@index([aaAccountAddress])
+}
+
+model AuthChallenge {
+  id          String   @id
+  kind        String
+  challenge   String   @unique
+  userId      String?
+  username    String?
+  displayName String?
+  bio         String?
+  walletAddress String?
+  aaAccountAddress String?
+  aaAccountKind    String?
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([kind, expiresAt])
+  @@index([userId])
+  @@index([walletAddress])
+}
+
+model AuthSession {
+  id                  String      @id
+  userId              String
+  tokenHash           String      @unique
+  aaAccountAddress    String
+  controllerId        String?
+  expiresAt           DateTime
+  createdAt           DateTime    @default(now())
+  lastUsedAt          DateTime    @default(now())
+  user                UserAccount @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([aaAccountAddress])
 }
 
 model Community {

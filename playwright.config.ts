@@ -6,7 +6,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   use: {
-    baseURL: "http://localhost:3001",
+    baseURL: "http://127.0.0.1:3001",
     trace: "on-first-retry"
   },
   projects: [
@@ -17,14 +17,14 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "pnpm --filter @pc/api start",
-      url: "http://localhost:4000/health",
+      command: "DATABASE_URL=postgresql://pc:pc@127.0.0.1:5432/popular_consensus pnpm --filter @pc/api start",
+      url: "http://127.0.0.1:4000/health",
       reuseExistingServer: true,
       timeout: 120_000
     },
     {
       command: "pnpm --filter @pc/web start:e2e",
-      url: "http://localhost:3001",
+      url: "http://127.0.0.1:3001",
       reuseExistingServer: true,
       timeout: 120_000
     }

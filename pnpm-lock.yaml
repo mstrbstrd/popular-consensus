@@ -50,6 +50,9 @@ importers:
       nanoid:
         specifier: ^5.1.6
         version: 5.1.9
+      viem:
+        specifier: ^2.39.3
+        version: 2.48.4(typescript@5.9.3)(zod@4.3.6)
       zod:
         specifier: ^4.1.13
         version: 4.3.6

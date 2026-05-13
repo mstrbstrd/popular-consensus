@@ -96,10 +96,10 @@ async function switchAccount(page: Page, label: string) {
 }
 
 test("shows the transit advisory poll demo", async ({ page, request }) => {
-  await request.post("http://localhost:4000/dev/reset");
-  await page.goto("/");
+  await request.post("http://127.0.0.1:4000/dev/reset");
+  await page.goto("/testing");
   const detail = page.locator(".detail");
-  await expect(page.getByRole("heading", { name: "Civic Communities" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Community Feed" })).toBeVisible();
   await expect(page.locator(".sidebar").getByRole("button", { name: /p\/vancouver-transit/ })).toBeVisible();
   await expect(page.locator(".community-hero .statusline").getByText("Advisory", { exact: true })).toBeVisible();
   await expect(detail.getByText("Poll Configured", { exact: true })).toBeVisible();
@@ -109,8 +109,8 @@ test("shows the transit advisory poll demo", async ({ page, request }) => {
 });
 
 test("runs the transit poll flow and handles duplicate voting in the UI", async ({ page, request }) => {
-  await request.post("http://localhost:4000/dev/reset");
-  await page.goto("/");
+  await request.post("http://127.0.0.1:4000/dev/reset");
+  await page.goto("/testing");
   const detail = page.locator(".detail");
   await expect(detail.getByText("Poll Configured", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Load result" })).toBeDisabled();
@@ -168,8 +168,8 @@ test("runs the transit poll flow and handles duplicate voting in the UI", async 
 });
 
 test("creates a local account, private community, and proposed question", async ({ page, request }) => {
-  await request.post("http://localhost:4000/dev/reset");
-  await page.goto("/");
+  await request.post("http://127.0.0.1:4000/dev/reset");
+  await page.goto("/testing");
   const detail = page.locator(".detail");
 
   await page.getByLabel("Username").fill("local_builder");
@@ -203,7 +203,7 @@ test("creates a local account, private community, and proposed question", async 
   await expect(page.getByRole("button", { name: /Should the assembly adopt rotating facilitation/ })).toBeVisible();
   await expect(detail.getByText("Poll Configured", { exact: true })).toBeVisible();
 
-  await page.getByLabel("Account").selectOption({ label: "Demo Resident" });
+  await page.getByLabel("Account").selectOption("demo-resident");
   await expect(page.locator(".message").getByText("Join this private community to view its questions")).toBeVisible();
   await expect(page.getByRole("button", { name: "Submit question with PC stake" })).toBeDisabled();
   await expect(page.getByText("Join this private community before proposing a question.")).toBeVisible();
@@ -214,10 +214,40 @@ test("creates a local account, private community, and proposed question", async 
   await expect(page.getByRole("button", { name: /Should the assembly adopt rotating facilitation/ })).toBeVisible();
 });
 
+test("routes the social client pages around the testing hub", async ({ page, request }) => {
+  await request.post("http://127.0.0.1:4000/dev/reset");
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /Public opinion infrastructure/ })).toBeVisible();
+  await page.getByRole("link", { name: "Open feed" }).click();
+  await expect(page).toHaveURL(/\/feed$/);
+  await expect(page.getByRole("heading", { name: "Community Feed" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Should Vancouver pilot car-free Sundays/ })).toBeVisible();
+
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with passkey" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with wallet" })).toBeVisible();
+
+  await page.goto("/signup");
+  await page.getByLabel("Username").fill("route_builder");
+  await page.getByLabel("Display name").fill("Route Builder");
+  await page.getByLabel("Bio").fill("Testing the social client routes.");
+  await expect(page.getByRole("button", { name: "Create with passkey" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create with wallet" })).toBeVisible();
+
+  await page.goto("/account");
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await expect(page.locator(".account-session-panel").getByRole("link", { name: "Log in" })).toBeVisible();
+
+  await page.goto("/testing");
+  await expect(page.locator(".detail").getByText("Poll Configured", { exact: true })).toBeVisible();
+});
+
 for (const [index, formatCase] of formatCases.entries()) {
   test(`renders and submits ${formatCase.label} in the UI`, async ({ page, request }) => {
-    await request.post("http://localhost:4000/dev/reset");
-    await page.goto("/");
+    await request.post("http://127.0.0.1:4000/dev/reset");
+    await page.goto("/testing");
     const detail = page.locator(".detail");
     const title = `UI format coverage ${index + 1}: ${formatCase.label}`;
 

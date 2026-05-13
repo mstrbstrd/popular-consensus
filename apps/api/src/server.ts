@@ -1,5 +1,6 @@
 import cors from "@fastify/cors";
 import { pathToFileURL } from "node:url";
+import { getAddress, verifyMessage, type Hex } from "viem";
 import {
   buildArtifactManifest,
   createFileArtifactStorage,
@@ -70,9 +71,17 @@ import {
   SetCommunityCredentialTrustPolicyRequestSchema,
   SetCommunityFrontendConfigRequestSchema,
   SetupTallyPublicKeyRequestSchema,
+  StartPasskeyDeploymentRequestSchema,
+  StartPasskeyLoginRequestSchema,
+  StartPasskeyRegistrationRequestSchema,
+  StartWalletAuthRequestSchema,
   SubmitTallyDecryptionShareRequestSchema,
   SuspendCredentialIssuerRequestSchema,
   SuspendAdoptionPolicyRequestSchema,
+  VerifyPasskeyDeploymentRequestSchema,
+  VerifyPasskeyLoginRequestSchema,
+  VerifyPasskeyRegistrationRequestSchema,
+  VerifyWalletAuthRequestSchema,
   VoteRequestSchema,
   choiceToBallotResponse,
   getAnswerSchema,
@@ -113,8 +122,31 @@ import {
 } from "@pc/privacy";
 import Fastify, { type FastifyReply } from "fastify";
 import { nanoid } from "nanoid";
+import {
+  attachPasskeySignature,
+  attachWalletSignature,
+  fromBundlerUserOperation,
+  getLocalUserOpHash,
+  predictSmartAccount,
+  prepareDeploymentUserOperation,
+  submitLocalUserOperation,
+  submitUserOperation,
+  type SerializedUserOperation,
+  type SmartAccountPrediction
+} from "./aa";
+import {
+  base64UrlEncode,
+  buildWalletAuthMessage,
+  hashSessionToken,
+  newAuthChallenge,
+  newSessionToken,
+  parsePasskeyAssertion,
+  parsePasskeyAttestation,
+  verifyPasskeySignature
+} from "./auth";
 import { config } from "./config";
 import { ensureSeedData, resetDemoData } from "./seed";
+import type { FastifyRequest } from "fastify";
 
 const DEFAULT_GOVERNANCE = {
   proposalBondPc: 100,
@@ -274,6 +306,7 @@ export function buildServer() {
 
   app.post("/credential-schemas", async (request, reply) => {
     const input = CreateCredentialSchemaRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.steward))) return;
     const steward = await prisma.userAccount.findUnique({ where: { id: input.steward } });
     if (!steward) return reply.code(404).send({ error: "Steward account not found" });
 
@@ -328,6 +361,7 @@ export function buildServer() {
 
   app.post("/credential-issuers", async (request, reply) => {
     const input = CreateCredentialIssuerRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.steward))) return;
     const steward = await prisma.userAccount.findUnique({ where: { id: input.steward } });
     if (!steward) return reply.code(404).send({ error: "Steward account not found" });
     const activeSchemas = await prisma.credentialSchema.findMany({
@@ -378,6 +412,7 @@ export function buildServer() {
   app.post("/credential-issuers/:issuerId/suspend", async (request, reply) => {
     const { issuerId } = request.params as { issuerId: string };
     const input = SuspendCredentialIssuerRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.steward))) return;
     const steward = await prisma.userAccount.findUnique({ where: { id: input.steward } });
     if (!steward) return reply.code(404).send({ error: "Steward account not found" });
     const issuer = await prisma.credentialIssuer.findUnique({ where: { id: issuerId } });
@@ -409,6 +444,7 @@ export function buildServer() {
   app.post("/credentials/:credentialId/revoke", async (request, reply) => {
     const { credentialId } = request.params as { credentialId: string };
     const input = RevokeCredentialRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.steward))) return;
     const [steward, credential] = await Promise.all([
       prisma.userAccount.findUnique({ where: { id: input.steward } }),
       prisma.credential.findUnique({ where: { id: credentialId } })
@@ -494,6 +530,9 @@ export function buildServer() {
   });
 
   app.post("/users", async (request, reply) => {
+    if (config.requireAuth) {
+      return reply.code(410).send({ error: "Use account-abstraction signup for authenticated accounts" });
+    }
     const input = CreateUserRequestSchema.parse(request.body ?? {});
     const username = input.username.toLowerCase();
     const userId = `user-${username}`;
@@ -538,6 +577,513 @@ export function buildServer() {
       return { user, profileArtifact };
     } catch {
       return reply.code(409).send({ error: "Username is already taken" });
+    }
+  });
+
+  app.get("/auth/session", async (request, reply) => {
+    const session = await readAuthSession(request);
+    if (!session) return reply.code(401).send({ error: "Authentication required" });
+    return {
+      user: session.user,
+      session: {
+        id: session.id,
+        expiresAt: session.expiresAt,
+        aaAccountAddress: session.aaAccountAddress,
+        controllerId: session.controllerId
+      }
+    };
+  });
+
+  app.get("/auth/aa/config", async () => ({
+    accountStandard: "erc-4337-local-v1",
+    ready: Boolean(config.accountAbstraction.entryPoint && config.accountAbstraction.accountFactory),
+    chainId: config.accountAbstraction.chainId,
+    rpcUrl: config.accountAbstraction.rpcUrl,
+    bundlerUrl: config.accountAbstraction.bundlerUrl,
+    entryPoint: config.accountAbstraction.entryPoint,
+    accountFactory: config.accountAbstraction.accountFactory,
+    paymaster: config.accountAbstraction.paymaster,
+    p256Verifier: config.accountAbstraction.p256Verifier
+  }));
+
+  app.post("/auth/aa/bundler", async (request, reply) => {
+    const body = (request.body ?? {}) as {
+      jsonrpc?: unknown;
+      id?: unknown;
+      method?: unknown;
+      params?: unknown;
+    };
+    const id = body.id ?? null;
+    const fail = (code: number, message: string) => ({ jsonrpc: "2.0", id, error: { code, message } });
+
+    if (body.jsonrpc !== "2.0") return reply.code(400).send(fail(-32600, "Invalid JSON-RPC version"));
+    if (body.method !== "eth_sendUserOperation") return reply.code(404).send(fail(-32601, "Method not found"));
+    if (!Array.isArray(body.params) || body.params.length < 2) return reply.code(400).send(fail(-32602, "Invalid params"));
+    if (!config.accountAbstraction.entryPoint) return reply.code(503).send(fail(-32000, "EntryPoint deployment is not configured"));
+
+    let entryPoint: ReturnType<typeof getAddress>;
+    let userOperation: SerializedUserOperation;
+    try {
+      entryPoint = getAddress(String(body.params[1]));
+      if (entryPoint.toLowerCase() !== config.accountAbstraction.entryPoint.toLowerCase()) {
+        return reply.code(400).send(fail(-32602, "EntryPoint does not match this bundler"));
+      }
+      userOperation = fromBundlerUserOperation(body.params[0] as Parameters<typeof fromBundlerUserOperation>[0]);
+    } catch (error) {
+      return reply.code(400).send(fail(-32602, error instanceof Error ? error.message : "Invalid UserOperation"));
+    }
+
+    const userOperationHash = getLocalUserOpHash(userOperation, entryPoint, config.accountAbstraction.chainId);
+    const aaExecution = await submitLocalUserOperation(userOperation, { ...config.accountAbstraction, bundlerUrl: null }).catch((error) => ({
+      error: error instanceof Error ? error.message : "UserOperation submission failed"
+    }));
+    if ("error" in aaExecution) return reply.code(502).send(fail(-32000, aaExecution.error));
+    return { jsonrpc: "2.0", id, result: userOperationHash };
+  });
+
+  app.post("/auth/logout", async (request) => {
+    const token = readBearerToken(request);
+    if (token) await prisma.authSession.deleteMany({ where: { tokenHash: hashSessionToken(token) } });
+    return { ok: true };
+  });
+
+  app.post("/auth/passkey/register/options", async (request, reply) => {
+    const input = StartPasskeyRegistrationRequestSchema.parse(request.body ?? {});
+    const username = input.username.toLowerCase();
+    const existing = await prisma.userAccount.findFirst({
+      where: { OR: [{ id: `user-${username}` }, { username }] }
+    });
+    if (existing) return reply.code(409).send({ error: "Username is already taken" });
+    const challenge = newAuthChallenge();
+    const challengeRecord = await prisma.authChallenge.create({
+      data: {
+        id: `auth-challenge-${nanoid(10)}`,
+        kind: "PasskeyRegistration",
+        challenge,
+        username,
+        displayName: input.displayName,
+        bio: input.bio,
+        expiresAt: minutesFromNow(5)
+      }
+    });
+    return {
+      challengeId: challengeRecord.id,
+      publicKey: {
+        challenge,
+        rp: { name: "Popular Consensus" },
+        user: {
+          id: base64UrlEncode(`user-${username}`),
+          name: username,
+          displayName: input.displayName
+        },
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+        authenticatorSelection: {
+          residentKey: "preferred",
+          userVerification: "preferred"
+        },
+        timeout: 60_000,
+        attestation: "none"
+      }
+    };
+  });
+
+  app.post("/auth/passkey/register/verify", async (request, reply) => {
+    const input = VerifyPasskeyRegistrationRequestSchema.parse(request.body ?? {});
+    const challenge = await prisma.authChallenge.findUnique({ where: { id: input.challengeId } });
+    if (!challenge || challenge.kind !== "PasskeyRegistration" || challenge.consumedAt || challenge.expiresAt <= new Date()) {
+      return reply.code(400).send({ error: "Passkey registration challenge expired" });
+    }
+    if (!challenge.username || !challenge.displayName) return reply.code(400).send({ error: "Passkey registration challenge is incomplete" });
+
+    const parsed = parsePasskeyAttestation({
+      expectedChallenge: challenge.challenge,
+      clientDataJSON: input.credential.response.clientDataJSON,
+      attestationObject: input.credential.response.attestationObject,
+      allowedOrigins: config.authOrigins
+    });
+    if (parsed.credentialId !== input.credential.rawId) return reply.code(400).send({ error: "Passkey credential id mismatch" });
+    const userId = `user-${challenge.username}`;
+    const profileId = portableProfileId(userId);
+    let smartAccount: SmartAccountPrediction;
+    try {
+      smartAccount = predictSmartAccount(
+        { kind: "passkey", credentialId: parsed.credentialId, passkeyX: parsed.publicKeyX, passkeyY: parsed.publicKeyY },
+        config.accountAbstraction,
+        { requireFactory: config.requireAuth }
+      );
+    } catch (error) {
+      return reply.code(503).send({ error: error instanceof Error ? error.message : "Account factory is unavailable" });
+    }
+    const smartAccountAddress = smartAccount.address;
+    const profileArtifact = await artifactStore.write(
+      withArtifactSchema("user-profile", {
+        profileId,
+        userId,
+        username: challenge.username,
+        displayName: challenge.displayName,
+        bio: challenge.bio ?? "",
+        smartAccountAddress,
+        authControllerKind: "Passkey",
+        accountStandard: smartAccount.accountStandard
+      })
+    );
+    await storeArtifact(profileArtifact, "user-profile");
+    try {
+      const userCreatedEvent = prepareProtocolEvent({
+        eventType: "UserCreated",
+        subjectId: userId,
+        actor: smartAccountAddress,
+        previousHash: null,
+        newHash: profileArtifact.hash
+      });
+      const { user, controller } = await prisma.$transaction(async (tx) => {
+        const protocolEvent = await ingestProtocolEvent(tx, userCreatedEvent);
+        const created = await tx.userAccount.create({
+          data: {
+            id: userId,
+            username: challenge.username ?? "",
+            profileId,
+            profileHash: profileArtifact.hash,
+            smartAccountAddress,
+            smartAccountKind: smartAccount.accountStandard,
+            displayName: challenge.displayName ?? "",
+            bio: challenge.bio ?? "",
+            authControllers: {
+              create: {
+                id: `auth-controller-${nanoid(10)}`,
+                kind: "Passkey",
+                label: "Passkey",
+                credentialId: parsed.credentialId,
+                publicKeyCose: parsed.publicKeyCose,
+                aaAccountAddress: smartAccountAddress,
+                aaAccountKind: smartAccount.accountStandard,
+                aaEntryPointAddress: smartAccount.entryPoint,
+                aaFactoryAddress: smartAccount.accountFactory,
+                aaPaymasterAddress: smartAccount.paymaster,
+                aaSalt: smartAccount.salt,
+                aaInitCode: smartAccount.initCode,
+                passkeyPublicKeyX: parsed.publicKeyX,
+                passkeyPublicKeyY: parsed.publicKeyY,
+                signatureScheme: "webauthn-p256-es256",
+                counter: parsed.counter
+              }
+            }
+          },
+          include: { authControllers: true }
+        });
+        await tx.authChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date(), userId } });
+        await recordProtocolCommitments(protocolEvent, tx);
+        return { user: created, controller: created.authControllers[0] };
+      });
+      const session = await createAuthSession(user.id, smartAccountAddress, controller.id);
+      const passkeyDeployment = await maybeCreatePasskeyDeploymentChallenge(controller).catch(() => null);
+      return { user, controller, session, profileArtifact, passkeyDeployment };
+    } catch {
+      return reply.code(409).send({ error: "Username or passkey is already registered" });
+    }
+  });
+
+  app.post("/auth/passkey/login/options", async (request, reply) => {
+    const input = StartPasskeyLoginRequestSchema.parse(request.body ?? {});
+    const username = input.username?.toLowerCase();
+    const controllers = await prisma.authController.findMany({
+      where: {
+        kind: "Passkey",
+        ...(username ? { user: { username } } : {})
+      },
+      include: { user: true },
+      orderBy: { createdAt: "asc" }
+    });
+    if (!controllers.length) return reply.code(404).send({ error: "No passkeys registered for this account" });
+    const challenge = newAuthChallenge();
+    const challengeRecord = await prisma.authChallenge.create({
+      data: {
+        id: `auth-challenge-${nanoid(10)}`,
+        kind: "PasskeyLogin",
+        challenge,
+        userId: username ? controllers[0].userId : null,
+        expiresAt: minutesFromNow(5)
+      }
+    });
+    return {
+      challengeId: challengeRecord.id,
+      publicKey: {
+        challenge,
+        timeout: 60_000,
+        userVerification: "preferred",
+        allowCredentials: controllers.map((controller) => ({
+          type: "public-key",
+          id: controller.credentialId
+        }))
+      }
+    };
+  });
+
+  app.post("/auth/passkey/login/verify", async (request, reply) => {
+    const input = VerifyPasskeyLoginRequestSchema.parse(request.body ?? {});
+    const challenge = await prisma.authChallenge.findUnique({ where: { id: input.challengeId } });
+    if (!challenge || challenge.kind !== "PasskeyLogin" || challenge.consumedAt || challenge.expiresAt <= new Date()) {
+      return reply.code(400).send({ error: "Passkey login challenge expired" });
+    }
+    const controller = await prisma.authController.findUnique({ where: { credentialId: input.credential.rawId }, include: { user: true } });
+    if (!controller?.publicKeyCose) return reply.code(404).send({ error: "Passkey is not registered" });
+    if (challenge.userId && challenge.userId !== controller.userId) return reply.code(403).send({ error: "Passkey belongs to a different account" });
+    const parsed = parsePasskeyAssertion({
+      expectedChallenge: challenge.challenge,
+      clientDataJSON: input.credential.response.clientDataJSON,
+      authenticatorData: input.credential.response.authenticatorData,
+      allowedOrigins: config.authOrigins
+    });
+    const verified = verifyPasskeySignature({
+      publicKeyCose: controller.publicKeyCose,
+      signedPayload: parsed.signedPayload,
+      signature: input.credential.response.signature
+    });
+    if (!verified) return reply.code(403).send({ error: "Passkey signature rejected" });
+    await prisma.authController.update({
+      where: { id: controller.id },
+      data: { counter: Math.max(controller.counter, parsed.counter), lastUsedAt: new Date() }
+    });
+    await prisma.authChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date(), userId: controller.userId } });
+    const session = await createAuthSession(controller.userId, controller.aaAccountAddress, controller.id);
+    return { user: controller.user, controller, session };
+  });
+
+  app.post("/auth/passkey/deploy/options", async (request, reply) => {
+    const input = StartPasskeyDeploymentRequestSchema.parse(request.body ?? {});
+    const session = await readAuthSession(request);
+    if (!session) return reply.code(401).send({ error: "Authentication required" });
+    const controller = await prisma.authController.findFirst({
+      where: {
+        userId: session.userId,
+        kind: "Passkey",
+        ...(input.controllerId ? { id: input.controllerId } : session.controllerId ? { id: session.controllerId } : {})
+      }
+    });
+    if (!controller?.credentialId || !controller.publicKeyCose) return reply.code(404).send({ error: "Passkey controller is not registered" });
+    const passkeyDeployment = await maybeCreatePasskeyDeploymentChallenge(controller);
+    if (!passkeyDeployment) return reply.code(409).send({ error: "Passkey smart account deployment is not available for this controller" });
+    return passkeyDeployment;
+  });
+
+  app.post("/auth/passkey/deploy/verify", async (request, reply) => {
+    const input = VerifyPasskeyDeploymentRequestSchema.parse(request.body ?? {});
+    const challenge = await prisma.authChallenge.findUnique({ where: { id: input.challengeId } });
+    if (!challenge || challenge.kind !== "PasskeyDeployment" || challenge.consumedAt || challenge.expiresAt <= new Date()) {
+      return reply.code(400).send({ error: "Passkey deployment challenge expired" });
+    }
+    const controller = await prisma.authController.findUnique({ where: { credentialId: input.credential.rawId }, include: { user: true } });
+    if (!controller?.publicKeyCose) return reply.code(404).send({ error: "Passkey is not registered" });
+    if (challenge.userId && challenge.userId !== controller.userId) return reply.code(403).send({ error: "Passkey belongs to a different account" });
+    if (challenge.aaAccountAddress && challenge.aaAccountAddress.toLowerCase() !== input.aaUserOperation.sender.toLowerCase()) {
+      return reply.code(400).send({ error: "Passkey deployment operation targets the wrong account" });
+    }
+
+    const parsed = parsePasskeyAssertion({
+      expectedChallenge: challenge.challenge,
+      clientDataJSON: input.credential.response.clientDataJSON,
+      authenticatorData: input.credential.response.authenticatorData,
+      allowedOrigins: config.authOrigins
+    });
+    const verified = verifyPasskeySignature({
+      publicKeyCose: controller.publicKeyCose,
+      signedPayload: parsed.signedPayload,
+      signature: input.credential.response.signature
+    });
+    if (!verified) return reply.code(403).send({ error: "Passkey signature rejected" });
+
+    const smartAccount = predictPasskeySmartAccount(controller);
+    const prepared = smartAccount ? prepareDeploymentUserOperation(smartAccount, config.accountAbstraction.chainId) : null;
+    if (!prepared || prepared.signatureKind !== "passkey-webauthn-p256") {
+      return reply.code(409).send({ error: "Passkey smart account deployment is not available for this controller" });
+    }
+    if (!sameUserOperation(input.aaUserOperation as SerializedUserOperation, prepared.userOperation)) {
+      return reply.code(400).send({ error: "Submitted UserOperation does not match the passkey challenge" });
+    }
+
+    const signedOperation = attachPasskeySignature(prepared.userOperation, input.credential.response, challenge.challenge);
+    const aaExecution = await submitUserOperation(signedOperation, config.accountAbstraction).catch((error) => ({
+      error: error instanceof Error ? error.message : "UserOperation submission failed"
+    }));
+    if ("error" in aaExecution) return reply.code(502).send({ error: aaExecution.error });
+
+    await prisma.authController.update({
+      where: { id: controller.id },
+      data: { counter: Math.max(controller.counter, parsed.counter), lastUsedAt: new Date() }
+    });
+    await prisma.authChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date(), userId: controller.userId } });
+    return { ok: true, user: controller.user, controller, aaExecution };
+  });
+
+  app.post("/auth/wallet/challenge", async (request, reply) => {
+    const input = StartWalletAuthRequestSchema.parse(request.body ?? {});
+    const walletAddress = getAddress(input.address);
+    const existing = await prisma.authController.findFirst({ where: { kind: "Wallet", walletAddress } });
+    if (!existing && (!input.username || !input.displayName)) {
+      return reply.code(400).send({ error: "New wallet accounts require a username and display name" });
+    }
+    if (input.username) {
+      const username = input.username.toLowerCase();
+      const user = await prisma.userAccount.findFirst({ where: { OR: [{ id: `user-${username}` }, { username }] } });
+      if (user) return reply.code(409).send({ error: "Username is already taken" });
+    }
+    const challengeValue = newAuthChallenge();
+    let smartAccount: SmartAccountPrediction | null = null;
+    try {
+      smartAccount = existing
+        ? null
+        : predictSmartAccount({ kind: "wallet", walletAddress }, config.accountAbstraction, { requireFactory: config.requireAuth });
+    } catch (error) {
+      return reply.code(503).send({ error: error instanceof Error ? error.message : "Account factory is unavailable" });
+    }
+    const smartAccountAddress = existing?.aaAccountAddress ?? smartAccount?.address;
+    if (!smartAccountAddress) return reply.code(503).send({ error: "Smart account address could not be resolved" });
+    const accountStandard = existing?.aaAccountKind ?? smartAccount?.accountStandard ?? "erc-4337-counterfactual-v0";
+    const aaUserOperation = smartAccount ? prepareDeploymentUserOperation(smartAccount, config.accountAbstraction.chainId) : null;
+    const challenge = await prisma.authChallenge.create({
+      data: {
+        id: `auth-challenge-${nanoid(10)}`,
+        kind: existing ? "WalletLogin" : "WalletRegistration",
+        challenge: challengeValue,
+        username: input.username?.toLowerCase() ?? null,
+        displayName: input.displayName ?? null,
+        bio: input.bio ?? "",
+        walletAddress,
+        aaAccountAddress: smartAccountAddress,
+        aaAccountKind: accountStandard,
+        expiresAt: minutesFromNow(5)
+      }
+    });
+    return {
+      challengeId: challenge.id,
+      address: walletAddress,
+      smartAccountAddress,
+      accountStandard,
+      aaUserOperation,
+      message: buildWalletAuthMessage({
+        address: walletAddress,
+        smartAccountAddress,
+        accountStandard,
+        chainId: config.accountAbstraction.chainId,
+        challenge: challenge.challenge,
+        issuedAt: challenge.createdAt
+      })
+    };
+  });
+
+  app.post("/auth/wallet/verify", async (request, reply) => {
+    const input = VerifyWalletAuthRequestSchema.parse(request.body ?? {});
+    const walletAddress = getAddress(input.address);
+    const challenge = await prisma.authChallenge.findUnique({ where: { id: input.challengeId } });
+    if (
+      !challenge ||
+      !["WalletLogin", "WalletRegistration"].includes(challenge.kind) ||
+      challenge.consumedAt ||
+      challenge.expiresAt <= new Date() ||
+      challenge.walletAddress !== walletAddress
+    ) {
+      return reply.code(400).send({ error: "Wallet auth challenge expired" });
+    }
+    const existing = await prisma.authController.findFirst({ where: { kind: "Wallet", walletAddress }, include: { user: true } });
+    let smartAccount: SmartAccountPrediction | null = null;
+    try {
+      smartAccount = existing
+        ? null
+        : predictSmartAccount({ kind: "wallet", walletAddress }, config.accountAbstraction, { requireFactory: config.requireAuth });
+    } catch (error) {
+      return reply.code(503).send({ error: error instanceof Error ? error.message : "Account factory is unavailable" });
+    }
+    const smartAccountAddress = existing?.aaAccountAddress ?? challenge.aaAccountAddress ?? smartAccount?.address;
+    if (!smartAccountAddress) return reply.code(503).send({ error: "Smart account address could not be resolved" });
+    const accountStandard = existing?.aaAccountKind ?? challenge.aaAccountKind ?? smartAccount?.accountStandard ?? "erc-4337-counterfactual-v0";
+    const message = buildWalletAuthMessage({
+      address: walletAddress,
+      smartAccountAddress,
+      accountStandard,
+      chainId: config.accountAbstraction.chainId,
+      challenge: challenge.challenge,
+      issuedAt: challenge.createdAt
+    });
+    const verified = await verifyMessage({ address: walletAddress, message, signature: input.signature as `0x${string}` });
+    if (!verified) return reply.code(403).send({ error: "Wallet signature rejected" });
+    if (existing) {
+      await prisma.authController.update({ where: { id: existing.id }, data: { lastUsedAt: new Date() } });
+      await prisma.authChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date(), userId: existing.userId } });
+      const session = await createAuthSession(existing.userId, existing.aaAccountAddress, existing.id);
+      return { user: existing.user, controller: existing, session };
+    }
+    if (!challenge.username || !challenge.displayName) return reply.code(400).send({ error: "Wallet registration challenge is incomplete" });
+    const aaExecution = await maybeSubmitWalletDeploymentUserOperation({
+      smartAccount,
+      inputUserOperation: input.aaUserOperation as SerializedUserOperation | undefined,
+      inputSignature: input.aaUserOperationSignature as `0x${string}` | undefined
+    }).catch((error) => ({ error: error instanceof Error ? error.message : "UserOperation submission failed" }));
+    if (aaExecution && "error" in aaExecution && config.requireAuth) {
+      return reply.code(502).send({ error: aaExecution.error });
+    }
+    const userId = `user-${challenge.username}`;
+    const profileId = portableProfileId(userId);
+    const profileArtifact = await artifactStore.write(
+      withArtifactSchema("user-profile", {
+        profileId,
+        userId,
+        username: challenge.username,
+        displayName: challenge.displayName,
+        bio: challenge.bio ?? "",
+        smartAccountAddress,
+        authControllerKind: "Wallet",
+        walletAddress,
+        accountStandard
+      })
+    );
+    await storeArtifact(profileArtifact, "user-profile");
+    try {
+      const userCreatedEvent = prepareProtocolEvent({
+        eventType: "UserCreated",
+        subjectId: userId,
+        actor: smartAccountAddress,
+        previousHash: null,
+        newHash: profileArtifact.hash
+      });
+      const { user, controller } = await prisma.$transaction(async (tx) => {
+        const protocolEvent = await ingestProtocolEvent(tx, userCreatedEvent);
+        const created = await tx.userAccount.create({
+          data: {
+            id: userId,
+            username: challenge.username ?? "",
+            profileId,
+            profileHash: profileArtifact.hash,
+            smartAccountAddress,
+            smartAccountKind: accountStandard,
+            displayName: challenge.displayName ?? "",
+            bio: challenge.bio ?? "",
+            authControllers: {
+              create: {
+                id: `auth-controller-${nanoid(10)}`,
+                kind: "Wallet",
+                label: "Wallet",
+                walletAddress,
+                aaAccountAddress: smartAccountAddress,
+                aaAccountKind: accountStandard,
+                aaEntryPointAddress: smartAccount?.entryPoint ?? null,
+                aaFactoryAddress: smartAccount?.accountFactory ?? null,
+                aaPaymasterAddress: smartAccount?.paymaster ?? null,
+                aaSalt: smartAccount?.salt ?? null,
+                aaInitCode: smartAccount?.initCode ?? null,
+                signatureScheme: "eip-191-personal-sign"
+              }
+            }
+          },
+          include: { authControllers: true }
+        });
+        await tx.authChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date(), userId } });
+        await recordProtocolCommitments(protocolEvent, tx);
+        return { user: created, controller: created.authControllers[0] };
+      });
+      const session = await createAuthSession(user.id, smartAccountAddress, controller.id);
+      return { user, controller, session, profileArtifact, aaExecution: aaExecution && "error" in aaExecution ? null : aaExecution };
+    } catch {
+      return reply.code(409).send({ error: "Username or wallet is already registered" });
     }
   });
 
@@ -610,6 +1156,7 @@ export function buildServer() {
 
   app.post("/communities", async (request, reply) => {
     const input = CreateCommunityRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.creatorId))) return;
     const creator = await prisma.userAccount.findUnique({ where: { id: input.creatorId } });
     if (!creator) return reply.code(404).send({ error: "Creator account not found" });
     const slug = input.slug ?? slugify(input.name);
@@ -657,6 +1204,7 @@ export function buildServer() {
   app.post("/communities/:communityId/join", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = JoinCommunityRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.userId))) return;
     const community = await prisma.community.findUnique({ where: { id: communityId } });
     const user = await prisma.userAccount.findUnique({ where: { id: input.userId } });
     if (!community || !user) return reply.code(404).send({ error: "Community or account not found" });
@@ -689,6 +1237,7 @@ export function buildServer() {
   app.post("/communities/:communityId/follow", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = FollowCommunityRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.userId))) return;
     const [community, user] = await Promise.all([
       prisma.community.findUnique({ where: { id: communityId } }),
       prisma.userAccount.findUnique({ where: { id: input.userId } })
@@ -736,6 +1285,7 @@ export function buildServer() {
   app.post("/topics/:topicId/follow", async (request, reply) => {
     const { topicId } = request.params as { topicId: string };
     const input = FollowTopicRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.userId))) return;
     const user = await prisma.userAccount.findUnique({ where: { id: input.userId } });
     if (!user) return reply.code(404).send({ error: "Account not found" });
     const existing = await prisma.topicFollow.findUnique({ where: { topicId_userId: { topicId, userId: input.userId } } });
@@ -846,6 +1396,7 @@ export function buildServer() {
 
   app.post("/questions", async (request, reply) => {
     const input = CreateQuestionRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.proposer))) return;
     const proposer = await prisma.userAccount.findUnique({ where: { id: input.proposer } });
     if (!proposer) return reply.code(404).send({ error: "Proposer account not found" });
     const community = await prisma.community.findUnique({
@@ -953,6 +1504,7 @@ export function buildServer() {
   app.post("/questions/:questionId/challenges", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const input = CreateChallengeRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.challenger))) return;
     const challenger = await prisma.userAccount.findUnique({ where: { id: input.challenger } });
     if (!challenger) return reply.code(404).send({ error: "Challenger account not found" });
     const question = await prisma.question.findUnique({ where: { id: questionId }, include: { community: true } });
@@ -1024,6 +1576,7 @@ export function buildServer() {
   app.post("/questions/:questionId/accept", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const input = AcceptQuestionRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.curator))) return;
     const curator = await prisma.userAccount.findUnique({ where: { id: input.curator } });
     if (!curator) return reply.code(404).send({ error: "Curator account not found" });
     const question = await prisma.question.findUnique({
@@ -1032,7 +1585,7 @@ export function buildServer() {
     });
     if (!question?.poll) return reply.code(404).send({ error: "Question or poll not found" });
     if (question.proposer === input.curator) return reply.code(403).send({ error: "Proposer cannot accept their own question" });
-    const curatorCheck = await requireCommunityCurator(question.communityId, input.curator, reply);
+    const curatorCheck = await requireCommunityCurator(question.communityId, input.curator, reply, request);
     if (!curatorCheck) return;
     if (!(await ensureCommunityProtocolWritable(question.communityId, reply))) return;
     if (!["Submitted", "Accepted"].includes(question.status)) {
@@ -1106,7 +1659,7 @@ export function buildServer() {
     if (!challenge || challenge.questionId !== questionId) return reply.code(404).send({ error: "Challenge not found" });
     if (challenge.question.proposer === input.juror) return reply.code(403).send({ error: "Proposer cannot rule on their own question challenge" });
     if (challenge.challenger === input.juror) return reply.code(403).send({ error: "Challenger cannot rule on their own challenge" });
-    const jurorCheck = await requireCommunityCurator(challenge.question.communityId, input.juror, reply);
+    const jurorCheck = await requireCommunityCurator(challenge.question.communityId, input.juror, reply, request);
     if (!jurorCheck) return;
     if (!(await ensureCommunityProtocolWritable(challenge.question.communityId, reply))) return;
     const jurorAssignment = await ensureClearJurorAssignment(questionChallengeJurorTarget(challenge), input.juror, input.juror, input.conflictDisclosure, artifactStore, reply);
@@ -1245,7 +1798,7 @@ export function buildServer() {
       include: { question: { include: { community: true } } }
     });
     if (!challenge || challenge.questionId !== questionId) return reply.code(404).send({ error: "Challenge not found" });
-    const selectedByCheck = await requireCommunityCurator(challenge.question.communityId, input.selectedBy, reply);
+    const selectedByCheck = await requireCommunityCurator(challenge.question.communityId, input.selectedBy, reply, request);
     if (!selectedByCheck) return;
     const jurorCheck = await requireCommunityCurator(challenge.question.communityId, input.jurorId, reply);
     if (!jurorCheck) return;
@@ -1259,6 +1812,7 @@ export function buildServer() {
   app.post("/questions/:questionId/challenges/:challengeId/appeals", async (request, reply) => {
     const { questionId, challengeId } = request.params as { questionId: string; challengeId: string };
     const input = CreateChallengeAppealRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.appellantId))) return;
     const [appellant, challenge] = await Promise.all([
       prisma.userAccount.findUnique({ where: { id: input.appellantId } }),
       prisma.challenge.findUnique({ where: { id: challengeId }, include: { question: { include: { community: true } } } })
@@ -1344,6 +1898,7 @@ export function buildServer() {
   app.post("/questions/:questionId/amendments", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const input = AmendmentRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.proposer))) return;
     const proposer = await prisma.userAccount.findUnique({ where: { id: input.proposer } });
     if (!proposer) return reply.code(404).send({ error: "Proposer account not found" });
     const question = await prisma.question.findUnique({ where: { id: questionId }, include: { challenges: true, community: true } });
@@ -1437,6 +1992,7 @@ export function buildServer() {
   app.post("/questions/:questionId/discussion", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const input = CreateDiscussionPostRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.authorId))) return;
     const [question, author] = await Promise.all([
       prisma.question.findUnique({ where: { id: questionId }, select: { communityId: true } }),
       prisma.userAccount.findUnique({ where: { id: input.authorId } })
@@ -1499,7 +2055,7 @@ export function buildServer() {
     const input = ModerateDiscussionPostRequestSchema.parse(request.body ?? {});
     const post = await prisma.discussionPost.findUnique({ where: { id: postId }, include: { question: true } });
     if (!post || post.questionId !== questionId) return reply.code(404).send({ error: "Discussion post not found" });
-    const moderatorCheck = await requireCommunityCurator(post.question.communityId, input.moderatorId, reply);
+    const moderatorCheck = await requireCommunityCurator(post.question.communityId, input.moderatorId, reply, request);
     if (!moderatorCheck) return;
 
     const previousStatus = normalizeDiscussionStatus(post.status);
@@ -1552,6 +2108,7 @@ export function buildServer() {
   app.post("/moderation/:recordId/appeals", async (request, reply) => {
     const { recordId } = request.params as { recordId: string };
     const input = CreateModerationAppealRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.appellantId))) return;
     const moderationRecord = await prisma.discussionModerationRecord.findUnique({
       where: { id: recordId },
       include: { post: true, question: true }
@@ -1610,7 +2167,7 @@ export function buildServer() {
     });
     if (!appeal) return reply.code(404).send({ error: "Moderation appeal not found" });
     if (appeal.status !== "Pending") return reply.code(409).send({ error: "Moderation appeal is already resolved" });
-    const moderatorCheck = await requireCommunityCurator(appeal.moderationRecord.question.communityId, input.moderatorId, reply);
+    const moderatorCheck = await requireCommunityCurator(appeal.moderationRecord.question.communityId, input.moderatorId, reply, request);
     if (!moderatorCheck) return;
 
     const resolutionArtifact = await artifactStore.write(
@@ -1661,6 +2218,7 @@ export function buildServer() {
 
   app.post("/credentials/demo-resident", async (request, reply) => {
     const input = DemoResidentCredentialRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.holderAlias))) return;
     const registryError = await credentialRegistryError({ schemaId: input.schemaId, issuerId: input.issuerId });
     if (registryError) return reply.code(409).send({ error: registryError });
     const existingCredential = await prisma.credential.findFirst({
@@ -1907,6 +2465,9 @@ export function buildServer() {
 
   app.post("/polls/:pollId/close", async (request, reply) => {
     const { pollId } = request.params as { pollId: string };
+    if (config.requireAuth) {
+      return reply.code(501).send({ error: "Demo coordinator poll close is disabled when authentication is required" });
+    }
     const poll = await prisma.poll.findUnique({ where: { id: pollId }, include: { question: true } });
     if (!poll) return reply.code(404).send({ error: "Poll not found" });
     if (poll.status !== "Open") return reply.code(409).send({ error: "Poll is not open" });
@@ -1956,6 +2517,7 @@ export function buildServer() {
   app.post("/polls/:pollId/decryption-shares", async (request, reply) => {
     const { pollId } = request.params as { pollId: string };
     const input = SubmitTallyDecryptionShareRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.memberId))) return;
     const poll = await prisma.poll.findUnique({
       where: { id: pollId },
       include: {
@@ -2045,6 +2607,9 @@ export function buildServer() {
 
   app.post("/polls/:pollId/tally", async (request, reply) => {
     const { pollId } = request.params as { pollId: string };
+    if (config.requireAuth) {
+      return reply.code(501).send({ error: "Demo coordinator tally publication is disabled when authentication is required" });
+    }
     const poll = await prisma.poll.findUnique({
       where: { id: pollId },
       include: {
@@ -2260,6 +2825,7 @@ export function buildServer() {
   app.post("/polls/:pollId/results/challenges", async (request, reply) => {
     const { pollId } = request.params as { pollId: string };
     const input = CreateResultChallengeRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.challenger))) return;
     const [poll, challenger] = await Promise.all([
       prisma.poll.findUnique({ where: { id: pollId }, include: { result: true, question: true } }),
       prisma.userAccount.findUnique({ where: { id: input.challenger } })
@@ -2349,7 +2915,7 @@ export function buildServer() {
     if (!resultChallenge || resultChallenge.pollId !== pollId) return reply.code(404).send({ error: "Result challenge not found" });
     if (resultChallenge.challenger === input.juror) return reply.code(403).send({ error: "Challenger cannot rule on their own result challenge" });
     if (resultChallenge.poll.question.proposer === input.juror) return reply.code(403).send({ error: "Proposer cannot rule on their own result challenge" });
-    const jurorCheck = await requireCommunityCurator(resultChallenge.poll.question.communityId, input.juror, reply);
+    const jurorCheck = await requireCommunityCurator(resultChallenge.poll.question.communityId, input.juror, reply, request);
     if (!jurorCheck) return;
     if (!(await ensureCommunityProtocolWritable(resultChallenge.poll.question.communityId, reply))) return;
     const jurorAssignment = await ensureClearJurorAssignment(resultChallengeJurorTarget(resultChallenge), input.juror, input.juror, input.conflictDisclosure, artifactStore, reply);
@@ -2470,7 +3036,7 @@ export function buildServer() {
       include: { poll: { include: { question: true } }, result: true }
     });
     if (!resultChallenge || resultChallenge.pollId !== pollId) return reply.code(404).send({ error: "Result challenge not found" });
-    const selectedByCheck = await requireCommunityCurator(resultChallenge.poll.question.communityId, input.selectedBy, reply);
+    const selectedByCheck = await requireCommunityCurator(resultChallenge.poll.question.communityId, input.selectedBy, reply, request);
     if (!selectedByCheck) return;
     const jurorCheck = await requireCommunityCurator(resultChallenge.poll.question.communityId, input.jurorId, reply);
     if (!jurorCheck) return;
@@ -2484,6 +3050,7 @@ export function buildServer() {
   app.post("/polls/:pollId/results/challenges/:challengeId/appeals", async (request, reply) => {
     const { pollId, challengeId } = request.params as { pollId: string; challengeId: string };
     const input = CreateChallengeAppealRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.appellantId))) return;
     const [appellant, resultChallenge] = await Promise.all([
       prisma.userAccount.findUnique({ where: { id: input.appellantId } }),
       prisma.resultChallenge.findUnique({
@@ -2584,7 +3151,7 @@ export function buildServer() {
       }
     });
     if (!appeal) return reply.code(404).send({ error: "Challenge appeal not found" });
-    const selectedByCheck = await requireCommunityCurator(appeal.question.communityId, input.selectedBy, reply);
+    const selectedByCheck = await requireCommunityCurator(appeal.question.communityId, input.selectedBy, reply, request);
     if (!selectedByCheck) return;
     const jurorCheck = await requireCommunityCurator(appeal.question.communityId, input.jurorId, reply);
     if (!jurorCheck) return;
@@ -2598,6 +3165,7 @@ export function buildServer() {
   app.post("/juror-assignments/:assignmentId/conflict-disclosure", async (request, reply) => {
     const { assignmentId } = request.params as { assignmentId: string };
     const input = DiscloseJurorConflictRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.jurorId))) return;
     const assignment = await prisma.jurorAssignment.findUnique({ where: { id: assignmentId }, include: { question: true } });
     if (!assignment) return reply.code(404).send({ error: "Juror assignment not found" });
     if (assignment.jurorId !== input.jurorId) return reply.code(403).send({ error: "Only the selected juror can disclose conflicts for this assignment" });
@@ -2626,7 +3194,7 @@ export function buildServer() {
     if (!juror) return reply.code(404).send({ error: "Juror account not found" });
     if (!appeal) return reply.code(404).send({ error: "Challenge appeal not found" });
     if (appeal.status !== "Pending") return reply.code(409).send({ error: "Challenge appeal is already resolved" });
-    const jurorCheck = await requireCommunityCurator(appeal.question.communityId, input.juror, reply);
+    const jurorCheck = await requireCommunityCurator(appeal.question.communityId, input.juror, reply, request);
     if (!jurorCheck) return;
     if (!(await ensureCommunityProtocolWritable(appeal.question.communityId, reply))) return;
     if (challengeAppealConflictActors(appeal).includes(input.juror)) {
@@ -2762,7 +3330,7 @@ export function buildServer() {
       include: { result: true, question: true, resultChallenges: { include: { appeals: true } } }
     });
     if (!poll?.result) return reply.code(404).send({ error: "Published result not found" });
-    const curatorCheck = await requireCommunityCurator(poll.question.communityId, input.curator, reply);
+    const curatorCheck = await requireCommunityCurator(poll.question.communityId, input.curator, reply, request);
     if (!curatorCheck) return;
     if (!(await ensureCommunityProtocolWritable(poll.question.communityId, reply))) return;
     if (poll.resultChallenges.some((challenge) => challenge.ruling === "Pending")) {
@@ -2807,7 +3375,7 @@ export function buildServer() {
       }
     });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    const curatorCheck = await requireCommunityCurator(question.communityId, input.curator, reply);
+    const curatorCheck = await requireCommunityCurator(question.communityId, input.curator, reply, request);
     if (!curatorCheck) return;
     if (!(await ensureCommunityProtocolWritable(question.communityId, reply))) return;
     if (question.archiveRecord) {
@@ -3252,7 +3820,7 @@ export function buildServer() {
   app.post("/communities/:communityId/forks", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = CreateCommunityForkRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
 
     const sourceExport = await artifactStore.read<Record<string, unknown>>(input.sourceExportHash).catch(() => null);
@@ -3333,7 +3901,7 @@ export function buildServer() {
   app.post("/communities/:communityId/frontend-config", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = SetCommunityFrontendConfigRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const existing = await prisma.communityFrontendConfig.findUnique({ where: { communityId } });
     const configArtifact = await artifactStore.write(
@@ -3400,7 +3968,7 @@ export function buildServer() {
   app.post("/communities/:communityId/credential-trust-policies", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = SetCommunityCredentialTrustPolicyRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     if (input.trustedIssuerIds.includes("*") && input.trustedIssuerIds.length > 1) {
       return reply.code(400).send({ error: "Wildcard issuer trust policy cannot include additional issuer ids" });
@@ -3480,7 +4048,7 @@ export function buildServer() {
   app.post("/communities/:communityId/tally-committees", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = CreateTallyCommitteeRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const memberIds = uniqueStrings(input.memberIds);
     if (memberIds.length !== input.memberIds.length) return reply.code(400).send({ error: "Tally committee member ids must be unique" });
@@ -3536,7 +4104,7 @@ export function buildServer() {
   app.post("/communities/:communityId/tally-committees/:committeeId/activate", async (request, reply) => {
     const { communityId, committeeId } = request.params as { communityId: string; committeeId: string };
     const input = ActivateTallyCommitteeRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const committee = await prisma.tallyCommittee.findUnique({ where: { id: committeeId } });
     if (!committee || committee.communityId !== communityId) return reply.code(404).send({ error: "Tally committee not found" });
@@ -3579,7 +4147,7 @@ export function buildServer() {
   app.post("/communities/:communityId/tally-committees/:committeeId/fail", async (request, reply) => {
     const { communityId, committeeId } = request.params as { communityId: string; committeeId: string };
     const input = FailTallyCommitteeRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const committee = await prisma.tallyCommittee.findUnique({ where: { id: committeeId } });
     if (!committee || committee.communityId !== communityId) return reply.code(404).send({ error: "Tally committee not found" });
@@ -3645,7 +4213,7 @@ export function buildServer() {
   app.post("/communities/:communityId/tally-committees/:committeeId/key-setup", async (request, reply) => {
     const { communityId, committeeId } = request.params as { communityId: string; committeeId: string };
     const input = SetupTallyPublicKeyRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const committee = await prisma.tallyCommittee.findUnique({ where: { id: committeeId } });
     if (!committee || committee.communityId !== communityId) return reply.code(404).send({ error: "Tally committee not found" });
@@ -3809,7 +4377,7 @@ export function buildServer() {
   app.post("/communities/:communityId/governance/parameters/proposals", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = ProposeGovernanceParametersRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const parameters = governanceParametersFromInput(input);
     const proposalArtifact = await artifactStore.write(
@@ -3851,7 +4419,7 @@ export function buildServer() {
   app.post("/communities/:communityId/governance/parameters/:parameterSetId/activate", async (request, reply) => {
     const { communityId, parameterSetId } = request.params as { communityId: string; parameterSetId: string };
     const input = ActivateGovernanceParametersRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const parameterSet = await prisma.governanceParameterSet.findUnique({ where: { id: parameterSetId } });
     if (!parameterSet || parameterSet.communityId !== communityId) return reply.code(404).send({ error: "Governance parameter set not found" });
@@ -3929,7 +4497,7 @@ export function buildServer() {
   app.post("/communities/:communityId/data-union/policies", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = ProposeDataUnionPolicyRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
 
@@ -3990,7 +4558,7 @@ export function buildServer() {
   app.post("/communities/:communityId/data-union/policies/:policyId/activate", async (request, reply) => {
     const { communityId, policyId } = request.params as { communityId: string; policyId: string };
     const input = ActivateDataUnionPolicyRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
 
@@ -4037,6 +4605,7 @@ export function buildServer() {
   app.post("/communities/:communityId/data-union/consents", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = RecordDataUnionConsentRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.userId))) return;
     if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
 
     const [community, user, membership] = await Promise.all([
@@ -4110,6 +4679,7 @@ export function buildServer() {
   app.post("/communities/:communityId/data-union/consents/:consentId/revoke", async (request, reply) => {
     const { communityId, consentId } = request.params as { communityId: string; consentId: string };
     const input = RevokeDataUnionConsentRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.userId))) return;
     if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
     const consent = await prisma.dataUnionConsent.findUnique({ where: { id: consentId }, include: { policy: true } });
     if (!consent || consent.communityId !== communityId) return reply.code(404).send({ error: "Data-union consent not found" });
@@ -4155,7 +4725,7 @@ export function buildServer() {
   app.post("/communities/:communityId/data-union/products", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = PublishDataUnionProductRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
 
@@ -4278,7 +4848,7 @@ export function buildServer() {
   app.post("/communities/:communityId/data-union/products/:productId/access-grants", async (request, reply) => {
     const { communityId, productId } = request.params as { communityId: string; productId: string };
     const input = GrantDataUnionAccessRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
 
@@ -4442,7 +5012,7 @@ export function buildServer() {
   app.post("/communities/:communityId/emergency-suspensions", async (request, reply) => {
     const { communityId } = request.params as { communityId: string };
     const input = CreateCommunityEmergencySuspensionRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const existing = await activeCommunityEmergencySuspension(communityId);
     if (existing) return reply.code(409).send({ error: "Community already has an active emergency suspension", suspension: existing });
@@ -4485,7 +5055,7 @@ export function buildServer() {
   app.post("/communities/:communityId/emergency-suspensions/:suspensionId/resolve", async (request, reply) => {
     const { communityId, suspensionId } = request.params as { communityId: string; suspensionId: string };
     const input = ResolveCommunityEmergencySuspensionRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const suspension = await prisma.communityEmergencySuspension.findUnique({ where: { id: suspensionId } });
     if (!suspension || suspension.communityId !== communityId) return reply.code(404).send({ error: "Emergency suspension not found" });
@@ -4877,7 +5447,7 @@ export function buildServer() {
     const parsed = ProposeAdoptionPolicyRequestSchema.safeParse(request.body ?? {});
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid adoption policy proposal" });
     const input = parsed.data;
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
 
     const proposalArtifact = await artifactStore.write(
@@ -4931,7 +5501,7 @@ export function buildServer() {
   app.post("/communities/:communityId/adoption/policies/:policyId/activate", async (request, reply) => {
     const { communityId, policyId } = request.params as { communityId: string; policyId: string };
     const input = ActivateAdoptionPolicyRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const policy = await prisma.adoptionPolicy.findUnique({ where: { id: policyId } });
     if (!policy || policy.communityId !== communityId) return reply.code(404).send({ error: "Adoption policy not found" });
@@ -4980,7 +5550,7 @@ export function buildServer() {
   app.post("/communities/:communityId/adoption/policies/:policyId/suspend", async (request, reply) => {
     const { communityId, policyId } = request.params as { communityId: string; policyId: string };
     const input = SuspendAdoptionPolicyRequestSchema.parse(request.body ?? {});
-    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply);
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
     if (!stewardCheck) return;
     const policy = await prisma.adoptionPolicy.findUnique({ where: { id: policyId } });
     if (!policy || policy.communityId !== communityId) return reply.code(404).send({ error: "Adoption policy not found" });
@@ -9524,7 +10094,8 @@ function credentialTrustPolicyAllows(policy: CommunityCredentialTrustPolicyView,
   return policy.trustedIssuerIds.includes("*") || policy.trustedIssuerIds.includes(credential.issuerId);
 }
 
-async function requireCommunitySteward(communityId: string, userId: string, reply: FastifyReply) {
+async function requireCommunitySteward(communityId: string, userId: string, reply: FastifyReply, request?: FastifyRequest) {
+  if (request && !(await requireAuthenticatedActor(request, reply, userId))) return null;
   const [community, user, membership] = await Promise.all([
     prisma.community.findUnique({ where: { id: communityId } }),
     prisma.userAccount.findUnique({ where: { id: userId } }),
@@ -9551,7 +10122,8 @@ async function requireCommunitySteward(communityId: string, userId: string, repl
   return { community, user, membership };
 }
 
-async function requireCommunityCurator(communityId: string | null, userId: string, reply: FastifyReply) {
+async function requireCommunityCurator(communityId: string | null, userId: string, reply: FastifyReply, request?: FastifyRequest) {
+  if (request && !(await requireAuthenticatedActor(request, reply, userId))) return null;
   if (!communityId) return { community: null, membership: null };
   const [community, membership] = await Promise.all([
     prisma.community.findUnique({ where: { id: communityId } }),
@@ -9673,6 +10245,160 @@ function governanceParametersFromInput(input: GovernanceParameters): GovernanceP
 
 function hoursFromNow(hours: number) {
   return new Date(Date.now() + 1000 * 60 * 60 * hours);
+}
+
+function minutesFromNow(minutes: number) {
+  return new Date(Date.now() + 1000 * 60 * minutes);
+}
+
+type PasskeyControllerForDeployment = {
+  id: string;
+  userId: string;
+  credentialId: string | null;
+  publicKeyCose: string | null;
+  aaAccountAddress: string;
+  aaAccountKind: string;
+  passkeyPublicKeyX: string | null;
+  passkeyPublicKeyY: string | null;
+};
+
+async function maybeCreatePasskeyDeploymentChallenge(controller: PasskeyControllerForDeployment) {
+  const smartAccount = predictPasskeySmartAccount(controller);
+  if (!smartAccount || smartAccount.source !== "factory-create2") return null;
+  const prepared = prepareDeploymentUserOperation(smartAccount, config.accountAbstraction.chainId);
+  if (!prepared || prepared.signatureKind !== "passkey-webauthn-p256" || !prepared.signingChallenge || !controller.credentialId) return null;
+
+  await prisma.authChallenge.deleteMany({
+    where: {
+      kind: "PasskeyDeployment",
+      userId: controller.userId,
+      challenge: prepared.signingChallenge
+    }
+  });
+  const challenge = await prisma.authChallenge.create({
+    data: {
+      id: `auth-challenge-${nanoid(10)}`,
+      kind: "PasskeyDeployment",
+      challenge: prepared.signingChallenge,
+      userId: controller.userId,
+      aaAccountAddress: smartAccount.address,
+      aaAccountKind: smartAccount.accountStandard,
+      expiresAt: minutesFromNow(5)
+    }
+  });
+  return {
+    challengeId: challenge.id,
+    aaUserOperation: prepared,
+    publicKey: {
+      challenge: prepared.signingChallenge,
+      timeout: 60_000,
+      userVerification: "preferred",
+      allowCredentials: [{ type: "public-key", id: controller.credentialId }]
+    }
+  };
+}
+
+function predictPasskeySmartAccount(controller: PasskeyControllerForDeployment): SmartAccountPrediction | null {
+  if (!controller.credentialId || !controller.passkeyPublicKeyX || !controller.passkeyPublicKeyY) return null;
+  const smartAccount = predictSmartAccount(
+    {
+      kind: "passkey",
+      credentialId: controller.credentialId,
+      passkeyX: controller.passkeyPublicKeyX as Hex,
+      passkeyY: controller.passkeyPublicKeyY as Hex
+    },
+    config.accountAbstraction,
+    { requireFactory: config.requireAuth }
+  );
+  if (controller.aaAccountAddress && smartAccount.address.toLowerCase() !== controller.aaAccountAddress.toLowerCase()) return null;
+  return smartAccount;
+}
+
+async function maybeSubmitWalletDeploymentUserOperation(input: {
+  smartAccount: SmartAccountPrediction | null;
+  inputUserOperation?: SerializedUserOperation;
+  inputSignature?: `0x${string}`;
+}) {
+  if (!input.smartAccount || input.smartAccount.source !== "factory-create2") return null;
+  const prepared = prepareDeploymentUserOperation(input.smartAccount, config.accountAbstraction.chainId);
+  if (!prepared || !input.inputUserOperation || !input.inputSignature) return null;
+  if (!sameUserOperation(input.inputUserOperation, prepared.userOperation)) {
+    throw new Error("Submitted UserOperation does not match the auth challenge");
+  }
+  const signedOperation = attachWalletSignature(prepared.userOperation, input.inputSignature);
+  return submitUserOperation(signedOperation, config.accountAbstraction);
+}
+
+async function createAuthSession(userId: string, aaAccountAddress: string, controllerId: string | null) {
+  const token = newSessionToken();
+  const session = await prisma.authSession.create({
+    data: {
+      id: `auth-session-${nanoid(10)}`,
+      userId,
+      tokenHash: hashSessionToken(token),
+      aaAccountAddress,
+      controllerId,
+      expiresAt: hoursFromNow(config.authSessionTtlHours)
+    }
+  });
+  return {
+    id: session.id,
+    token,
+    expiresAt: session.expiresAt,
+    aaAccountAddress: session.aaAccountAddress,
+    controllerId: session.controllerId
+  };
+}
+
+function readBearerToken(request: FastifyRequest) {
+  const authorization = request.headers.authorization;
+  const rawAuthorization = Array.isArray(authorization) ? authorization[0] : authorization;
+  if (rawAuthorization?.startsWith("Bearer ")) return rawAuthorization.slice("Bearer ".length).trim();
+  const headerToken = request.headers["x-pc-session-token"];
+  return Array.isArray(headerToken) ? headerToken[0] : headerToken;
+}
+
+async function readAuthSession(request: FastifyRequest) {
+  const token = readBearerToken(request);
+  if (!token) return null;
+  const session = await prisma.authSession.findUnique({
+    where: { tokenHash: hashSessionToken(token) },
+    include: { user: true }
+  });
+  if (!session) return null;
+  if (session.expiresAt <= new Date()) {
+    await prisma.authSession.delete({ where: { id: session.id } }).catch(() => undefined);
+    return null;
+  }
+  await prisma.authSession.update({ where: { id: session.id }, data: { lastUsedAt: new Date() } }).catch(() => undefined);
+  return session;
+}
+
+function sameUserOperation(left: SerializedUserOperation, right: SerializedUserOperation) {
+  return (
+    left.sender.toLowerCase() === right.sender.toLowerCase() &&
+    left.nonce === right.nonce &&
+    left.initCode.toLowerCase() === right.initCode.toLowerCase() &&
+    left.callData.toLowerCase() === right.callData.toLowerCase() &&
+    left.accountGasLimits.toLowerCase() === right.accountGasLimits.toLowerCase() &&
+    left.preVerificationGas === right.preVerificationGas &&
+    left.gasFees.toLowerCase() === right.gasFees.toLowerCase() &&
+    left.paymasterAndData.toLowerCase() === right.paymasterAndData.toLowerCase()
+  );
+}
+
+async function requireAuthenticatedActor(request: FastifyRequest, reply: FastifyReply, actorId: string) {
+  const session = await readAuthSession(request);
+  if (session) {
+    if (session.userId !== actorId) {
+      reply.code(403).send({ error: "Authenticated session does not match the requested actor" });
+      return null;
+    }
+    return session.userId;
+  }
+  if (!config.requireAuth) return actorId;
+  reply.code(401).send({ error: "Authentication required" });
+  return null;
 }
 
 function matchesQuestionTypes(policyTypes: string[], topicIds: string[]) {

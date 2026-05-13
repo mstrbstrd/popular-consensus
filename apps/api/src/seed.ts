@@ -334,6 +334,9 @@ export async function resetDemoData() {
   await prisma.tallyCommittee.deleteMany();
   await prisma.governanceParameterSet.deleteMany();
   await prisma.community.deleteMany();
+  await prisma.authSession.deleteMany();
+  await prisma.authChallenge.deleteMany();
+  await prisma.authController.deleteMany();
   await prisma.userAccount.deleteMany();
   await prisma.credentialRevocation.deleteMany();
   await prisma.credential.deleteMany();

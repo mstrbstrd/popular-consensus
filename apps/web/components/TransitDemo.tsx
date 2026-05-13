@@ -34,6 +34,32 @@ type Community = {
   activeUserRole?: "Owner" | "Moderator" | "Member" | null;
 };
 
+type DiscoveryCommunity = {
+  id: string;
+  slug: string;
+  name: string;
+  visibility: "Public" | "Private";
+  memberCount: number;
+  questionCount: number;
+  followerCount: number;
+  followedByActiveUser: boolean;
+};
+
+type DiscoveryTopic = {
+  topicId: string;
+  questionCount: number;
+  communityCount: number;
+  followerCount: number;
+  followedByActiveUser: boolean;
+};
+
+type DiscoveryIndex = {
+  communities: DiscoveryCommunity[];
+  topics: DiscoveryTopic[];
+  communityFollows: Array<{ id: string; communityId: string; userId: string }>;
+  topicFollows: Array<{ id: string; topicId: string; userId: string }>;
+};
+
 type AdoptionPolicy = {
   id: string;
   authorityLevel: "Advisory" | "Recognized" | "Binding";
@@ -77,6 +103,8 @@ type Question = {
   proposer: string;
   answerSchemaId: string;
   answerSchema?: AnswerSchema;
+  topicIds?: string[];
+  createdAt?: string;
   community?: Community | null;
   poll?: {
     id: string;
@@ -86,6 +114,8 @@ type Question = {
   } | null;
   challenges: Array<{ id: string; reasonCode: string; ruling: string; challenger: string }>;
 };
+
+type FeedMode = "home" | "open" | "review" | "results";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -114,8 +144,29 @@ const discussionKindLabels: Record<DiscussionPostKind, string> = {
   ModeratorNote: "Moderator"
 };
 
+const feedModes: Array<{ key: FeedMode; label: string }> = [
+  { key: "home", label: "Home" },
+  { key: "open", label: "Voting" },
+  { key: "review", label: "Review" },
+  { key: "results", label: "Results" }
+];
+
 function formatStatus(status: string) {
   return status.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function compactHash(value?: string | null) {
+  if (!value) return "Not published";
+  return value.length > 18 ? `${value.slice(0, 10)}...${value.slice(-6)}` : value;
 }
 
 function buildDiscussionViews(posts: DiscussionPost[]): DiscussionView[] {
@@ -230,6 +281,8 @@ export function TransitDemo() {
   const [archive, setArchive] = useState<unknown>(null);
   const [draft, setDraft] = useState(emptyQuestion);
   const [responseDraft, setResponseDraft] = useState(emptyResponseDraft);
+  const [discovery, setDiscovery] = useState<DiscoveryIndex | null>(null);
+  const [feedMode, setFeedMode] = useState<FeedMode>("home");
 
   const activeUser = useMemo(() => users.find((user) => user.id === activeUserId) ?? users[0] ?? null, [users, activeUserId]);
   const selectedCommunity = useMemo(
@@ -237,6 +290,60 @@ export function TransitDemo() {
     [communities, selectedCommunityId]
   );
   const selected = useMemo(() => questions.find((question) => question.id === selectedId) ?? questions[0] ?? null, [questions, selectedId]);
+  const discoveryCommunityById = useMemo(
+    () => new Map((discovery?.communities ?? []).map((community) => [community.id, community])),
+    [discovery]
+  );
+  const socialCommunities = useMemo(
+    () =>
+      communities.map((community) => {
+        const discovered = discoveryCommunityById.get(community.id);
+        return {
+          ...community,
+          followerCount: discovered?.followerCount ?? 0,
+          followedByActiveUser: discovered?.followedByActiveUser ?? false
+        };
+      }),
+    [communities, discoveryCommunityById]
+  );
+  const selectedDiscoveryCommunity = selectedCommunity ? discoveryCommunityById.get(selectedCommunity.id) ?? null : null;
+  const trendingTopics = useMemo(
+    () =>
+      [...(discovery?.topics ?? [])]
+        .sort((left, right) => right.followerCount + right.questionCount - (left.followerCount + left.questionCount))
+        .slice(0, 6),
+    [discovery]
+  );
+  const feedStats = useMemo(
+    () => ({
+      open: questions.filter((question) => question.poll?.status === "Open").length,
+      review: questions.filter(
+        (question) => question.poll?.status === "Configured" || ["Submitted", "Challenged", "Amendment", "Accepted"].includes(question.status)
+      ).length,
+      results: questions.filter(
+        (question) => question.status === "Archived" || question.poll?.status === "ResultPublished" || Boolean(question.poll?.result)
+      ).length,
+      challenges: questions.reduce((total, question) => total + (question.challenges?.length ?? 0), 0)
+    }),
+    [questions]
+  );
+  const filteredQuestions = useMemo(() => {
+    if (feedMode === "open") return questions.filter((question) => question.poll?.status === "Open");
+    if (feedMode === "review") {
+      return questions.filter(
+        (question) => question.poll?.status === "Configured" || ["Submitted", "Challenged", "Amendment", "Accepted"].includes(question.status)
+      );
+    }
+    if (feedMode === "results") {
+      return questions.filter(
+        (question) => question.status === "Archived" || question.poll?.status === "ResultPublished" || Boolean(question.poll?.result)
+      );
+    }
+    return questions;
+  }, [feedMode, questions]);
+  const followedCommunityCount = discovery?.communityFollows?.length ?? 0;
+  const followedTopicCount = discovery?.topicFollows?.length ?? 0;
+  const activeRoleLabel = selectedCommunity?.activeUserRole ?? (selectedCommunity?.isMember ? "Member" : "Visitor");
   const activeAnswerSchema = useMemo(
     () => selected?.answerSchema ?? BuiltInAnswerSchemas.find((schema) => schema.answerSchemaId === selected?.answerSchemaId) ?? BuiltInAnswerSchemas[0],
     [selected]
@@ -429,6 +536,15 @@ export function TransitDemo() {
     setDiscussionViews(data.views ?? buildDiscussionViews(nextDiscussion));
   }
 
+  async function refreshDiscovery(userId: string) {
+    const params = new URLSearchParams();
+    if (userId) params.set("userId", userId);
+    const response = await fetch(`${apiBase}/discovery?${params.toString()}`, { cache: "no-store" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? "Discovery failed to load");
+    setDiscovery(data);
+  }
+
   async function refreshAll(nextCommunityId = selectedCommunityId, nextUserId = activeUserId, preferredQuestionId = selectedId) {
     setFeedLoading(true);
     setFeedError("");
@@ -449,6 +565,7 @@ export function TransitDemo() {
       if (!communitiesResponse.ok) throw new Error(communitiesData.error ?? "Communities failed to load");
       const nextCommunities = communitiesData.communities ?? [];
       setCommunities(nextCommunities);
+      await refreshDiscovery(effectiveUserId).catch(() => setDiscovery(null));
 
       const effectiveCommunityId =
         nextCommunityId === "all"
@@ -592,6 +709,20 @@ export function TransitDemo() {
     setSelectedCommunityId(community.id);
     setMessage(`${activeUser.displayName} joined ${community.name}.`);
     await refreshAll(community.id, activeUser.id);
+  }
+
+  async function followCommunity(community: Community) {
+    if (!activeUser) throw new Error("Create an account before following a community");
+    await call(`/communities/${community.id}/follow`, { method: "POST", body: JSON.stringify({ userId: activeUser.id }) });
+    setMessage(`${activeUser.displayName} is following p/${community.slug}.`);
+    await refreshDiscovery(activeUser.id);
+  }
+
+  async function followTopic(topicId: string) {
+    if (!activeUser) throw new Error("Create an account before following a topic");
+    await call(`/topics/${topicId}/follow`, { method: "POST", body: JSON.stringify({ userId: activeUser.id }) });
+    setMessage(`${activeUser.displayName} is following #${topicId}.`);
+    await refreshDiscovery(activeUser.id);
   }
 
   async function createQuestion(event: FormEvent<HTMLFormElement>) {
@@ -1017,51 +1148,149 @@ export function TransitDemo() {
         <div className="brand-lockup">
           <Image className="brand-mark" src={logoMark} alt="" priority />
           <div>
-            <p className="eyebrow">Popular Consensus MVP</p>
-            <h1>Civic Communities</h1>
+            <p className="eyebrow">Popular Consensus</p>
+            <h1>Community Feed</h1>
           </div>
         </div>
-        <div className="account-switcher">
-          <label htmlFor="active-user">Account</label>
-          <select id="active-user" value={activeUser?.id ?? ""} onChange={(event) => void runAction(() => switchUser(event.target.value))}>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.displayName}
-              </option>
-            ))}
-          </select>
+        <div className="topbar-actions">
+          <div className="network-stats" aria-label="Network stats">
+            <span>{communities.length} communities</span>
+            <span>{questions.length} posts</span>
+            <span>{followedCommunityCount + followedTopicCount} follows</span>
+          </div>
+          <div className="account-switcher">
+            <label htmlFor="active-user">Account</label>
+            <select id="active-user" value={activeUser?.id ?? ""} onChange={(event) => void runAction(() => switchUser(event.target.value))}>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.displayName}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </section>
 
       <section className="social-grid">
         <aside className="panel sidebar">
-          <h2>Communities</h2>
-          <div className="list">
-            <button className={selectedCommunityId === "all" ? "row active" : "row"} onClick={() => void runAction(selectAllFeed)}>
-              <span>All visible communities</span>
-              <small>Public spaces plus private spaces you have joined</small>
-            </button>
-            {communities.map((community) => (
-              <button
-                className={community.id === selectedCommunity?.id ? "row active" : "row"}
-                key={community.id}
-                onClick={() => void runAction(() => selectCommunity(community))}
-              >
-                <span>p/{community.slug}</span>
-                <small>
-                  {community.visibility} · {community.memberCount} members · {community.questionCount} questions
-                </small>
-              </button>
-            ))}
-          </div>
+          <section className="profile-card" aria-label="Active profile">
+            <div className="avatar">{initials(activeUser?.displayName ?? "PC")}</div>
+            <div>
+              <h2>{activeUser?.displayName ?? "No account"}</h2>
+              <p className="muted">@{activeUser?.username ?? "guest"}</p>
+            </div>
+            <dl className="profile-metrics">
+              <div>
+                <dt>Rep</dt>
+                <dd>{activeUser?.reputation ?? 0}</dd>
+              </div>
+              <div>
+                <dt>Role</dt>
+                <dd>{activeRoleLabel}</dd>
+              </div>
+              <div>
+                <dt>Credential</dt>
+                <dd>{credential ? "Ready" : "None"}</dd>
+              </div>
+            </dl>
+          </section>
 
-          {selectedCommunity && !selectedCommunity.isMember ? (
-            <button className="wide-action" onClick={() => void runAction(() => joinCommunity(selectedCommunity))} disabled={actionPending}>
-              Join {selectedCommunity.visibility.toLowerCase()} community
-            </button>
+          <section className="sidebar-section">
+            <div className="rail-heading">
+              <h2>Communities</h2>
+              <small>{followedCommunityCount} followed</small>
+            </div>
+            <div className="community-list">
+              <div className={selectedCommunityId === "all" ? "community-row active" : "community-row"}>
+                <button className="community-select" onClick={() => void runAction(selectAllFeed)}>
+                  <span>Home</span>
+                  <small>All visible communities</small>
+                </button>
+              </div>
+              {socialCommunities.map((community) => {
+                const followDisabled =
+                  !activeUser ||
+                  actionPending ||
+                  community.followedByActiveUser ||
+                  (community.visibility === "Private" && !community.isMember);
+                return (
+                  <div className={community.id === selectedCommunity?.id ? "community-row active" : "community-row"} key={community.id}>
+                    <button className="community-select" onClick={() => void runAction(() => selectCommunity(community))}>
+                      <span>p/{community.slug}</span>
+                      <small>
+                        {community.memberCount} members · {community.followerCount} followers · {community.questionCount} posts
+                      </small>
+                    </button>
+                    <button
+                      className="mini-action"
+                      onClick={() => void runAction(() => followCommunity(community))}
+                      disabled={followDisabled}
+                      title={
+                        community.followedByActiveUser
+                          ? "Already following"
+                          : community.visibility === "Private" && !community.isMember
+                          ? "Join this private community before following."
+                          : undefined
+                      }
+                    >
+                      {community.followedByActiveUser ? "Following" : "Follow"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {selectedCommunity ? (
+            <div className="sidebar-actions">
+              {!selectedCommunity.isMember ? (
+                <button className="wide-action" onClick={() => void runAction(() => joinCommunity(selectedCommunity))} disabled={actionPending}>
+                  Join {selectedCommunity.visibility.toLowerCase()} community
+                </button>
+              ) : null}
+              <button
+                className="wide-action secondary"
+                onClick={() => void runAction(() => followCommunity(selectedCommunity))}
+                disabled={
+                  !activeUser ||
+                  actionPending ||
+                  Boolean(selectedDiscoveryCommunity?.followedByActiveUser) ||
+                  (selectedCommunity.visibility === "Private" && !selectedCommunity.isMember)
+                }
+              >
+                {selectedDiscoveryCommunity?.followedByActiveUser ? "Following community" : "Follow community"}
+              </button>
+            </div>
           ) : null}
 
-          <form className="stacked-form" onSubmit={(event) => void runAction(() => createCommunity(event))}>
+          <section className="sidebar-section">
+            <div className="rail-heading">
+              <h2>Topics</h2>
+              <small>{followedTopicCount} followed</small>
+            </div>
+            <div className="topic-list">
+              {trendingTopics.length ? (
+                trendingTopics.map((topic) => (
+                  <button
+                    className={topic.followedByActiveUser ? "topic-pill active" : "topic-pill"}
+                    key={topic.topicId}
+                    onClick={() => void runAction(() => followTopic(topic.topicId))}
+                    disabled={!activeUser || actionPending || topic.followedByActiveUser}
+                  >
+                    <span>#{topic.topicId}</span>
+                    <small>
+                      {topic.questionCount} posts · {topic.followerCount} followers
+                    </small>
+                    <span className="topic-action">{topic.followedByActiveUser ? "Following" : "Follow topic"}</span>
+                  </button>
+                ))
+              ) : (
+                <p className="muted">Topics appear as communities create questions.</p>
+              )}
+            </div>
+          </section>
+
+          <form className="stacked-form mini-form" onSubmit={(event) => void runAction(() => createCommunity(event))}>
             <h3>Create Community</h3>
             <input
               aria-label="Community name"
@@ -1093,25 +1322,42 @@ export function TransitDemo() {
 
         <section className="feed">
           <section className="panel community-hero">
-            <div>
-              <p className="eyebrow">{selectedCommunity ? `p/${selectedCommunity.slug}` : "Community"}</p>
+            <div className="community-copy">
+              <p className="eyebrow">{selectedCommunity ? `p/${selectedCommunity.slug}` : "Home"}</p>
               <h2>{selectedCommunity?.name ?? "All Visible Communities"}</h2>
               <p>{selectedCommunity?.description ?? "A combined feed of public questions and private questions from communities you have joined."}</p>
             </div>
-            <div className="statusline">
-              <span className={activeCommunityIsPrivate ? "poll-closed" : "poll-open"}>{selectedCommunity?.visibility ?? "Mixed"}</span>
-              <span>{selectedCommunity?.defaultAuthorityLevel ?? "Advisory default"}</span>
-              <span className={selectedCommunity?.isMember ? "poll-open" : "poll-closed"}>
-                {selectedCommunity ? (selectedCommunity.isMember ? "Member" : "Not joined") : "Visible to account"}
-              </span>
+            <div className="community-snapshot">
+              <div className="feed-stat-grid">
+                <div>
+                  <strong>{selectedCommunity?.memberCount ?? communities.reduce((total, community) => total + community.memberCount, 0)}</strong>
+                  <small>members</small>
+                </div>
+                <div>
+                  <strong>{selectedDiscoveryCommunity?.followerCount ?? followedCommunityCount}</strong>
+                  <small>followers</small>
+                </div>
+                <div>
+                  <strong>{feedStats.open}</strong>
+                  <small>open polls</small>
+                </div>
+              </div>
+              <div className="statusline">
+                <span className={activeCommunityIsPrivate ? "poll-closed" : "poll-open"}>{selectedCommunity?.visibility ?? "Mixed"}</span>
+                <span>{selectedCommunity?.defaultAuthorityLevel ?? "Advisory default"}</span>
+                <span className={selectedCommunity?.isMember ? "poll-open" : "poll-closed"}>
+                  {selectedCommunity ? (selectedCommunity.isMember ? "Member" : "Not joined") : "Visible"}
+                </span>
+              </div>
             </div>
           </section>
 
           <form className="panel compose" onSubmit={(event) => void runAction(() => createQuestion(event))}>
-            <div className="section-heading">
+            <div className="composer-head">
+              <div className="avatar small">{initials(activeUser?.displayName ?? "PC")}</div>
               <div>
-                <h2>Propose a Question</h2>
-                <p className="muted">Submissions enter registry review with a 100 PC proposal stake before voting opens.</p>
+                <h2>Start a Consensus Post</h2>
+                <p className="muted">{selectedCommunity ? `Posting to p/${selectedCommunity.slug}` : "Choose a community to post"}</p>
               </div>
               <span className="badge-soft">{selectedCommunity?.defaultAuthorityLevel ?? "Advisory"}</span>
             </div>
@@ -1156,7 +1402,7 @@ export function TransitDemo() {
           <section className="panel">
             <div className="section-heading">
               <div>
-                <h2>Question Feed</h2>
+                <h2>Feed</h2>
                 <p className="muted">
                   {selectedCommunity
                     ? `${selectedCommunity.questionCount} total questions in p/${selectedCommunity.slug}`
@@ -1164,6 +1410,29 @@ export function TransitDemo() {
                 </p>
               </div>
               <span className="badge-soft">{feedLoading ? "Loading" : `${questions.length} visible`}</span>
+            </div>
+            <div className="feed-tabs" role="tablist" aria-label="Feed filters">
+              {feedModes.map((mode) => (
+                <button
+                  key={mode.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={feedMode === mode.key}
+                  className={feedMode === mode.key ? "active" : ""}
+                  onClick={() => setFeedMode(mode.key)}
+                >
+                  {mode.label}
+                  <small>
+                    {mode.key === "open"
+                      ? feedStats.open
+                      : mode.key === "review"
+                      ? feedStats.review
+                      : mode.key === "results"
+                      ? feedStats.results
+                      : questions.length}
+                  </small>
+                </button>
+              ))}
             </div>
             <div className="post-list">
               {feedLoading ? (
@@ -1176,30 +1445,43 @@ export function TransitDemo() {
                   <strong>{feedError}</strong>
                   <p>Private community questions stay hidden until this account joins.</p>
                 </div>
-              ) : questions.length ? (
-                questions.map((question) => (
+              ) : filteredQuestions.length ? (
+                filteredQuestions.map((question) => (
                   <button
-                    className={question.id === selected?.id ? "post active" : "post"}
+                    className={question.id === selected?.id ? "post feed-post active" : "post feed-post"}
                     key={question.id}
                     onClick={() => selectQuestion(question)}
                   >
-                    <span className="post-community">p/{question.community?.slug ?? selectedCommunity?.slug ?? "general"}</span>
+                    <span className="post-topline">
+                      <span className="post-community">p/{question.community?.slug ?? selectedCommunity?.slug ?? "general"}</span>
+                      <span>{question.createdAt ? new Date(question.createdAt).toLocaleDateString() : "Local demo"}</span>
+                    </span>
                     <strong>{question.title}</strong>
+                    <span className="post-summary">{question.methodologyLabel}</span>
                     <span className="post-badges">
                       <small>{formatStatus(question.status)}</small>
                       <small>{question.poll ? `Poll ${formatStatus(question.poll.status)}` : "No poll"}</small>
                       <small>{question.authorityLevel}</small>
+                      {(question.topicIds ?? []).slice(0, 2).map((topicId) => (
+                        <small key={topicId}>#{topicId}</small>
+                      ))}
                     </span>
-                    <small>
-                      by {question.proposer} · {question.answerSchema?.label ?? question.answerSchemaId}
-                    </small>
+                    <span className="post-metrics">
+                      <small>by {question.proposer}</small>
+                      <small>{question.answerSchema?.label ?? question.answerSchemaId}</small>
+                      <small>{question.challenges?.length ?? 0} challenges</small>
+                      <small>{question.poll?.result?.turnout ?? 0} turnout</small>
+                      {question.id === selected?.id ? <small>{discussion.length} notes</small> : null}
+                    </span>
                   </button>
                 ))
               ) : (
                 <div className="empty-state">
-                  <strong>No questions visible yet</strong>
+                  <strong>No posts in this view</strong>
                   <p>
-                    {selectedCommunity
+                    {questions.length
+                      ? "Try another feed filter."
+                      : selectedCommunity
                       ? selectedCommunity.visibility === "Private" && !selectedCommunity.isMember
                         ? "Join this private community to view its questions."
                         : "Propose the first question for this community."
@@ -1242,6 +1524,74 @@ export function TransitDemo() {
             </dl>
           </section>
 
+          <section className="thread-panel">
+            <div className="section-heading">
+              <div>
+                <h3>Thread</h3>
+                <p className="muted">{selected ? `${discussion.length} notes across context, sources, arguments, and moderation.` : "Select a post to open its thread."}</p>
+              </div>
+              <span className="badge-soft">{activeDiscussionPanel?.label ?? "Comments"}</span>
+            </div>
+            <form className="stacked-form embedded-form" onSubmit={(event) => void runAction(() => postDiscussion(event))}>
+              <select
+                aria-label="Discussion type"
+                value={discussionDraftKind}
+                onChange={(event) => setDiscussionDraftKind(event.target.value as DiscussionPostKind)}
+                disabled={!selected || !activeUser || actionPending}
+              >
+                {DiscussionViewDefinitions.map((view) => (
+                  <option key={view.kind} value={view.kind}>
+                    {discussionKindLabels[view.kind]}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                aria-label="Discussion note"
+                placeholder="Add context, source notes, or a concern"
+                value={discussionDraft}
+                onChange={(event) => setDiscussionDraft(event.target.value)}
+                disabled={!selected || !activeUser || actionPending}
+              />
+              <button type="submit" disabled={!selected || !discussionDraft.trim() || actionPending}>
+                Post note
+              </button>
+            </form>
+            <div className="discussion-tabs" role="tablist" aria-label="Discussion views">
+              {visibleDiscussionViews.map((view) => (
+                <button
+                  key={view.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeDiscussionView === view.key}
+                  className={activeDiscussionView === view.key ? "active" : ""}
+                  onClick={() => setActiveDiscussionView(view.key)}
+                >
+                  <span>{view.label}</span>
+                  <small>{view.count}</small>
+                </button>
+              ))}
+            </div>
+            {activeDiscussionPosts.length ? (
+              <div className="discussion-list">
+                {activeDiscussionPosts.map((post) => (
+                  <div className="discussion-entry" key={post.id}>
+                    <small>
+                      {discussionKindLabels[post.kind]} - {post.authorId}
+                    </small>
+                    <p>{post.body}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">No {activeDiscussionPanel?.label.toLowerCase() ?? "discussion"} yet.</p>
+            )}
+          </section>
+
+          <details className="protocol-drawer" open>
+            <summary>
+              <span>Protocol Controls</span>
+              <small>Registry, ballot, result, and adoption actions</small>
+            </summary>
           <div className="action-groups">
             <section className="action-group">
               <div className="group-heading">
@@ -1408,68 +1758,13 @@ export function TransitDemo() {
               </section>
             ) : null}
           </div>
+          </details>
 
           <div className="message" role="status">
             {actionPending ? "Working..." : message}
           </div>
 
           <div className="detail-stack">
-            <article>
-              <h3>Discussion</h3>
-              <form className="stacked-form embedded-form" onSubmit={(event) => void runAction(() => postDiscussion(event))}>
-                <select
-                  aria-label="Discussion type"
-                  value={discussionDraftKind}
-                  onChange={(event) => setDiscussionDraftKind(event.target.value as DiscussionPostKind)}
-                  disabled={!selected || !activeUser || actionPending}
-                >
-                  {DiscussionViewDefinitions.map((view) => (
-                    <option key={view.kind} value={view.kind}>
-                      {discussionKindLabels[view.kind]}
-                    </option>
-                  ))}
-                </select>
-                <textarea
-                  aria-label="Discussion note"
-                  placeholder="Add context, source notes, or a concern"
-                  value={discussionDraft}
-                  onChange={(event) => setDiscussionDraft(event.target.value)}
-                  disabled={!selected || !activeUser || actionPending}
-                />
-                <button type="submit" disabled={!selected || !discussionDraft.trim() || actionPending}>
-                  Post note
-                </button>
-              </form>
-              <div className="discussion-tabs" role="tablist" aria-label="Discussion views">
-                {visibleDiscussionViews.map((view) => (
-                  <button
-                    key={view.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeDiscussionView === view.key}
-                    className={activeDiscussionView === view.key ? "active" : ""}
-                    onClick={() => setActiveDiscussionView(view.key)}
-                  >
-                    <span>{view.label}</span>
-                    <small>{view.count}</small>
-                  </button>
-                ))}
-              </div>
-              {activeDiscussionPosts.length ? (
-                <div className="discussion-list">
-                  {activeDiscussionPosts.map((post) => (
-                    <div className="discussion-entry" key={post.id}>
-                      <small>
-                        {discussionKindLabels[post.kind]} - {post.authorId}
-                      </small>
-                      <p>{post.body}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p>No {activeDiscussionPanel?.label.toLowerCase() ?? "discussion"} yet.</p>
-              )}
-            </article>
             <article>
               <h3>Challenge History</h3>
               {selected?.challenges?.length ? (
@@ -1488,8 +1783,8 @@ export function TransitDemo() {
             </article>
             <article>
               <h3>Archive</h3>
-              <p>Body: {selected?.bodyHash ?? "No body hash yet."}</p>
-              <p>Sponsor: {selected?.sponsorDisclosureHash ?? "No sponsor hash yet."}</p>
+              <p>Body: {compactHash(selected?.bodyHash)}</p>
+              <p>Sponsor: {compactHash(selected?.sponsorDisclosureHash)}</p>
             </article>
             <article>
               <h3>Privacy Note</h3>

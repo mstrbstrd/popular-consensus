@@ -95,6 +95,8 @@ RPC_URL=<public-testnet-rpc-url> DEPLOYER_PRIVATE_KEY=<operator-key> pnpm contra
 
 The deploy script name is still local because it is the current MVP deployment adapter. A public testnet launch must publish the resulting deployment JSON and the deployment transaction ids.
 
+For account-abstraction execution, operators must also set the `PC_AA_*` values from the published deployment JSON and configure `PC_AA_BUNDLER_URL` if UserOperations should be relayed through a public bundler instead of the MVP direct EntryPoint submitter.
+
 ## Replay Checks
 
 Every API/indexer operator must expose these reads:

@@ -18,8 +18,8 @@ const transport = http(process.env.RPC_URL ?? "http://127.0.0.1:8545");
 const wallet = createWalletClient({ account, chain: anvil, transport });
 const publicClient = createPublicClient({ chain: anvil, transport });
 
-async function deploy(contractName, args = []) {
-  const artifact = readArtifact(contractName);
+async function deploy(sourceFile, contractName, args = []) {
+  const artifact = readArtifact(sourceFile, contractName);
   const bytecode = artifact.bytecode.object.startsWith("0x")
     ? artifact.bytecode.object
     : `0x${artifact.bytecode.object}`;
@@ -35,20 +35,26 @@ async function deploy(contractName, args = []) {
   return receipt.contractAddress;
 }
 
-function readArtifact(contractName) {
-  const artifactPath = path.join(process.cwd(), "out", "PopularConsensus.sol", `${contractName}.json`);
+function readArtifact(sourceFile, contractName) {
+  const artifactPath = path.join(process.cwd(), "out", sourceFile, `${contractName}.json`);
   return JSON.parse(readFileSync(artifactPath, "utf8"));
 }
 
-const pc = await deploy("PCToken", [parseEther("1000000")]);
-const stake = await deploy("StakeManager", [pc, account.address]);
-const questionRegistry = await deploy("QuestionRegistry");
-const challengeCourt = await deploy("ChallengeCourt");
-const credentialRegistry = await deploy("CredentialRegistry");
-const pollManager = await deploy("PollManager");
-const tallyManager = await deploy("TallyManager");
-const resultArchive = await deploy("ResultArchive");
-const adoptionRegistry = await deploy("AdoptionRegistry");
+const pc = await deploy("PopularConsensus.sol", "PCToken", [parseEther("1000000")]);
+const stake = await deploy("PopularConsensus.sol", "StakeManager", [pc, account.address]);
+const questionRegistry = await deploy("PopularConsensus.sol", "QuestionRegistry");
+const challengeCourt = await deploy("PopularConsensus.sol", "ChallengeCourt");
+const credentialRegistry = await deploy("PopularConsensus.sol", "CredentialRegistry");
+const pollManager = await deploy("PopularConsensus.sol", "PollManager");
+const tallyManager = await deploy("PopularConsensus.sol", "TallyManager");
+const resultArchive = await deploy("PopularConsensus.sol", "ResultArchive");
+const adoptionRegistry = await deploy("PopularConsensus.sol", "AdoptionRegistry");
+const entryPoint = await deploy("AccountAbstraction.sol", "PopularConsensusEntryPoint");
+const configuredP256Verifier = process.env.P256_VERIFIER_ADDRESS || process.env.PC_AA_P256_VERIFIER || null;
+const p256Verifier = configuredP256Verifier ?? await deploy("AccountAbstraction.sol", "PopularConsensusP256Verifier");
+const p256VerifierMode = configuredP256Verifier ? "configured" : "local-solidity";
+const accountFactory = await deploy("AccountAbstraction.sol", "PopularConsensusAccountFactory", [entryPoint, p256Verifier]);
+const paymaster = await deploy("AccountAbstraction.sol", "PopularConsensusPaymaster", [entryPoint]);
 
 const deployment = {
   chainId: anvil.id,
@@ -63,7 +69,12 @@ const deployment = {
     pollAdapter: pollManager,
     tallyManager,
     resultArchive,
-    adoptionRegistry
+    adoptionRegistry,
+    entryPoint,
+    accountFactory,
+    paymaster,
+    p256Verifier,
+    p256VerifierMode
   }
 };
 

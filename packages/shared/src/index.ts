@@ -938,6 +938,8 @@ export const UserAccountSchema = z.object({
   username: z.string(),
   profileId: z.string().nullable().optional(),
   profileHash: z.string().nullable().optional(),
+  smartAccountAddress: z.string().nullable().optional(),
+  smartAccountKind: z.string().optional(),
   displayName: z.string(),
   bio: z.string().nullable(),
   reputation: z.number().int(),
@@ -2717,6 +2719,95 @@ export const CreateUserRequestSchema = z.object({
     .regex(/^[a-z0-9_]+$/, "Use lowercase letters, numbers, and underscores only."),
   displayName: z.string().min(1).max(60),
   bio: z.string().max(280).default("")
+});
+
+export const AuthControllerKindSchema = z.enum(["Passkey", "Wallet"]);
+
+export const StartPasskeyRegistrationRequestSchema = z.object({
+  username: CreateUserRequestSchema.shape.username,
+  displayName: CreateUserRequestSchema.shape.displayName,
+  bio: CreateUserRequestSchema.shape.bio
+});
+
+export const VerifyPasskeyRegistrationRequestSchema = z.object({
+  challengeId: z.string().min(1),
+  credential: z.object({
+    id: z.string().min(1),
+    rawId: z.string().min(1),
+    type: z.literal("public-key"),
+    response: z.object({
+      clientDataJSON: z.string().min(1),
+      attestationObject: z.string().min(1)
+    })
+  })
+});
+
+export const StartPasskeyLoginRequestSchema = z.object({
+  username: z.string().min(1).optional()
+});
+
+export const VerifyPasskeyLoginRequestSchema = z.object({
+  challengeId: z.string().min(1),
+  credential: z.object({
+    id: z.string().min(1),
+    rawId: z.string().min(1),
+    type: z.literal("public-key"),
+    response: z.object({
+      clientDataJSON: z.string().min(1),
+      authenticatorData: z.string().min(1),
+      signature: z.string().min(1),
+      userHandle: z.string().min(1).optional()
+    })
+  })
+});
+
+const AaUserOperationSchema = z.object({
+  sender: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Use an Ethereum address."),
+  nonce: z.string().regex(/^[0-9]+$/, "Use a decimal nonce."),
+  initCode: z.string().regex(/^0x[a-fA-F0-9]*$/, "Use hex initCode."),
+  callData: z.string().regex(/^0x[a-fA-F0-9]*$/, "Use hex callData."),
+  accountGasLimits: z.string().regex(/^0x[a-fA-F0-9]{64}$/, "Use bytes32 account gas limits."),
+  preVerificationGas: z.string().regex(/^[0-9]+$/, "Use decimal preVerificationGas."),
+  gasFees: z.string().regex(/^0x[a-fA-F0-9]{64}$/, "Use bytes32 gas fees."),
+  paymasterAndData: z.string().regex(/^0x[a-fA-F0-9]*$/, "Use hex paymaster data."),
+  signature: z.string().regex(/^0x[a-fA-F0-9]*$/, "Use hex signature.")
+});
+
+const PasskeyAssertionCredentialSchema = z.object({
+  id: z.string().min(1),
+  rawId: z.string().min(1),
+  type: z.literal("public-key"),
+  response: z.object({
+    clientDataJSON: z.string().min(1),
+    authenticatorData: z.string().min(1),
+    signature: z.string().min(1),
+    userHandle: z.string().min(1).optional()
+  })
+});
+
+export const StartPasskeyDeploymentRequestSchema = z.object({
+  controllerId: z.string().min(1).optional()
+});
+
+export const VerifyPasskeyDeploymentRequestSchema = z.object({
+  challengeId: z.string().min(1),
+  aaUserOperation: AaUserOperationSchema,
+  credential: PasskeyAssertionCredentialSchema
+});
+
+export const StartWalletAuthRequestSchema = z.object({
+  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Use an Ethereum address."),
+  username: CreateUserRequestSchema.shape.username.optional(),
+  displayName: CreateUserRequestSchema.shape.displayName.optional(),
+  bio: CreateUserRequestSchema.shape.bio.optional()
+});
+
+export const VerifyWalletAuthRequestSchema = z.object({
+  challengeId: z.string().min(1),
+  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Use an Ethereum address."),
+  signature: z.string().regex(/^0x[a-fA-F0-9]+$/, "Use a hex signature."),
+  aaUserOperation: AaUserOperationSchema.optional(),
+  aaUserOperationSignature: z.string().regex(/^0x[a-fA-F0-9]+$/, "Use a hex UserOperation signature.").optional()
 });
 
 export const CreateCommunityRequestSchema = z.object({

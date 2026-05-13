@@ -85,8 +85,24 @@ This writes `data/local-deployment.json` with deployed addresses for:
 - `TallyManager`
 - `ResultArchive`
 - `AdoptionRegistry`
+- `PopularConsensusEntryPoint`
+- `PopularConsensusAccountFactory`
+- `PopularConsensusPaymaster`
+- configured P-256 verifier address (`p256Verifier`)
+
+By default, local deployment creates `PopularConsensusP256Verifier` and points the account factory at it. Set `P256_VERIFIER_ADDRESS` or `PC_AA_P256_VERIFIER` when you want to use a chain-native RIP-7212 verifier instead, such as `0x0000000000000000000000000000000000000100` on networks that expose the precompile.
 
 If Anvil is restarted, redeploy before using the devnet. Anvil state is ephemeral.
+
+By default the API submits signed UserOperations directly to the local `PopularConsensusEntryPoint`. It also exposes `POST /auth/aa/bundler` as a local JSON-RPC endpoint for `eth_sendUserOperation`; the opt-in AA smoke uses that endpoint to verify the local bundler-style path. To test against an external ERC-4337 bundler, set `PC_AA_BUNDLER_URL` before starting the API; signed operations will be sent with `eth_sendUserOperation` instead.
+
+To replay the direct local smart-account deployment path as a committed integration check, keep Anvil running after deployment and run:
+
+```bash
+pnpm test:aa:local-chain
+```
+
+This smoke exercises wallet, passkey, and local bundler-style controller paths. The passkey path first verifies that the configured P-256 verifier accepts a generated WebAuthn ES256 signature, then submits the passkey UserOperation through the same local EntryPoint path.
 
 5. Start the API and web app.
 
