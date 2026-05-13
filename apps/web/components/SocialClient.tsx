@@ -124,6 +124,20 @@ type DataUnionSummary = {
   accessGrants?: Array<{ id: string; buyerId: string; status: string; paymentPc: number }>;
 };
 
+type AdoptionPolicy = {
+  id: string;
+  authorityLevel: "Advisory" | "Recognized" | "Binding";
+  status: "Proposed" | "Active" | "Suspended" | "Retired";
+  eligibleQuestionTypes?: string[];
+  credentialSchemaIds?: string[];
+};
+
+type AdoptionSummary = {
+  defaultAuthorityLevel: string;
+  policies?: AdoptionPolicy[];
+  activePolicies?: AdoptionPolicy[];
+};
+
 type FeedMode = "home" | "open" | "review" | "results";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
@@ -729,6 +743,70 @@ function DataUnionPanel({
   );
 }
 
+function AuthorityPolicyPanel({
+  adoption,
+  loading,
+  message,
+  actionPending,
+  canSteward,
+  onProposeRecognized,
+  onActivatePolicy,
+  onSuspendPolicy
+}: {
+  adoption: AdoptionSummary | null;
+  loading: boolean;
+  message: string;
+  actionPending: boolean;
+  canSteward: boolean;
+  onProposeRecognized: () => void;
+  onActivatePolicy: () => void;
+  onSuspendPolicy: () => void;
+}) {
+  const policies = adoption?.policies ?? [];
+  const activePolicy = adoption?.activePolicies?.[0] ?? null;
+  const proposedPolicy = policies.find((policy) => policy.status === "Proposed") ?? null;
+
+  return (
+    <section className="authority-panel" aria-label="Authority policy">
+      <div className="rail-heading">
+        <h3>Authority</h3>
+        <small>{loading ? "Loading" : activePolicy?.authorityLevel ?? adoption?.defaultAuthorityLevel ?? "Advisory"}</small>
+      </div>
+      {message ? <p className="audit-message">{message}</p> : null}
+      <p className="muted">
+        {activePolicy
+          ? `${activePolicy.authorityLevel} policy is active for matching future questions.`
+          : "Questions stay advisory unless a community steward activates an adoption policy."}
+      </p>
+      <div className="authority-grid">
+        <div>
+          <span>Policies</span>
+          <strong>{policies.length}</strong>
+        </div>
+        <div>
+          <span>Active</span>
+          <strong>{adoption?.activePolicies?.length ?? 0}</strong>
+        </div>
+        <div>
+          <span>Default</span>
+          <strong>{adoption?.defaultAuthorityLevel ?? "Advisory"}</strong>
+        </div>
+      </div>
+      <div className="data-union-actions">
+        <button type="button" onClick={onProposeRecognized} disabled={!canSteward || Boolean(proposedPolicy) || actionPending}>
+          Propose recognized
+        </button>
+        <button type="button" onClick={onActivatePolicy} disabled={!canSteward || !proposedPolicy || actionPending}>
+          Activate policy
+        </button>
+        <button type="button" onClick={onSuspendPolicy} disabled={!canSteward || !activePolicy || actionPending}>
+          Suspend policy
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function LoginPageClient() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -966,6 +1044,9 @@ export function FeedPageClient() {
   const [dataUnion, setDataUnion] = useState<DataUnionSummary | null>(null);
   const [dataUnionLoading, setDataUnionLoading] = useState(false);
   const [dataUnionMessage, setDataUnionMessage] = useState("");
+  const [adoption, setAdoption] = useState<AdoptionSummary | null>(null);
+  const [adoptionLoading, setAdoptionLoading] = useState(false);
+  const [adoptionMessage, setAdoptionMessage] = useState("");
   const [pending, setPending] = useState(false);
 
   const activeRole = data.selectedCommunity?.activeUserRole ?? (data.selectedCommunity?.isMember ? "Member" : "Visitor");
@@ -1029,6 +1110,8 @@ export function FeedPageClient() {
     data.activeUser && (dataUnion?.consents ?? []).some((consent) => consent.status === "Active" && consent.userId === data.activeUser?.id)
   );
   const firstPublishedDataProduct = (dataUnion?.products ?? []).find((product) => product.status === "Published") ?? null;
+  const proposedAdoptionPolicy = (adoption?.policies ?? []).find((policy) => policy.status === "Proposed") ?? null;
+  const activeAdoptionPolicy = adoption?.activePolicies?.[0] ?? null;
   const selectedResultId = selectedQuestion?.poll?.result?.id;
   const canStewardDataUnion = Boolean(data.activeUser && selectedQuestionCommunity && canCurateSelectedQuestion);
   const canConsentToDataUnion = Boolean(data.activeUser && activeDataUnionPolicy && !userHasDataUnionConsent);
@@ -1135,6 +1218,34 @@ export function FeedPageClient() {
     };
   }, [selectedQuestionCommunity?.id, data.activeUser?.id]);
 
+  useEffect(() => {
+    if (!selectedQuestionCommunity?.id) {
+      setAdoption(null);
+      setAdoptionMessage("");
+      return;
+    }
+    let active = true;
+    setAdoptionLoading(true);
+    setAdoptionMessage("");
+    const params = new URLSearchParams();
+    if (data.activeUser?.id) params.set("userId", data.activeUser.id);
+    apiCall<AdoptionSummary>(`/communities/${selectedQuestionCommunity.id}/adoption?${params.toString()}`)
+      .then((payload) => {
+        if (active) setAdoption(payload);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setAdoption(null);
+        setAdoptionMessage(error instanceof Error ? error.message : "Authority policies are unavailable for this community.");
+      })
+      .finally(() => {
+        if (active) setAdoptionLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedQuestionCommunity?.id, data.activeUser?.id]);
+
   async function loadDataUnion(communityId: string) {
     const params = new URLSearchParams();
     if (data.activeUser?.id) params.set("userId", data.activeUser.id);
@@ -1144,6 +1255,13 @@ export function FeedPageClient() {
   async function refreshDataUnion() {
     if (!selectedQuestionCommunity?.id) return;
     setDataUnion(await loadDataUnion(selectedQuestionCommunity.id));
+  }
+
+  async function refreshAdoption() {
+    if (!selectedQuestionCommunity?.id) return;
+    const params = new URLSearchParams();
+    if (data.activeUser?.id) params.set("userId", data.activeUser.id);
+    setAdoption(await apiCall<AdoptionSummary>(`/communities/${selectedQuestionCommunity.id}/adoption?${params.toString()}`));
   }
 
   async function selectCommunity(communityId: string) {
@@ -1428,6 +1546,49 @@ export function FeedPageClient() {
     });
     data.setMessage("Buyer access grant recorded.");
     await refreshDataUnion();
+  }
+
+  async function proposeRecognizedPolicy() {
+    if (!selectedQuestionCommunity || !data.activeUser) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/adoption/proposals`, {
+      method: "POST",
+      body: JSON.stringify({
+        steward: data.activeUser.id,
+        authorityLevel: "Recognized",
+        eligibleQuestionTypes: ["community", selectedQuestionCommunity.slug],
+        credentialSchemaIds: [selectedQuestionCommunity.credentialSchemaId],
+        quorumRule: "Community steward recognition for local MVP social-client policy.",
+        approvalRule: "Owner or moderator activation under transparent policy record."
+      })
+    });
+    data.setMessage("Recognized adoption policy proposed.");
+    await refreshAdoption();
+  }
+
+  async function activateRecognizedPolicy() {
+    if (!selectedQuestionCommunity || !data.activeUser || !proposedAdoptionPolicy) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/adoption/policies/${proposedAdoptionPolicy.id}/activate`, {
+      method: "POST",
+      body: JSON.stringify({
+        steward: data.activeUser.id,
+        adoptionRecord: "Community steward activated recognized authority from the social client."
+      })
+    });
+    data.setMessage("Adoption policy activated.");
+    await refreshAdoption();
+  }
+
+  async function suspendRecognizedPolicy() {
+    if (!selectedQuestionCommunity || !data.activeUser || !activeAdoptionPolicy) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/adoption/policies/${activeAdoptionPolicy.id}/suspend`, {
+      method: "POST",
+      body: JSON.stringify({
+        steward: data.activeUser.id,
+        reason: "Community steward suspended recognized authority from the social client pending review."
+      })
+    });
+    data.setMessage("Adoption policy suspended.");
+    await refreshAdoption();
   }
 
   function renderBallotControls() {
@@ -1793,6 +1954,16 @@ export function FeedPageClient() {
               onRecordConsent={() => void runCivicAction(recordDataUnionConsent)}
               onPublishProduct={() => void runCivicAction(publishDataUnionProduct)}
               onGrantAccess={() => void runCivicAction(grantDataUnionAccess)}
+            />
+            <AuthorityPolicyPanel
+              adoption={adoption}
+              loading={adoptionLoading}
+              message={adoptionMessage}
+              actionPending={pending}
+              canSteward={canStewardDataUnion}
+              onProposeRecognized={() => void runCivicAction(proposeRecognizedPolicy)}
+              onActivatePolicy={() => void runCivicAction(activateRecognizedPolicy)}
+              onSuspendPolicy={() => void runCivicAction(suspendRecognizedPolicy)}
             />
             <section className="thread-panel">
               <div className="rail-heading">

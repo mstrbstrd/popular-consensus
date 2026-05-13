@@ -864,6 +864,40 @@ h3 {
   box-shadow: none;
 }
 
+.authority-panel {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.authority-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.authority-grid div {
+  min-width: 0;
+  border-left: 4px solid var(--yellow);
+  padding-left: 10px;
+}
+
+.authority-grid span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.authority-grid strong {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  line-height: 1;
+}
+
 .workflow-summary h3 {
   font-size: 20px;
 }
