@@ -85,6 +85,26 @@ type DiscussionPost = {
   createdAt: string;
 };
 
+type CivicRecord = {
+  events?: Array<{ eventType?: string; eventHash?: string; newHash?: string; createdAt?: string }>;
+  commitments?: Array<{ kind?: string; commitmentKind?: string; hash?: string; commitmentHash?: string }>;
+  result?: {
+    resultArtifactHash?: string;
+    aggregateCountsHash?: string;
+    privacyReportHash?: string;
+    turnout?: number;
+    finalStatus?: string;
+    authorityLevel?: string;
+  } | null;
+  discussionCount?: number;
+};
+
+type ReplayCheck = {
+  status: string;
+  eventStreamHash?: string;
+  checks?: Array<Record<string, unknown>>;
+};
+
 type FeedMode = "home" | "open" | "review" | "results";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
@@ -172,6 +192,23 @@ function formatDate(value?: string) {
 
 function formatStatus(value: string) {
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
+function shortHash(value?: string | null) {
+  if (!value) return "Not published";
+  if (value.length <= 20) return value;
+  return `${value.slice(0, 10)}...${value.slice(-6)}`;
+}
+
+function checkLabel(check: Record<string, unknown>) {
+  const raw = check.name ?? check.id ?? check.check ?? "Replay check";
+  return String(raw).replace(/[-_]/g, " ");
+}
+
+function checkStatus(check: Record<string, unknown>) {
+  if (typeof check.passed === "boolean") return check.passed ? "Passed" : "Needs review";
+  if (typeof check.status === "string") return check.status;
+  return "Recorded";
 }
 
 async function apiCall<T>(path: string, init?: RequestInit): Promise<T> {
@@ -473,6 +510,81 @@ function PostCard({
   );
 }
 
+function CivicAuditPanel({
+  record,
+  replay,
+  loading,
+  message
+}: {
+  record: CivicRecord | null;
+  replay: ReplayCheck | null;
+  loading: boolean;
+  message: string;
+}) {
+  const events = record?.events ?? [];
+  const commitments = record?.commitments ?? [];
+  const checks = replay?.checks ?? [];
+  const recentEvents = events.slice(-4).reverse();
+
+  return (
+    <section className="audit-panel" aria-label="Public audit">
+      <div className="rail-heading">
+        <h3>Public Audit</h3>
+        <small>{loading ? "Loading" : replay?.status ?? "Pending"}</small>
+      </div>
+      {message ? <p className="audit-message">{message}</p> : null}
+      <div className="audit-grid">
+        <div>
+          <span>Events</span>
+          <strong>{events.length}</strong>
+        </div>
+        <div>
+          <span>Commitments</span>
+          <strong>{commitments.length}</strong>
+        </div>
+        <div>
+          <span>Turnout</span>
+          <strong>{record?.result?.turnout ?? 0}</strong>
+        </div>
+      </div>
+      <dl className="audit-hashes">
+        <div>
+          <dt>Event Stream</dt>
+          <dd>{shortHash(replay?.eventStreamHash)}</dd>
+        </div>
+        <div>
+          <dt>Result Artifact</dt>
+          <dd>{shortHash(record?.result?.resultArtifactHash)}</dd>
+        </div>
+        <div>
+          <dt>Privacy Report</dt>
+          <dd>{shortHash(record?.result?.privacyReportHash)}</dd>
+        </div>
+      </dl>
+      <div className="audit-list">
+        {checks.slice(0, 3).map((check, index) => (
+          <div key={`${checkLabel(check)}-${index}`}>
+            <span>{checkLabel(check)}</span>
+            <strong>{checkStatus(check)}</strong>
+          </div>
+        ))}
+        {!checks.length && recentEvents.map((event, index) => (
+          <div key={`${event.eventType ?? "event"}-${index}`}>
+            <span>{formatStatus(event.eventType ?? "Protocol event")}</span>
+            <strong>{shortHash(event.eventHash ?? event.newHash)}</strong>
+          </div>
+        ))}
+        {!checks.length && !recentEvents.length ? (
+          <div>
+            <span>No public events yet</span>
+            <strong>Awaiting action</strong>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 export function LoginPageClient() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -701,6 +813,10 @@ export function FeedPageClient() {
   const [discussionDraft, setDiscussionDraft] = useState("");
   const [composeCommunityId, setComposeCommunityId] = useState("");
   const [questionDraft, setQuestionDraft] = useState(emptyQuestion);
+  const [civicRecord, setCivicRecord] = useState<CivicRecord | null>(null);
+  const [replayCheck, setReplayCheck] = useState<ReplayCheck | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditMessage, setAuditMessage] = useState("");
   const [pending, setPending] = useState(false);
 
   const activeRole = data.selectedCommunity?.activeUserRole ?? (data.selectedCommunity?.isMember ? "Member" : "Visitor");
@@ -751,6 +867,39 @@ export function FeedPageClient() {
       .then((payload) => setDiscussion(payload.discussion ?? []))
       .catch(() => setDiscussion([]));
   }, [selectedQuestion?.id, data.activeUser?.id]);
+
+  useEffect(() => {
+    if (!selectedQuestion?.id) {
+      setCivicRecord(null);
+      setReplayCheck(null);
+      setAuditMessage("");
+      return;
+    }
+    let active = true;
+    setAuditLoading(true);
+    setAuditMessage("");
+    Promise.all([
+      apiCall<CivicRecord>(`/public/questions/${selectedQuestion.id}/civic-record`),
+      apiCall<ReplayCheck>(`/public/questions/${selectedQuestion.id}/replay-check`)
+    ])
+      .then(([record, replay]) => {
+        if (!active) return;
+        setCivicRecord(record);
+        setReplayCheck(replay);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setCivicRecord(null);
+        setReplayCheck(null);
+        setAuditMessage(error instanceof Error ? error.message : "Public audit is unavailable for this post.");
+      })
+      .finally(() => {
+        if (active) setAuditLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedQuestion?.id]);
 
   async function selectCommunity(communityId: string) {
     data.setSelectedCommunityId(communityId);
@@ -1028,6 +1177,7 @@ export function FeedPageClient() {
                 <dd>{selectedQuestion.version}</dd>
               </div>
             </dl>
+            <CivicAuditPanel record={civicRecord} replay={replayCheck} loading={auditLoading} message={auditMessage} />
             <section className="thread-panel">
               <div className="rail-heading">
                 <h3>Thread</h3>

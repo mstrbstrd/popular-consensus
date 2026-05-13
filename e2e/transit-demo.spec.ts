@@ -223,6 +223,7 @@ test("routes the social client pages around the testing hub", async ({ page, req
   await expect(page).toHaveURL(/\/feed$/);
   await expect(page.getByRole("heading", { name: "Community Feed" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Should Vancouver pilot car-free Sundays/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Public Audit" })).toBeVisible();
 
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
