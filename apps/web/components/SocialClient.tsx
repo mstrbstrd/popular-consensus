@@ -106,6 +106,24 @@ type ReplayCheck = {
   checks?: Array<Record<string, unknown>>;
 };
 
+type DataUnionSummary = {
+  activePolicy?: {
+    id: string;
+    title: string;
+    status: string;
+    minimumCohortSize: number;
+    revenueSplit?: {
+      communityTreasuryPercent: number;
+      participantPoolPercent: number;
+      operatorPoolPercent: number;
+    };
+  } | null;
+  policies?: Array<{ id: string; status: string }>;
+  consents?: Array<{ id: string; status: string }>;
+  products?: Array<{ id: string; title: string; status: string; cohortSize: number; pricePc: number }>;
+  accessGrants?: Array<{ id: string; buyerId: string; status: string; paymentPc: number }>;
+};
+
 type FeedMode = "home" | "open" | "review" | "results";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
@@ -614,6 +632,65 @@ function CivicAuditPanel({
   );
 }
 
+function DataUnionPanel({
+  dataUnion,
+  loading,
+  message
+}: {
+  dataUnion: DataUnionSummary | null;
+  loading: boolean;
+  message: string;
+}) {
+  const activePolicy = dataUnion?.activePolicy ?? null;
+  const activeConsents = (dataUnion?.consents ?? []).filter((consent) => consent.status === "Active").length;
+  const publishedProducts = (dataUnion?.products ?? []).filter((product) => product.status === "Published");
+  const activeGrants = (dataUnion?.accessGrants ?? []).filter((grant) => grant.status === "Active");
+  const revenuePc = activeGrants.reduce((sum, grant) => sum + grant.paymentPc, 0);
+
+  return (
+    <section className="data-union-panel" aria-label="Data union">
+      <div className="rail-heading">
+        <h3>Data Union</h3>
+        <small>{loading ? "Loading" : activePolicy ? activePolicy.status : "No active policy"}</small>
+      </div>
+      {message ? <p className="audit-message">{message}</p> : null}
+      <p className="muted">
+        {activePolicy
+          ? activePolicy.title
+          : "This community has not activated an aggregate data-union policy yet."}
+      </p>
+      <div className="data-union-grid">
+        <div>
+          <span>Consent</span>
+          <strong>{activeConsents}</strong>
+        </div>
+        <div>
+          <span>Products</span>
+          <strong>{publishedProducts.length}</strong>
+        </div>
+        <div>
+          <span>Revenue</span>
+          <strong>{revenuePc} PC</strong>
+        </div>
+      </div>
+      {activePolicy?.revenueSplit ? (
+        <small className="action-hint">
+          Split: {activePolicy.revenueSplit.communityTreasuryPercent}% treasury, {activePolicy.revenueSplit.participantPoolPercent}% participants,{" "}
+          {activePolicy.revenueSplit.operatorPoolPercent}% operators.
+        </small>
+      ) : null}
+      {publishedProducts.slice(0, 2).map((product) => (
+        <div className="data-union-product" key={product.id}>
+          <span>{product.title}</span>
+          <strong>
+            {product.cohortSize} cohort · {product.pricePc} PC
+          </strong>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export function LoginPageClient() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -848,6 +925,9 @@ export function FeedPageClient() {
   const [replayCheck, setReplayCheck] = useState<ReplayCheck | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditMessage, setAuditMessage] = useState("");
+  const [dataUnion, setDataUnion] = useState<DataUnionSummary | null>(null);
+  const [dataUnionLoading, setDataUnionLoading] = useState(false);
+  const [dataUnionMessage, setDataUnionMessage] = useState("");
   const [pending, setPending] = useState(false);
 
   const activeRole = data.selectedCommunity?.activeUserRole ?? (data.selectedCommunity?.isMember ? "Member" : "Visitor");
@@ -976,6 +1056,35 @@ export function FeedPageClient() {
       active = false;
     };
   }, [selectedQuestion?.id]);
+
+  useEffect(() => {
+    if (!selectedQuestionCommunity?.id) {
+      setDataUnion(null);
+      setDataUnionMessage("");
+      return;
+    }
+    let active = true;
+    setDataUnionLoading(true);
+    setDataUnionMessage("");
+    const params = new URLSearchParams();
+    if (data.activeUser?.id) params.set("userId", data.activeUser.id);
+    apiCall<DataUnionSummary>(`/communities/${selectedQuestionCommunity.id}/data-union?${params.toString()}`)
+      .then((payload) => {
+        if (!active) return;
+        setDataUnion(payload);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setDataUnion(null);
+        setDataUnionMessage(error instanceof Error ? error.message : "Data-union records are unavailable for this community.");
+      })
+      .finally(() => {
+        if (active) setDataUnionLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedQuestionCommunity?.id, data.activeUser?.id]);
 
   async function selectCommunity(communityId: string) {
     data.setSelectedCommunityId(communityId);
@@ -1531,6 +1640,7 @@ export function FeedPageClient() {
                 </section>
               </div>
             </details>
+            <DataUnionPanel dataUnion={dataUnion} loading={dataUnionLoading} message={dataUnionMessage} />
             <section className="thread-panel">
               <div className="rail-heading">
                 <h3>Thread</h3>

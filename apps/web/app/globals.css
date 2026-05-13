@@ -792,6 +792,56 @@ h3 {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.data-union-panel {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.data-union-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.data-union-grid div {
+  min-width: 0;
+  border-left: 4px solid var(--magenta);
+  padding-left: 10px;
+}
+
+.data-union-grid span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.data-union-grid strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.data-union-product {
+  display: grid;
+  gap: 2px;
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 9px 10px;
+}
+
+.data-union-product span {
+  font-weight: 800;
+}
+
+.data-union-product strong {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .workflow-summary h3 {
   font-size: 20px;
 }
