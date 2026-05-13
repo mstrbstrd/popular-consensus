@@ -842,6 +842,28 @@ h3 {
   font-size: 12px;
 }
 
+.data-union-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.data-union-actions button {
+  min-height: 34px;
+  border-color: var(--cyan);
+  background: var(--cyan);
+  color: #fff;
+  box-shadow: 4px 4px 0 rgba(240, 78, 152, 0.14);
+  font-size: 12px;
+}
+
+.data-union-actions button:disabled {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: none;
+}
+
 .workflow-summary h3 {
   font-size: 20px;
 }

@@ -227,6 +227,8 @@ test("routes the social client pages around the testing hub", async ({ page, req
   await expect(page.getByText("Civic Actions")).toBeVisible();
   await expect(page.getByRole("button", { name: "Issue credential" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Data Union" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Propose policy" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Publish product" })).toBeVisible();
 
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();

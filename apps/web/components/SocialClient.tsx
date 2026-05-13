@@ -72,7 +72,7 @@ type Question = {
   poll?: {
     id: string;
     status: string;
-    result?: { turnout: number; resultArtifactHash: string; finalStatus?: string } | null;
+    result?: { id?: string; turnout: number; resultArtifactHash: string; finalStatus?: string } | null;
     resultChallenges?: Array<{ id: string; reasonCode: string; ruling: string; challenger: string }>;
   } | null;
   challenges: Array<{ id: string; reasonCode: string; ruling: string; challenger: string }>;
@@ -118,8 +118,8 @@ type DataUnionSummary = {
       operatorPoolPercent: number;
     };
   } | null;
-  policies?: Array<{ id: string; status: string }>;
-  consents?: Array<{ id: string; status: string }>;
+  policies?: Array<{ id: string; title?: string; status: string }>;
+  consents?: Array<{ id: string; userId?: string; status: string }>;
   products?: Array<{ id: string; title: string; status: string; cohortSize: number; pricePc: number }>;
   accessGrants?: Array<{ id: string; buyerId: string; status: string; paymentPc: number }>;
 };
@@ -635,13 +635,34 @@ function CivicAuditPanel({
 function DataUnionPanel({
   dataUnion,
   loading,
-  message
+  message,
+  actionPending,
+  canSteward,
+  canConsent,
+  canPublishProduct,
+  canGrantAccess,
+  onProposePolicy,
+  onActivatePolicy,
+  onRecordConsent,
+  onPublishProduct,
+  onGrantAccess
 }: {
   dataUnion: DataUnionSummary | null;
   loading: boolean;
   message: string;
+  actionPending: boolean;
+  canSteward: boolean;
+  canConsent: boolean;
+  canPublishProduct: boolean;
+  canGrantAccess: boolean;
+  onProposePolicy: () => void;
+  onActivatePolicy: () => void;
+  onRecordConsent: () => void;
+  onPublishProduct: () => void;
+  onGrantAccess: () => void;
 }) {
   const activePolicy = dataUnion?.activePolicy ?? null;
+  const proposedPolicy = (dataUnion?.policies ?? []).find((policy) => policy.status === "Proposed") ?? null;
   const activeConsents = (dataUnion?.consents ?? []).filter((consent) => consent.status === "Active").length;
   const publishedProducts = (dataUnion?.products ?? []).filter((product) => product.status === "Published");
   const activeGrants = (dataUnion?.accessGrants ?? []).filter((grant) => grant.status === "Active");
@@ -679,6 +700,23 @@ function DataUnionPanel({
           {activePolicy.revenueSplit.operatorPoolPercent}% operators.
         </small>
       ) : null}
+      <div className="data-union-actions">
+        <button type="button" onClick={onProposePolicy} disabled={!canSteward || Boolean(proposedPolicy) || Boolean(activePolicy) || actionPending}>
+          Propose policy
+        </button>
+        <button type="button" onClick={onActivatePolicy} disabled={!canSteward || !proposedPolicy || actionPending}>
+          Activate policy
+        </button>
+        <button type="button" onClick={onRecordConsent} disabled={!canConsent || actionPending}>
+          Opt in
+        </button>
+        <button type="button" onClick={onPublishProduct} disabled={!canPublishProduct || actionPending}>
+          Publish product
+        </button>
+        <button type="button" onClick={onGrantAccess} disabled={!canGrantAccess || actionPending}>
+          Grant access
+        </button>
+      </div>
       {publishedProducts.slice(0, 2).map((product) => (
         <div className="data-union-product" key={product.id}>
           <span>{product.title}</span>
@@ -985,6 +1023,17 @@ export function FeedPageClient() {
       ? ""
       : "Issue a demo resident credential before submitting an encrypted ballot."
     : "This question does not have a poll yet.";
+  const proposedDataUnionPolicy = (dataUnion?.policies ?? []).find((policy) => policy.status === "Proposed") ?? null;
+  const activeDataUnionPolicy = dataUnion?.activePolicy ?? null;
+  const userHasDataUnionConsent = Boolean(
+    data.activeUser && (dataUnion?.consents ?? []).some((consent) => consent.status === "Active" && consent.userId === data.activeUser?.id)
+  );
+  const firstPublishedDataProduct = (dataUnion?.products ?? []).find((product) => product.status === "Published") ?? null;
+  const selectedResultId = selectedQuestion?.poll?.result?.id;
+  const canStewardDataUnion = Boolean(data.activeUser && selectedQuestionCommunity && canCurateSelectedQuestion);
+  const canConsentToDataUnion = Boolean(data.activeUser && activeDataUnionPolicy && !userHasDataUnionConsent);
+  const canPublishDataUnionProduct = Boolean(canStewardDataUnion && activeDataUnionPolicy && selectedResultId && !firstPublishedDataProduct);
+  const canGrantDataUnionAccess = Boolean(canStewardDataUnion && firstPublishedDataProduct);
   const canPost = Boolean(
     data.activeUser &&
       composeCommunity &&
@@ -1085,6 +1134,17 @@ export function FeedPageClient() {
       active = false;
     };
   }, [selectedQuestionCommunity?.id, data.activeUser?.id]);
+
+  async function loadDataUnion(communityId: string) {
+    const params = new URLSearchParams();
+    if (data.activeUser?.id) params.set("userId", data.activeUser.id);
+    return apiCall<DataUnionSummary>(`/communities/${communityId}/data-union?${params.toString()}`);
+  }
+
+  async function refreshDataUnion() {
+    if (!selectedQuestionCommunity?.id) return;
+    setDataUnion(await loadDataUnion(selectedQuestionCommunity.id));
+  }
 
   async function selectCommunity(communityId: string) {
     data.setSelectedCommunityId(communityId);
@@ -1289,6 +1349,85 @@ export function FeedPageClient() {
     await apiCall(`/questions/${selectedQuestion.id}/archive`, { method: "POST", body: JSON.stringify({ curator: data.activeUser.id }) });
     data.setMessage("Result finalized and public archive published.");
     await refreshSelectedQuestion();
+  }
+
+  async function proposeDataUnionPolicy() {
+    if (!selectedQuestionCommunity || !data.activeUser) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/data-union/policies`, {
+      method: "POST",
+      body: JSON.stringify({
+        steward: data.activeUser.id,
+        title: `${selectedQuestionCommunity.name} aggregate data policy`.slice(0, 140),
+        purpose: "Allow opt-in, privacy-safe aggregate poll products under transparent community audit and revenue routing.",
+        minimumCohortSize: 1,
+        revenueSplit: { communityTreasuryPercent: 70, participantPoolPercent: 20, operatorPoolPercent: 10 }
+      })
+    });
+    data.setMessage("Data-union policy proposed.");
+    await refreshDataUnion();
+  }
+
+  async function activateDataUnionPolicy() {
+    if (!selectedQuestionCommunity || !data.activeUser || !proposedDataUnionPolicy) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/data-union/policies/${proposedDataUnionPolicy.id}/activate`, {
+      method: "POST",
+      body: JSON.stringify({
+        steward: data.activeUser.id,
+        activationRecord: "Community steward activated the aggregate data-union policy from the social client."
+      })
+    });
+    data.setMessage("Data-union policy activated.");
+    await refreshDataUnion();
+  }
+
+  async function recordDataUnionConsent() {
+    if (!selectedQuestionCommunity || !data.activeUser || !activeDataUnionPolicy) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/data-union/consents`, {
+      method: "POST",
+      body: JSON.stringify({
+        userId: data.activeUser.id,
+        policyId: activeDataUnionPolicy.id,
+        scope: "AggregateAnalytics",
+        consentStatement: "I opt in to privacy-safe aggregate data products governed by this community policy."
+      })
+    });
+    data.setMessage("Data-union consent recorded.");
+    await refreshDataUnion();
+  }
+
+  async function publishDataUnionProduct() {
+    if (!selectedQuestionCommunity || !data.activeUser || !activeDataUnionPolicy || !selectedQuestion || !selectedResultId) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/data-union/products`, {
+      method: "POST",
+      body: JSON.stringify({
+        steward: data.activeUser.id,
+        policyId: activeDataUnionPolicy.id,
+        resultId: selectedResultId,
+        productType: "AggregateResultDataset",
+        title: `${selectedQuestion.title} aggregate signal`.slice(0, 140),
+        description: "Privacy-safe aggregate result references, methodology hashes, and proof links for approved buyers.",
+        methodology: "Derived only from the published aggregate result artifact and tally publication proof.",
+        pricePc: 1000
+      })
+    });
+    data.setMessage("Aggregate data product published.");
+    await refreshDataUnion();
+  }
+
+  async function grantDataUnionAccess() {
+    if (!selectedQuestionCommunity || !data.activeUser || !firstPublishedDataProduct) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/data-union/products/${firstPublishedDataProduct.id}/access-grants`, {
+      method: "POST",
+      body: JSON.stringify({
+        steward: data.activeUser.id,
+        buyerId: "public-interest-research-lab",
+        buyerType: "ResearchPartner",
+        accessPurpose: "Analyze aggregate civic sentiment without respondent identification.",
+        paymentPc: firstPublishedDataProduct.pricePc
+      })
+    });
+    data.setMessage("Buyer access grant recorded.");
+    await refreshDataUnion();
   }
 
   function renderBallotControls() {
@@ -1640,7 +1779,21 @@ export function FeedPageClient() {
                 </section>
               </div>
             </details>
-            <DataUnionPanel dataUnion={dataUnion} loading={dataUnionLoading} message={dataUnionMessage} />
+            <DataUnionPanel
+              dataUnion={dataUnion}
+              loading={dataUnionLoading}
+              message={dataUnionMessage}
+              actionPending={pending}
+              canSteward={canStewardDataUnion}
+              canConsent={canConsentToDataUnion}
+              canPublishProduct={canPublishDataUnionProduct}
+              canGrantAccess={canGrantDataUnionAccess}
+              onProposePolicy={() => void runCivicAction(proposeDataUnionPolicy)}
+              onActivatePolicy={() => void runCivicAction(activateDataUnionPolicy)}
+              onRecordConsent={() => void runCivicAction(recordDataUnionConsent)}
+              onPublishProduct={() => void runCivicAction(publishDataUnionProduct)}
+              onGrantAccess={() => void runCivicAction(grantDataUnionAccess)}
+            />
             <section className="thread-panel">
               <div className="rail-heading">
                 <h3>Thread</h3>
