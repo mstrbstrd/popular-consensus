@@ -261,8 +261,14 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
     });
     expect(newUser.statusCode).toBe(200);
     const newUserId = newUser.json().user.id as string;
+    const newUserProfileCommunityId = newUser.json().user.profileCommunityId as string;
     expect(newUser.json()).toMatchObject({
-      user: { id: newUserId, profileId: `did:pc:${newUserId}`, profileHash: newUser.json().profileArtifact.hash },
+      user: {
+        id: newUserId,
+        profileId: `did:pc:${newUserId}`,
+        profileHash: newUser.json().profileArtifact.hash,
+        profileCommunityId: newUserProfileCommunityId
+      },
       profileArtifact: {
         value: {
           artifactKind: "user-profile",
@@ -286,13 +292,91 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       profileArtifact: { hash: newUser.json().profileArtifact.hash }
     });
 
+    const profileCommunities = await app.inject({ method: "GET", url: `/communities?kind=Profile&userId=${newUserId}` });
+    expect(profileCommunities.statusCode).toBe(200);
+    expect(profileCommunities.json().communities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: newUserProfileCommunityId,
+          kind: "Profile",
+          profileUserId: newUserId,
+          activeUserRole: "Owner"
+        })
+      ])
+    );
+
+    const profileFollow = await app.inject({
+      method: "POST",
+      url: `/users/${newUserId}/follow`,
+      payload: { userId: "demo-resident" }
+    });
+    expect(profileFollow.statusCode).toBe(200);
+    expect(profileFollow.json().follow).toMatchObject({
+      communityId: newUserProfileCommunityId,
+      userId: "demo-resident"
+    });
+
+    const followerOnlyProfileQuestion = await app.inject({
+      method: "POST",
+      url: "/questions",
+      payload: {
+        title: "Should my followers help choose the next neighborhood question?",
+        body: "Profile-feed question for followers only.",
+        sponsorDisclosure: "Asked from a personal Popular Consensus profile.",
+        proposer: newUserId,
+        communityId: newUserProfileCommunityId,
+        audience: "Followers",
+        topicIds: ["profile", "followers"]
+      }
+    });
+    expect(followerOnlyProfileQuestion.statusCode).toBe(200);
+
+    const anonymousProfileQuestions = await app.inject({ method: "GET", url: `/questions?communityId=${newUserProfileCommunityId}` });
+    expect(anonymousProfileQuestions.statusCode).toBe(200);
+    expect(anonymousProfileQuestions.json().questions).toHaveLength(0);
+
+    const followerProfileQuestions = await app.inject({
+      method: "GET",
+      url: `/questions?communityId=${newUserProfileCommunityId}&userId=demo-resident`
+    });
+    expect(followerProfileQuestions.statusCode).toBe(200);
+    expect(followerProfileQuestions.json().questions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: followerOnlyProfileQuestion.json().question.id, audience: "Followers" })])
+    );
+
+    const anonymousProfileFeed = await app.inject({ method: "GET", url: `/feed?mode=profile&profileUserId=${newUserId}` });
+    expect(anonymousProfileFeed.statusCode).toBe(200);
+    expect(anonymousProfileFeed.json().items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          itemType: "question",
+          visibility: "redacted",
+          question: null
+        })
+      ])
+    );
+
+    const followerProfileFeed = await app.inject({ method: "GET", url: `/feed?mode=profile&profileUserId=${newUserId}&userId=demo-resident` });
+    expect(followerProfileFeed.statusCode).toBe(200);
+    expect(followerProfileFeed.json().items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          itemType: "question",
+          visibility: "full",
+          question: expect.objectContaining({ id: followerOnlyProfileQuestion.json().question.id, audience: "Followers" })
+        })
+      ])
+    );
+
     const userProtocolTransactions = await app.inject({
       method: "GET",
       url: `/registry/protocol-transactions?subjectId=${newUserId}&sourceModule=SocialGraph`
     });
     expect(userProtocolTransactions.statusCode).toBe(200);
     PublicApiV0ProtocolTransactionsResponseSchema.parse(userProtocolTransactions.json());
-    expect(userProtocolTransactions.json().transactions.map((transaction: { eventType: string }) => transaction.eventType)).toEqual(["UserCreated"]);
+    expect(userProtocolTransactions.json().transactions.map((transaction: { eventType: string }) => transaction.eventType)).toEqual(
+      expect.arrayContaining(["UserCreated", "ProfileFollowed"])
+    );
 
     const privateCommunity = await app.inject({
       method: "POST",
@@ -329,7 +413,8 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
         body: "Advisory process question for members.",
         sponsorDisclosure: "Sponsored by assembly members.",
         proposer: newUserId,
-        communityId: privateCommunityId
+        communityId: privateCommunityId,
+        audience: "Members"
       }
     });
     expect(privateQuestion.statusCode).toBe(200);
@@ -606,6 +691,18 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
     expect(discussion.statusCode).toBe(200);
     expect(discussion.json().discussion[0]).toMatchObject({ authorId: "demo-resident", body: "The temporary scope is clear enough for a pilot." });
 
+    const residentProfileFeed = await app.inject({ method: "GET", url: "/feed?mode=profile&profileUserId=demo-resident" });
+    expect(residentProfileFeed.statusCode).toBe(200);
+    expect(residentProfileFeed.json().items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          itemType: "activity",
+          activityType: "DiscussionPosted",
+          shellText: expect.stringContaining("added a note")
+        })
+      ])
+    );
+
     const resultChallenge = await app.inject({
       method: "POST",
       url: `/polls/${pollId}/results/challenges`,
@@ -825,7 +922,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       authority: {
         authorityLevel: "Advisory",
         communityVisibility: "Public",
-        methodologyLabel: "Verified community member response, self-selected sample"
+        methodologyLabel: "Answered by community members who chose to take part"
       }
     });
     expect(publicRecord.json().protocol.hashes.questionChallengeEvidenceHashes).toHaveLength(1);
@@ -4476,7 +4573,8 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
         body: "Member-only advisory question.",
         sponsorDisclosure: "Sponsored by private members.",
         proposer: ownerId,
-        communityId
+        communityId,
+        audience: "Members"
       }
     });
     expect(privateQuestion.statusCode).toBe(200);

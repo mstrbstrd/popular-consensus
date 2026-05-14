@@ -1,17 +1,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import logoMark from "../src/logo2026_nobackground.png";
+import { siteCopy } from "./copy";
 
 type AppFrameProps = {
   active?: "home" | "feed" | "account" | "login" | "signup" | "testing";
   children: React.ReactNode;
 };
 
-const navItems: Array<{ href: string; key: NonNullable<AppFrameProps["active"]>; label: string }> = [
-  { href: "/", key: "home", label: "Home" },
-  { href: "/feed", key: "feed", label: "Feed" },
-  { href: "/account", key: "account", label: "Account" },
-  { href: "/testing", key: "testing", label: "Testing" }
+const navItems: Array<{
+  href: string;
+  key: NonNullable<AppFrameProps["active"]>;
+  label: string;
+}> = [
+  { href: "/", key: "home", label: siteCopy.nav.home },
+  { href: "/feed", key: "feed", label: siteCopy.nav.feed },
+  { href: "/account", key: "account", label: siteCopy.nav.account },
+  { href: "/testing", key: "testing", label: siteCopy.nav.testing },
 ];
 
 export function AppFrame({ active = "home", children }: AppFrameProps) {
@@ -22,12 +27,15 @@ export function AppFrame({ active = "home", children }: AppFrameProps) {
           <Image className="site-logo" src={logoMark} alt="" priority />
           <span>
             <small>Popular Consensus</small>
-            <strong>Community signal network</strong>
           </span>
         </Link>
         <nav aria-label="Primary navigation" className="nav-links">
           {navItems.map((item) => (
-            <Link key={item.href} className={active === item.key ? "active" : ""} href={item.href}>
+            <Link
+              key={item.href}
+              className={active === item.key ? "active" : ""}
+              href={item.href}
+            >
               {item.label}
             </Link>
           ))}
@@ -37,7 +45,7 @@ export function AppFrame({ active = "home", children }: AppFrameProps) {
             Log in
           </Link>
           <Link className="button-link" href="/signup">
-            Create account
+            {siteCopy.actions.joinCrowd}
           </Link>
         </div>
       </header>

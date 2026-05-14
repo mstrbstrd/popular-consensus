@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AppFrame } from "../components/AppFrame";
+import { siteCopy } from "../components/copy";
 import logoMark from "../src/logo2026_nobackground.png";
 
 export default function Page() {
@@ -12,17 +13,14 @@ export default function Page() {
         </div>
         <div className="home-copy">
           <p className="eyebrow">Popular Consensus</p>
-          <h1>Public opinion infrastructure for real communities.</h1>
-          <p>
-            A social feed for scoped civic questions, private ballots, challengeable results, and community-governed data
-            products.
-          </p>
+          <h1>Seek the Wisdom of the Crowd.</h1>
+          <p>Shape the questions that shape our world.</p>
           <div className="button-row">
             <Link className="button-link" href="/feed">
-              Open feed
+              {siteCopy.actions.seeQuestions}
             </Link>
             <Link className="button-link secondary" href="/signup">
-              Create account
+              {siteCopy.actions.joinCrowd}
             </Link>
           </div>
         </div>
@@ -31,17 +29,19 @@ export default function Page() {
         <Link className="home-tile" href="/feed">
           <span>01</span>
           <strong>Feed</strong>
-          <small>Community posts, follows, topics, and thread notes</small>
+          <small>
+            See what communities are asking and vote when you are eligible
+          </small>
         </Link>
         <Link className="home-tile" href="/account">
           <span>02</span>
-          <strong>Account</strong>
-          <small>Profile, memberships, stewardship, and communities</small>
+          <strong>My Account</strong>
+          <small>Manage your profile and communities</small>
         </Link>
         <Link className="home-tile" href="/testing">
           <span>03</span>
-          <strong>Testing Hub</strong>
-          <small>Full protocol controls for local verification</small>
+          <strong>Testing Lab</strong>
+          <small>Try the local vote and result flow</small>
         </Link>
       </section>
     </AppFrame>

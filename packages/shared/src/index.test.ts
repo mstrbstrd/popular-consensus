@@ -128,7 +128,7 @@ describe("QuestionSpecSchema", () => {
       topicIds: ["transportation"],
       geoScope: "Vancouver",
       sponsorDisclosureHash: "s1",
-      methodologyLabel: "Verified city resident response, self-selected sample",
+      methodologyLabel: "Answered by city residents who chose to take part",
       authorityLevel: "Advisory",
       opensAt: 1,
       closesAt: 2,

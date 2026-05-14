@@ -2,6 +2,9 @@ import { z } from "zod";
 
 export const AuthorityLevelSchema = z.enum(["Advisory", "Recognized", "Binding"]);
 export const CommunityVisibilitySchema = z.enum(["Public", "Private"]);
+export const CommunityKindSchema = z.enum(["Group", "Profile"]);
+export const QuestionAudienceSchema = z.enum(["Public", "Followers", "Members"]);
+export const FeedModeSchema = z.enum(["global", "for-you", "following", "profile", "community"]);
 export const QuestionStatusSchema = z.enum([
   "Drafted",
   "Submitted",
@@ -564,6 +567,7 @@ export const QuestionSpecSchema = z.object({
   answerSchemaId: z.string(),
   credentialSchemaId: z.string(),
   communityId: z.string().nullable(),
+  audience: QuestionAudienceSchema.default("Public"),
   topicIds: z.array(z.string()),
   geoScope: z.string().nullable(),
   sponsorDisclosureHash: z.string().nullable(),
@@ -938,6 +942,7 @@ export const UserAccountSchema = z.object({
   username: z.string(),
   profileId: z.string().nullable().optional(),
   profileHash: z.string().nullable().optional(),
+  profileCommunityId: z.string().nullable().optional(),
   smartAccountAddress: z.string().nullable().optional(),
   smartAccountKind: z.string().optional(),
   displayName: z.string(),
@@ -951,6 +956,8 @@ export const CommunitySchema = z.object({
   slug: z.string(),
   name: z.string(),
   description: z.string(),
+  kind: CommunityKindSchema.default("Group"),
+  profileUserId: z.string().nullable().optional(),
   visibility: CommunityVisibilitySchema,
   credentialSchemaId: z.string(),
   defaultAuthorityLevel: AuthorityLevelSchema,
@@ -1586,6 +1593,7 @@ export const CanonicalProtocolModules = [
       "appealModeration",
       "resolveModerationAppeal",
       "followCommunity",
+      "followProfile",
       "followTopic",
       "recordReputation"
     ],
@@ -1600,6 +1608,7 @@ export const CanonicalProtocolModules = [
       "DiscussionModerationAppealed",
       "DiscussionModerationAppealResolved",
       "CommunityFollowed",
+      "ProfileFollowed",
       "TopicFollowed",
       "ReputationEventRecorded"
     ],
@@ -2486,6 +2495,8 @@ export const PublicApiV0DiscoveryCommunitySchema = z
     id: z.string(),
     slug: z.string(),
     name: z.string(),
+    kind: CommunityKindSchema.default("Group"),
+    profileUserId: z.string().nullable().optional(),
     visibility: CommunityVisibilitySchema,
     memberCount: z.number().int().nonnegative(),
     questionCount: z.number().int().nonnegative(),
@@ -2508,6 +2519,7 @@ export const PublicApiV0DiscoveryResponseSchema = z
   .object({
     protocol: PublicApiV0DiscoveryProtocolSchema,
     communities: z.array(PublicApiV0DiscoveryCommunitySchema),
+    profiles: z.array(PublicApiV0DiscoveryCommunitySchema).optional(),
     topics: z.array(PublicApiV0DiscoveryTopicSchema),
     communityFollows: z.array(CommunityFollowSchema),
     topicFollows: z.array(TopicFollowSchema)
@@ -2820,6 +2832,7 @@ export const CreateCommunityRequestSchema = z.object({
     .optional(),
   description: z.string().min(1).max(280),
   visibility: CommunityVisibilitySchema.default("Public"),
+  kind: CommunityKindSchema.default("Group"),
   creatorId: z.string().min(1),
   credentialSchemaId: z.string().default("credential-vancouver-resident")
 });
@@ -2973,11 +2986,20 @@ export const CreateQuestionRequestSchema = z.object({
   sponsorDisclosure: z.string().default("Sponsored by the Popular Consensus local transit demo fund."),
   proposer: z.string().default("demo-proposer"),
   communityId: z.string().default("community-vancouver"),
+  audience: QuestionAudienceSchema.default("Public"),
   answerSchemaId: z.string().default("answer-binary-support-oppose"),
   topicIds: z.array(z.string()).default(["transit", "public-space"]),
   geoScope: z.string().default("Vancouver"),
-  methodologyLabel: z.string().default("Verified community member response, self-selected sample"),
+  methodologyLabel: z.string().default("Answered by community members who chose to take part"),
   credentialSchemaId: z.string().default("credential-vancouver-resident")
+});
+
+export const FeedQuerySchema = z.object({
+  mode: FeedModeSchema.default("global"),
+  userId: z.string().optional(),
+  communityId: z.string().optional(),
+  profileUserId: z.string().optional(),
+  limit: z.coerce.number().int().positive().max(100).default(50)
 });
 
 export const CreateChallengeRequestSchema = z.object({

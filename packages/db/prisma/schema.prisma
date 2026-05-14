@@ -74,6 +74,7 @@ model UserAccount {
   username    String            @unique
   profileId   String?           @unique
   profileHash String?
+  profileCommunityId String?     @unique
   smartAccountAddress String?    @unique
   smartAccountKind    String     @default("LocalDemo")
   displayName String
@@ -87,6 +88,7 @@ model UserAccount {
   authSessions    AuthSession[]
 
   @@index([profileHash])
+  @@index([profileCommunityId])
   @@index([smartAccountAddress])
 }
 
@@ -159,6 +161,8 @@ model Community {
   slug                  String            @unique
   name                  String
   description           String
+  kind                  String            @default("Group")
+  profileUserId         String?           @unique
   visibility            String            @default("Public")
   credentialSchemaId    String            @default("credential-vancouver-resident")
   defaultAuthorityLevel String            @default("Advisory")
@@ -178,6 +182,9 @@ model Community {
   dataUnionConsents     DataUnionConsent[]
   dataUnionProducts     DataUnionProduct[]
   dataUnionAccessGrants DataUnionAccessGrant[]
+
+  @@index([kind, createdAt])
+  @@index([profileUserId])
 }
 
 model CommunityMember {
@@ -201,6 +208,7 @@ model Question {
   answerSchemaId        String
   credentialSchemaId    String
   communityId           String?
+  audience              String      @default("Public")
   topicIds              String[]
   geoScope              String?
   sponsorDisclosureHash String?
@@ -225,6 +233,8 @@ model Question {
   updatedAt             DateTime    @updatedAt
 
   @@index([adoptionPolicyId])
+  @@index([audience, createdAt])
+  @@index([communityId, audience, createdAt])
 }
 
 model Challenge {
@@ -674,6 +684,25 @@ model DiscussionPost {
   moderationRecords DiscussionModerationRecord[]
 
   @@index([questionId, createdAt])
+}
+
+model ActivityFeedItem {
+  id                String   @id
+  actorId           String
+  activityType      String
+  questionId        String?
+  communityId       String?
+  targetCommunityId String?
+  audience          String   @default("Public")
+  shellText         String
+  activityHash      String
+  createdAt         DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([questionId, createdAt])
+  @@index([communityId, createdAt])
+  @@index([targetCommunityId, createdAt])
+  @@index([activityType, createdAt])
 }
 
 model DiscussionModerationRecord {

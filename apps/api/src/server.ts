@@ -47,6 +47,7 @@ import {
   DiscussionViewDefinitions,
   ExportWalletCredentialRequestSchema,
   FailTallyCommitteeRequestSchema,
+  FeedQuerySchema,
   FinalizeResultRequestSchema,
   FollowCommunityRequestSchema,
   FollowTopicRequestSchema,
@@ -537,6 +538,7 @@ export function buildServer() {
     const username = input.username.toLowerCase();
     const userId = `user-${username}`;
     const profileId = portableProfileId(userId);
+    const profileCommunityId = profileCommunityIdForUser(userId);
     const existing = await prisma.userAccount.findFirst({ where: { OR: [{ id: userId }, { username }, { profileId }] } });
     if (existing) return reply.code(409).send({ error: "Username is already taken" });
 
@@ -567,9 +569,17 @@ export function buildServer() {
             username,
             profileId,
             profileHash: profileArtifact.hash,
+            profileCommunityId,
             displayName: input.displayName,
             bio: input.bio
           }
+        });
+        await createProfileCommunityForUser(tx, {
+          id: userId,
+          username,
+          displayName: input.displayName,
+          bio: input.bio,
+          profileCommunityId
         });
         await recordProtocolCommitments(protocolEvent, tx);
         return created;
@@ -715,6 +725,7 @@ export function buildServer() {
       return reply.code(503).send({ error: error instanceof Error ? error.message : "Account factory is unavailable" });
     }
     const smartAccountAddress = smartAccount.address;
+    const profileCommunityId = profileCommunityIdForUser(userId);
     const profileArtifact = await artifactStore.write(
       withArtifactSchema("user-profile", {
         profileId,
@@ -744,6 +755,7 @@ export function buildServer() {
             username: challenge.username ?? "",
             profileId,
             profileHash: profileArtifact.hash,
+            profileCommunityId,
             smartAccountAddress,
             smartAccountKind: smartAccount.accountStandard,
             displayName: challenge.displayName ?? "",
@@ -770,6 +782,13 @@ export function buildServer() {
             }
           },
           include: { authControllers: true }
+        });
+        await createProfileCommunityForUser(tx, {
+          id: userId,
+          username: challenge.username ?? "",
+          displayName: challenge.displayName ?? "",
+          bio: challenge.bio ?? "",
+          profileCommunityId
         });
         await tx.authChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date(), userId } });
         await recordProtocolCommitments(protocolEvent, tx);
@@ -1023,6 +1042,7 @@ export function buildServer() {
     }
     const userId = `user-${challenge.username}`;
     const profileId = portableProfileId(userId);
+    const profileCommunityId = profileCommunityIdForUser(userId);
     const profileArtifact = await artifactStore.write(
       withArtifactSchema("user-profile", {
         profileId,
@@ -1053,6 +1073,7 @@ export function buildServer() {
             username: challenge.username ?? "",
             profileId,
             profileHash: profileArtifact.hash,
+            profileCommunityId,
             smartAccountAddress,
             smartAccountKind: accountStandard,
             displayName: challenge.displayName ?? "",
@@ -1075,6 +1096,13 @@ export function buildServer() {
             }
           },
           include: { authControllers: true }
+        });
+        await createProfileCommunityForUser(tx, {
+          id: userId,
+          username: challenge.username ?? "",
+          displayName: challenge.displayName ?? "",
+          bio: challenge.bio ?? "",
+          profileCommunityId
         });
         await tx.authChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date(), userId } });
         await recordProtocolCommitments(protocolEvent, tx);
@@ -1101,16 +1129,19 @@ export function buildServer() {
   });
 
   app.get("/communities", async (request) => {
-    const { userId, visibility, credentialSchemaId, authorityLevel, slug, query } = request.query as {
+    const { userId, visibility, credentialSchemaId, authorityLevel, slug, query, kind, includeProfiles } = request.query as {
       userId?: string;
       visibility?: string;
       credentialSchemaId?: string;
       authorityLevel?: string;
       slug?: string;
       query?: string;
+      kind?: string;
+      includeProfiles?: string;
     };
     const page = parsePageQuery(request.query);
     const where: Prisma.CommunityWhereInput = {
+      ...(kind ? { kind } : includeProfiles === "true" ? {} : { kind: "Group" }),
       ...(visibility ? { visibility } : {}),
       ...(credentialSchemaId ? { credentialSchemaId } : {}),
       ...(authorityLevel ? { defaultAuthorityLevel: normalizeAuthority(authorityLevel) } : {}),
@@ -1177,6 +1208,7 @@ export function buildServer() {
             slug,
             name: input.name,
             description: input.description,
+            kind: "Group",
             visibility: input.visibility,
             credentialSchemaId: input.credentialSchemaId,
             defaultAuthorityLevel: "Advisory",
@@ -1276,10 +1308,80 @@ export function buildServer() {
           followHash: followArtifact.hash
         }
       });
+      await recordActivity(tx, {
+        actorId: input.userId,
+        activityType: community.kind === "Profile" ? "ProfileFollowed" : "CommunityFollowed",
+        communityId,
+        targetCommunityId: communityId,
+        audience: "Public",
+        shellText:
+          community.kind === "Profile"
+            ? `${user.displayName} followed @${community.slug.replace(/^user-/, "")}.`
+            : `${user.displayName} followed p/${community.slug}.`
+      });
       await recordProtocolCommitments(protocolEvent, tx);
       return created;
     });
     return { follow, followArtifact };
+  });
+
+  app.post("/users/:targetUserId/follow", async (request, reply) => {
+    const { targetUserId } = request.params as { targetUserId: string };
+    const input = FollowCommunityRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.userId))) return;
+    if (input.userId === targetUserId) return reply.code(409).send({ error: "You already have your own profile feed" });
+    const [targetUser, follower] = await Promise.all([
+      prisma.userAccount.findUnique({ where: { id: targetUserId } }),
+      prisma.userAccount.findUnique({ where: { id: input.userId } })
+    ]);
+    if (!targetUser || !follower) return reply.code(404).send({ error: "Account not found" });
+    const profileCommunityId = targetUser.profileCommunityId ?? profileCommunityIdForUser(targetUser.id);
+    const profileCommunity = await prisma.community.findUnique({ where: { id: profileCommunityId } });
+    if (!profileCommunity) return reply.code(404).send({ error: "Profile feed not found" });
+    const existing = await prisma.communityFollow.findUnique({
+      where: { communityId_userId: { communityId: profileCommunityId, userId: input.userId } }
+    });
+    if (existing) return { follow: existing };
+
+    const followArtifact = await artifactStore.write(
+      withArtifactSchema("social-follow", {
+        targetType: "Profile",
+        targetId: targetUser.id,
+        communityId: profileCommunityId,
+        userId: input.userId,
+        profileId: follower.profileId
+      })
+    );
+    await storeArtifact(followArtifact, "social-follow");
+    const profileFollowedEvent = prepareProtocolEvent({
+      eventType: "ProfileFollowed",
+      subjectId: targetUser.id,
+      actor: input.userId,
+      previousHash: null,
+      newHash: followArtifact.hash
+    });
+    const follow = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, profileFollowedEvent);
+      const created = await tx.communityFollow.create({
+        data: {
+          id: `community-follow-${nanoid(10)}`,
+          communityId: profileCommunityId,
+          userId: input.userId,
+          followHash: followArtifact.hash
+        }
+      });
+      await recordActivity(tx, {
+        actorId: input.userId,
+        activityType: "ProfileFollowed",
+        communityId: profileCommunityId,
+        targetCommunityId: profileCommunityId,
+        audience: "Public",
+        shellText: `${follower.displayName} followed @${targetUser.username}.`
+      });
+      await recordProtocolCommitments(protocolEvent, tx);
+      return created;
+    });
+    return { follow, followArtifact, profileCommunity };
   });
 
   app.post("/topics/:topicId/follow", async (request, reply) => {
@@ -1348,20 +1450,25 @@ export function buildServer() {
       userId ? prisma.topicFollow.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }) : Promise.resolve([]),
       prisma.topicFollow.findMany()
     ]);
-    const communitySummaries = visibleCommunities.map((community) => ({
+    const toDiscoveryCommunity = (community: (typeof visibleCommunities)[number]) => ({
       id: community.id,
       slug: community.slug,
       name: community.name,
+      kind: community.kind,
+      profileUserId: community.profileUserId,
       visibility: community.visibility,
       memberCount: community._count.memberships,
       questionCount: community._count.questions,
       followerCount: community.follows.length,
       followedByActiveUser: Boolean(userId && community.follows.some((follow) => follow.userId === userId))
-    }));
+    });
+    const communitySummaries = visibleCommunities.filter((community) => community.kind !== "Profile").map(toDiscoveryCommunity);
+    const profiles = visibleCommunities.filter((community) => community.kind === "Profile").map(toDiscoveryCommunity);
     const topics = buildDiscoveryTopics(questions, topicFollows, allTopicFollows);
     return {
-      protocol: buildDiscoveryProtocol(communitySummaries, topics, communityFollows, topicFollows, userId ?? null),
+      protocol: buildDiscoveryProtocol([...communitySummaries, ...profiles], topics, communityFollows, topicFollows, userId ?? null),
       communities: communitySummaries,
+      profiles,
       topics,
       communityFollows,
       topicFollows
@@ -1380,6 +1487,136 @@ export function buildServer() {
     return { questions: questions.map(enrichQuestion) };
   });
 
+  app.get("/feed", async (request, reply) => {
+    const query = FeedQuerySchema.parse(request.query ?? {});
+    const viewerId = query.userId;
+    const followedCommunities = viewerId
+      ? await prisma.communityFollow.findMany({ where: { userId: viewerId }, include: { community: true } })
+      : [];
+    const followedCommunityIds = followedCommunities.map((follow) => follow.communityId);
+    const followedProfileUserIds = compactHashArray(followedCommunities.map((follow) => follow.community.profileUserId));
+    const followedTopics = viewerId ? await prisma.topicFollow.findMany({ where: { userId: viewerId } }) : [];
+    const followedTopicIds = followedTopics.map((follow) => follow.topicId);
+    const baseReadableWhere = readableQuestionWhere(viewerId);
+
+    let questionWhere: Prisma.QuestionWhereInput = baseReadableWhere;
+    let activityWhere: Prisma.ActivityFeedItemWhereInput = { audience: "Public" };
+
+    if (query.mode === "global") {
+      questionWhere = { audience: "Public" };
+      activityWhere = { audience: "Public" };
+    }
+
+    if (query.mode === "following") {
+      if (!viewerId) {
+        questionWhere = { id: "__none__" };
+        activityWhere = { id: "__none__" };
+      } else {
+        const followingQuestionScopes: Prisma.QuestionWhereInput[] = [];
+        if (followedCommunityIds.length) followingQuestionScopes.push({ communityId: { in: followedCommunityIds } });
+        if (followedTopicIds.length) followingQuestionScopes.push({ topicIds: { hasSome: followedTopicIds } });
+        if (followedProfileUserIds.length) followingQuestionScopes.push({ proposer: { in: followedProfileUserIds } });
+        questionWhere = followingQuestionScopes.length ? { AND: [baseReadableWhere, { OR: followingQuestionScopes }] } : { id: "__none__" };
+        activityWhere =
+          followedCommunityIds.length || followedProfileUserIds.length
+            ? {
+                OR: [
+                  ...(followedCommunityIds.length
+                    ? [{ communityId: { in: followedCommunityIds } }, { targetCommunityId: { in: followedCommunityIds } }]
+                    : []),
+                  ...(followedProfileUserIds.length ? [{ actorId: { in: followedProfileUserIds } }] : [])
+                ]
+              }
+            : { id: "__none__" };
+      }
+    }
+
+    if (query.mode === "for-you") {
+      if (!viewerId) {
+        questionWhere = { audience: "Public" };
+        activityWhere = { audience: "Public" };
+      } else {
+        const recommendedScopes: Prisma.QuestionWhereInput[] = [{ audience: "Public" }];
+        if (followedCommunityIds.length) recommendedScopes.push({ communityId: { in: followedCommunityIds } });
+        if (followedTopicIds.length) recommendedScopes.push({ topicIds: { hasSome: followedTopicIds } });
+        if (followedProfileUserIds.length) recommendedScopes.push({ proposer: { in: followedProfileUserIds } });
+        questionWhere = { AND: [baseReadableWhere, { OR: recommendedScopes }] };
+        activityWhere = {
+          OR: [
+            { audience: "Public" },
+            ...(followedCommunityIds.length
+              ? [{ communityId: { in: followedCommunityIds } }, { targetCommunityId: { in: followedCommunityIds } }]
+              : []),
+            ...(followedProfileUserIds.length ? [{ actorId: { in: followedProfileUserIds } }] : [])
+          ]
+        };
+      }
+    }
+
+    if (query.mode === "profile") {
+      if (!query.profileUserId) return reply.code(400).send({ error: "profileUserId is required for profile feeds" });
+      const profileUser = await prisma.userAccount.findUnique({ where: { id: query.profileUserId } });
+      if (!profileUser) return reply.code(404).send({ error: "Profile not found" });
+      const profileCommunityId = profileUser.profileCommunityId ?? profileCommunityIdForUser(profileUser.id);
+      questionWhere = { OR: [{ proposer: profileUser.id }, { communityId: profileCommunityId }] };
+      activityWhere = { actorId: profileUser.id };
+    }
+
+    if (query.mode === "community") {
+      if (!query.communityId) return reply.code(400).send({ error: "communityId is required for community feeds" });
+      const community = await prisma.community.findUnique({ where: { id: query.communityId }, include: { memberships: true } });
+      if (!community) return reply.code(404).send({ error: "Community not found" });
+      const memberCanSeeCommunity = community.visibility === "Public" || community.memberships.some((member) => member.userId === viewerId && member.status === "Active");
+      questionWhere = memberCanSeeCommunity ? { communityId: community.id } : { communityId: community.id, audience: "Public" };
+      activityWhere = memberCanSeeCommunity
+        ? { OR: [{ communityId: community.id }, { targetCommunityId: community.id }] }
+        : { OR: [{ communityId: community.id, audience: "Public" }, { targetCommunityId: community.id, audience: "Public" }] };
+    }
+
+    const [questions, activities] = await Promise.all([
+      prisma.question.findMany({
+        where: questionWhere,
+        orderBy: { createdAt: "desc" },
+        take: query.limit,
+        include: { challenges: true, poll: { include: { result: true, resultChallenges: true } }, community: true }
+      }),
+      prisma.activityFeedItem.findMany({
+        where: { AND: [activityWhere, { activityType: { not: "PollPosted" } }] },
+        orderBy: { createdAt: "desc" },
+        take: query.limit
+      })
+    ]);
+
+    const activityQuestionIds = compactHashArray(activities.map((activity) => activity.questionId));
+    const activityQuestions = activityQuestionIds.length
+      ? await prisma.question.findMany({
+          where: { id: { in: activityQuestionIds } },
+          include: { challenges: true, poll: { include: { result: true, resultChallenges: true } }, community: true }
+        })
+      : [];
+    const questionsById = new Map(activityQuestions.map((question) => [question.id, question]));
+    const questionItems = await Promise.all(questions.map((question) => toQuestionFeedItem(question, viewerId)));
+    const activityItems = (
+      await Promise.all(activities.map((activity) => toActivityFeedItem(activity, questionsById.get(activity.questionId ?? ""), viewerId)))
+    ).filter((item): item is NonNullable<typeof item> => Boolean(item));
+    const items = [...questionItems, ...activityItems]
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+      .slice(0, query.limit);
+
+    return {
+      protocol: {
+        protocol: "popular-consensus",
+        schemaVersion: "scoped-feed-v0",
+        mode: query.mode,
+        viewerId: viewerId ?? null,
+        profileUserId: query.profileUserId ?? null,
+        communityId: query.communityId ?? null,
+        itemCount: items.length
+      },
+      items
+    };
+  });
+
   app.get("/questions/:questionId", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const { userId } = request.query as { userId?: string };
@@ -1388,8 +1625,8 @@ export function buildServer() {
       include: { challenges: true, poll: { include: { result: true, resultChallenges: true, ballots: false } }, community: true }
     });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, userId))) {
-      return reply.code(403).send({ error: "Join this private community to view this question" });
+    if (!(await canReadQuestion(question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to view this question" });
     }
     return { question: enrichQuestion(question) };
   });
@@ -1406,12 +1643,20 @@ export function buildServer() {
     if (!community) return reply.code(404).send({ error: "Community not found" });
     const answerSchema = safeAnswerSchema(input.answerSchemaId);
     if (!answerSchema) return reply.code(400).send({ error: "Unknown answer schema" });
-    if (community.visibility === "Private" && !community.memberships.some((member) => member.userId === input.proposer && member.status === "Active")) {
+    const audience = normalizeQuestionAudience(input.audience);
+    const proposerMembership = community.memberships.find((member) => member.userId === input.proposer && member.status === "Active");
+    if (community.kind === "Profile" && community.profileUserId !== input.proposer) {
+      return reply.code(403).send({ error: "Only the profile owner can ask from this profile feed" });
+    }
+    if (community.visibility === "Private" && !proposerMembership) {
       return reply.code(403).send({ error: "Join this private community before proposing a question" });
+    }
+    if (audience === "Members" && !proposerMembership) {
+      return reply.code(403).send({ error: "Join this community before asking members-only questions" });
     }
     if (!(await ensureCommunityProtocolWritable(community.id, reply))) return;
     const bodyArtifact = await artifactStore.write(
-      withArtifactSchema("question-body", { title: input.title, body: input.body, answerSchemaId: answerSchema.answerSchemaId })
+      withArtifactSchema("question-body", { title: input.title, body: input.body, answerSchemaId: answerSchema.answerSchemaId, audience })
     );
     const sponsorArtifact = await artifactStore.write(withArtifactSchema("sponsor-disclosure", { disclosure: input.sponsorDisclosure }));
     const activeKeySetup = await activeTallyKeySetupForCommunity(community.id);
@@ -1458,6 +1703,7 @@ export function buildServer() {
           answerSchemaId: answerSchema.answerSchemaId,
           credentialSchemaId: input.credentialSchemaId,
           communityId: community.id,
+          audience,
           topicIds: input.topicIds,
           geoScope: input.geoScope,
           sponsorDisclosureHash: sponsorArtifact.hash,
@@ -1486,6 +1732,15 @@ export function buildServer() {
         },
         include: { poll: true }
       });
+      await recordActivity(tx, {
+        actorId: input.proposer,
+        activityType: "PollPosted",
+        questionId,
+        communityId: community.id,
+        targetCommunityId: community.id,
+        audience,
+        shellText: `${proposer.displayName} asked a ${audienceLabel(audience)} question in ${community.kind === "Profile" ? `@${proposer.username}` : `p/${community.slug}`}.`
+      });
       await tx.bond.create({
         data: {
           id: proposalBondId,
@@ -1509,8 +1764,8 @@ export function buildServer() {
     if (!challenger) return reply.code(404).send({ error: "Challenger account not found" });
     const question = await prisma.question.findUnique({ where: { id: questionId }, include: { community: true } });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, input.challenger))) {
-      return reply.code(403).send({ error: "Join this private community before challenging a question" });
+    if (!(await canReadQuestion(question, input.challenger))) {
+      return reply.code(403).send({ error: "Follow or join this community before challenging a question" });
     }
     if (question.proposer === input.challenger) {
       return reply.code(403).send({ error: "Proposer cannot challenge their own question" });
@@ -1769,10 +2024,10 @@ export function buildServer() {
   app.get("/questions/:questionId/challenge-appeals", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const { userId } = request.query as { userId?: string };
-    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { communityId: true } });
+    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true, proposer: true, audience: true } });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, userId))) {
-      return reply.code(403).send({ error: "Join this private community to view challenge appeals" });
+    if (!(await canReadQuestion(question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to view challenge appeals" });
     }
     const appeals = await loadChallengeAppealsForQuestion(questionId, artifactStore);
     return { protocol: buildChallengeAppealsProtocol(questionId, appeals), questionId, appeals };
@@ -1781,10 +2036,10 @@ export function buildServer() {
   app.get("/questions/:questionId/juror-assignments", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const { userId } = request.query as { userId?: string };
-    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { communityId: true } });
+    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true, proposer: true, audience: true } });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, userId))) {
-      return reply.code(403).send({ error: "Join this private community to view juror assignments" });
+    if (!(await canReadQuestion(question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to view juror assignments" });
     }
     const assignments = await loadJurorAssignmentsForQuestion(questionId, artifactStore);
     return { protocol: buildJurorAssignmentsProtocol(questionId, assignments), questionId, assignments };
@@ -1819,8 +2074,8 @@ export function buildServer() {
     ]);
     if (!appellant) return reply.code(404).send({ error: "Appellant account not found" });
     if (!challenge || challenge.questionId !== questionId) return reply.code(404).send({ error: "Challenge not found" });
-    if (!(await canReadCommunity(challenge.question.communityId, input.appellantId))) {
-      return reply.code(403).send({ error: "Join this private community before appealing a question challenge" });
+    if (!(await canReadQuestion(challenge.question, input.appellantId))) {
+      return reply.code(403).send({ error: "Follow or join this community before appealing a question challenge" });
     }
     if (!(await ensureCommunityProtocolWritable(challenge.question.communityId, reply))) return;
     if (challenge.ruling === "Pending") return reply.code(409).send({ error: "Only ruled challenges can be appealed" });
@@ -1906,8 +2161,8 @@ export function buildServer() {
     if (question.proposer !== input.proposer) {
       return reply.code(403).send({ error: "Only the original proposer can amend this question" });
     }
-    if (!(await canReadCommunity(question.communityId, input.proposer))) {
-      return reply.code(403).send({ error: "Join this private community before amending a question" });
+    if (!(await canReadQuestion(question, input.proposer))) {
+      return reply.code(403).send({ error: "Follow or join this community before amending a question" });
     }
     if (!["Submitted", "Challenged", "Amendment"].includes(question.status)) {
       return reply.code(409).send({ error: "Question cannot be amended in its current state" });
@@ -1965,10 +2220,10 @@ export function buildServer() {
   app.get("/questions/:questionId/history", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const { userId } = request.query as { userId?: string };
-    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { communityId: true } });
+    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true, proposer: true, audience: true } });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, userId))) {
-      return reply.code(403).send({ error: "Join this private community to view this question history" });
+    if (!(await canReadQuestion(question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to view this question history" });
     }
     const events = await prisma.registryEvent.findMany({ where: { subjectId: questionId }, orderBy: REGISTRY_EVENT_ORDER });
     const challenges = await prisma.challenge.findMany({ where: { questionId }, orderBy: { createdAt: "asc" } });
@@ -1978,10 +2233,10 @@ export function buildServer() {
   app.get("/questions/:questionId/discussion", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const { userId } = request.query as { userId?: string };
-    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true } });
+    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true, proposer: true, audience: true } });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, userId))) {
-      return reply.code(403).send({ error: "Join this private community to view this discussion" });
+    if (!(await canReadQuestion(question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to view this discussion" });
     }
     const posts = await prisma.discussionPost.findMany({ where: { questionId, status: "Published" }, orderBy: { createdAt: "asc" } });
     const discussion = await hydrateDiscussionPosts(posts, artifactStore);
@@ -1994,13 +2249,13 @@ export function buildServer() {
     const input = CreateDiscussionPostRequestSchema.parse(request.body ?? {});
     if (!(await requireAuthenticatedActor(request, reply, input.authorId))) return;
     const [question, author] = await Promise.all([
-      prisma.question.findUnique({ where: { id: questionId }, select: { communityId: true } }),
+      prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true, proposer: true, audience: true } }),
       prisma.userAccount.findUnique({ where: { id: input.authorId } })
     ]);
     if (!question) return reply.code(404).send({ error: "Question not found" });
     if (!author) return reply.code(404).send({ error: "Author account not found" });
-    if (!(await canReadCommunity(question.communityId, input.authorId))) {
-      return reply.code(403).send({ error: "Join this private community before joining its discussion" });
+    if (!(await canReadQuestion(question, input.authorId))) {
+      return reply.code(403).send({ error: "Follow or join this community before joining its discussion" });
     }
 
     const bodyArtifact = await artifactStore.write(
@@ -2032,6 +2287,15 @@ export function buildServer() {
           parentId: input.parentId
         }
       });
+      await recordActivity(tx, {
+        actorId: input.authorId,
+        activityType: "DiscussionPosted",
+        questionId,
+        communityId: question.communityId,
+        targetCommunityId: question.communityId,
+        audience: question.audience,
+        shellText: `${author.displayName} added a note to a ${audienceLabel(question.audience)} question.`
+      });
       await recordProtocolCommitments(protocolEvent, tx);
       return created;
     });
@@ -2041,10 +2305,10 @@ export function buildServer() {
   app.get("/questions/:questionId/moderation", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const { userId } = request.query as { userId?: string };
-    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true } });
+    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true, proposer: true, audience: true } });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, userId))) {
-      return reply.code(403).send({ error: "Join this private community to view this moderation log" });
+    if (!(await canReadQuestion(question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to view this moderation log" });
     }
     const { moderationRecords, appeals } = await loadModerationLog(questionId, artifactStore);
     return { protocol: buildQuestionModerationProtocol(question, moderationRecords, appeals), questionId, moderationRecords, appeals };
@@ -2114,8 +2378,8 @@ export function buildServer() {
       include: { post: true, question: true }
     });
     if (!moderationRecord) return reply.code(404).send({ error: "Moderation record not found" });
-    if (!(await canReadCommunity(moderationRecord.question.communityId, input.appellantId))) {
-      return reply.code(403).send({ error: "Join this private community before appealing moderation" });
+    if (!(await canReadQuestion(moderationRecord.question, input.appellantId))) {
+      return reply.code(403).send({ error: "Follow or join this community before appealing moderation" });
     }
     if (moderationRecord.post.authorId !== input.appellantId) {
       return reply.code(403).send({ error: "Only the moderated post author can appeal this record" });
@@ -2342,8 +2606,8 @@ export function buildServer() {
     if (registryError) return reply.code(403).send({ error: registryError });
     const trustError = await communityCredentialTrustError(poll.question.communityId, credential);
     if (trustError) return reply.code(403).send({ error: trustError });
-    if (!(await canReadCommunity(poll.question.communityId, credential.holderAlias))) {
-      return reply.code(403).send({ error: "Join this private community before proving eligibility for its poll" });
+    if (!(await canReadQuestion(poll.question, credential.holderAlias))) {
+      return reply.code(403).send({ error: "Follow or join this community before proving eligibility for its poll" });
     }
     if (!verifyDemoCredential(input.credentialSecret, credential.secretHash)) {
       return reply.code(403).send({ error: "Invalid credential" });
@@ -2367,8 +2631,8 @@ export function buildServer() {
     if (registryError) return reply.code(403).send({ error: registryError });
     const trustError = await communityCredentialTrustError(poll.question.communityId, credential);
     if (trustError) return reply.code(403).send({ error: trustError });
-    if (!(await canReadCommunity(poll.question.communityId, credential.holderAlias))) {
-      return reply.code(403).send({ error: "Join this private community before signing up for its poll" });
+    if (!(await canReadQuestion(poll.question, credential.holderAlias))) {
+      return reply.code(403).send({ error: "Follow or join this community before signing up for its poll" });
     }
     if (!(await ensureCommunityProtocolWritable(poll.question.communityId, reply))) return;
     if (!verifyDemoCredential(input.credentialSecret, credential.secretHash)) {
@@ -2392,8 +2656,8 @@ export function buildServer() {
     if (registryError) return reply.code(403).send({ error: registryError });
     const trustError = await communityCredentialTrustError(poll.question.communityId, credential);
     if (trustError) return reply.code(403).send({ error: trustError });
-    if (!(await canReadCommunity(poll.question.communityId, credential.holderAlias))) {
-      return reply.code(403).send({ error: "Join this private community before voting in its poll" });
+    if (!(await canReadQuestion(poll.question, credential.holderAlias))) {
+      return reply.code(403).send({ error: "Follow or join this community before voting in its poll" });
     }
     if (!(await ensureCommunityProtocolWritable(poll.question.communityId, reply))) return;
     if (!verifyDemoCredential(input.credentialSecret, credential.secretHash)) {
@@ -2443,6 +2707,15 @@ export function buildServer() {
           }
         });
         await recordProtocolCommitments(protocolEvent, tx);
+        await recordActivity(tx, {
+          actorId: credential.holderAlias,
+          activityType: "PollParticipated",
+          questionId: poll.questionId,
+          communityId: poll.question.communityId,
+          targetCommunityId: profileCommunityIdForUser(credential.holderAlias),
+          audience: "Public",
+          shellText: `${credential.holderAlias} cast a private vote.`
+        });
         return accepted;
       });
       return {
@@ -2501,8 +2774,8 @@ export function buildServer() {
       }
     });
     if (!poll) return reply.code(404).send({ error: "Poll not found" });
-    if (!(await canReadCommunity(poll.question.communityId, userId))) {
-      return reply.code(403).send({ error: "Join this private community to view decryption shares" });
+    if (!(await canReadQuestion(poll.question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to view decryption shares" });
     }
     return {
       protocol: buildTallyDecryptionSharesProtocol(pollId, poll.tallyKeySetup, poll.decryptionShares),
@@ -2815,8 +3088,8 @@ export function buildServer() {
     const { userId } = request.query as { userId?: string };
     const poll = await prisma.poll.findUnique({ where: { id: pollId }, include: { result: true, question: true } });
     if (!poll?.result) return reply.code(404).send({ error: "Result not found" });
-    if (!(await canReadCommunity(poll.question.communityId, userId))) {
-      return reply.code(403).send({ error: "Join this private community to view this poll result" });
+    if (!(await canReadQuestion(poll.question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to view this poll result" });
     }
     const artifact = await artifactStore.read(poll.result.resultArtifactHash);
     return { result: poll.result, artifact, authorityLevel: poll.question.authorityLevel };
@@ -2832,8 +3105,8 @@ export function buildServer() {
     ]);
     if (!poll?.result) return reply.code(404).send({ error: "Published result not found" });
     if (!challenger) return reply.code(404).send({ error: "Challenger account not found" });
-    if (!(await canReadCommunity(poll.question.communityId, input.challenger))) {
-      return reply.code(403).send({ error: "Join this private community before challenging its result" });
+    if (!(await canReadQuestion(poll.question, input.challenger))) {
+      return reply.code(403).send({ error: "Follow or join this community before challenging its result" });
     }
     if (poll.result.finalStatus === "Finalized") {
       return reply.code(409).send({ error: "Finalized results cannot be challenged in the MVP" });
@@ -3060,8 +3333,8 @@ export function buildServer() {
     ]);
     if (!appellant) return reply.code(404).send({ error: "Appellant account not found" });
     if (!resultChallenge || resultChallenge.pollId !== pollId) return reply.code(404).send({ error: "Result challenge not found" });
-    if (!(await canReadCommunity(resultChallenge.poll.question.communityId, input.appellantId))) {
-      return reply.code(403).send({ error: "Join this private community before appealing a result challenge" });
+    if (!(await canReadQuestion(resultChallenge.poll.question, input.appellantId))) {
+      return reply.code(403).send({ error: "Follow or join this community before appealing a result challenge" });
     }
     if (!(await ensureCommunityProtocolWritable(resultChallenge.poll.question.communityId, reply))) return;
     if (resultChallenge.ruling === "Pending") return reply.code(409).send({ error: "Only ruled result challenges can be appealed" });
@@ -3169,8 +3442,8 @@ export function buildServer() {
     const assignment = await prisma.jurorAssignment.findUnique({ where: { id: assignmentId }, include: { question: true } });
     if (!assignment) return reply.code(404).send({ error: "Juror assignment not found" });
     if (assignment.jurorId !== input.jurorId) return reply.code(403).send({ error: "Only the selected juror can disclose conflicts for this assignment" });
-    if (!(await canReadCommunity(assignment.question.communityId, input.jurorId))) {
-      return reply.code(403).send({ error: "Join this private community before disclosing a juror conflict" });
+    if (!(await canReadQuestion(assignment.question, input.jurorId))) {
+      return reply.code(403).send({ error: "Follow or join this community before disclosing a juror conflict" });
     }
     if (!(await ensureCommunityProtocolWritable(assignment.question.communityId, reply))) return;
     const { updated, disclosureArtifact } = await discloseJurorConflict(assignment, input.hasConflict, input.disclosure, artifactStore);
@@ -3492,10 +3765,10 @@ export function buildServer() {
   app.get("/questions/:questionId/archive", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const { userId } = request.query as { userId?: string };
-    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { communityId: true } });
+    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true, proposer: true, audience: true } });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, userId))) {
-      return reply.code(403).send({ error: "Join this private community to view this archive" });
+    if (!(await canReadQuestion(question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to view this archive" });
     }
     const archiveRecord = await prisma.archiveRecord.findUnique({ where: { questionId } });
     if (!archiveRecord) return reply.code(404).send({ error: "Archive not found" });
@@ -3506,10 +3779,10 @@ export function buildServer() {
   app.get("/questions/:questionId/archive/export", async (request, reply) => {
     const { questionId } = request.params as { questionId: string };
     const { userId } = request.query as { userId?: string };
-    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { communityId: true } });
+    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true, proposer: true, audience: true } });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, userId))) {
-      return reply.code(403).send({ error: "Join this private community to export this archive" });
+    if (!(await canReadQuestion(question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to export this archive" });
     }
     const archiveRecord = await prisma.archiveRecord.findUnique({ where: { questionId } });
     if (!archiveRecord) return reply.code(404).send({ error: "Archive not found" });
@@ -3552,7 +3825,7 @@ export function buildServer() {
       dataUnionAccessGrants
     ] = await Promise.all([
       prisma.question.findMany({
-        where: { communityId },
+        where: { AND: [{ communityId }, readableQuestionWhere(userId)] },
         orderBy: { createdAt: "asc" },
         include: {
           challenges: { orderBy: { createdAt: "asc" } },
@@ -5110,8 +5383,8 @@ export function buildServer() {
       }
     });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, undefined))) {
-      return reply.code(403).send({ error: "Private community records require membership" });
+    if (!(await canReadQuestion(question, undefined))) {
+      return reply.code(403).send({ error: "This question record is not public" });
     }
     const [events, commitmentRecords] = await Promise.all([
       prisma.registryEvent.findMany({ where: { subjectId: questionId }, orderBy: REGISTRY_EVENT_ORDER }),
@@ -5166,8 +5439,8 @@ export function buildServer() {
       }
     });
     if (!question) return reply.code(404).send({ error: "Question not found" });
-    if (!(await canReadCommunity(question.communityId, undefined))) {
-      return reply.code(403).send({ error: "Private community records require membership" });
+    if (!(await canReadQuestion(question, undefined))) {
+      return reply.code(403).send({ error: "This question record is not public" });
     }
 
     const events = await prisma.registryEvent.findMany({ where: { subjectId: questionId }, orderBy: REGISTRY_EVENT_ORDER });
@@ -5750,11 +6023,32 @@ type DiscoveryCommunityView = {
   id: string;
   slug: string;
   name: string;
+  kind: string;
+  profileUserId: string | null;
   visibility: string;
   memberCount: number;
   questionCount: number;
   followerCount: number;
   followedByActiveUser: boolean;
+};
+
+type QuestionAudience = "Public" | "Followers" | "Members";
+
+type QuestionAccessRecord = {
+  id: string;
+  proposer: string;
+  communityId: string | null;
+  audience: string | null;
+};
+
+type ActivityRecordInput = {
+  actorId: string;
+  activityType: string;
+  questionId?: string | null;
+  communityId?: string | null;
+  targetCommunityId?: string | null;
+  audience?: string;
+  shellText: string;
 };
 
 type DiscoveryTopicView = {
@@ -6155,12 +6449,28 @@ function clampIntegerParam(value: unknown, fallback: number, min: number, max: n
   return Math.min(max, Math.max(min, Math.trunc(parsed)));
 }
 
-function readableQuestionWhere(userId?: string): Prisma.QuestionWhereInput {
+function readableQuestionWhere(userId: string | undefined): Prisma.QuestionWhereInput {
+  const publicWhere: Prisma.QuestionWhereInput = { audience: "Public" };
+  if (!userId) return publicWhere;
+  const activeMemberWhere: Prisma.QuestionWhereInput = {
+    community: { is: { memberships: { some: { userId, status: "Active" } } } }
+  };
   return {
     OR: [
-      { communityId: null },
-      { community: { is: { visibility: "Public" } } },
-      ...(userId ? [{ community: { is: { memberships: { some: { userId, status: "Active" } } } } }] : [])
+      publicWhere,
+      { proposer: userId },
+      { AND: [{ audience: "Members" }, activeMemberWhere] },
+      {
+        AND: [
+          { audience: "Followers" },
+          {
+            OR: [
+              activeMemberWhere,
+              { community: { is: { follows: { some: { userId } } } } }
+            ]
+          }
+        ]
+      }
     ]
   };
 }
@@ -10423,6 +10733,7 @@ function normalizeAuthority(authorityLevel: string): keyof typeof AUTHORITY_RANK
 }
 
 async function questionFeedWhere(communityId: string | undefined, userId: string | undefined, reply: FastifyReply) {
+  const readableWhere = readableQuestionWhere(userId);
   if (communityId) {
     const community = await prisma.community.findUnique({
       where: { id: communityId },
@@ -10433,21 +10744,16 @@ async function questionFeedWhere(communityId: string | undefined, userId: string
       return undefined;
     }
     if (community.visibility === "Private" && !community.memberships.some((member) => member.userId === userId && member.status === "Active")) {
-      reply.code(403).send({ error: "Join this private community to view its questions" });
-      return undefined;
+      const publicQuestionCount = await prisma.question.count({ where: { communityId, audience: "Public" } });
+      if (!publicQuestionCount) {
+        reply.code(403).send({ error: "Join this private community to view its questions" });
+        return undefined;
+      }
     }
-    return { communityId };
+    return { AND: [{ communityId }, readableWhere] };
   }
 
-  const communities = await prisma.community.findMany({ include: { memberships: true } });
-  const accessibleCommunityIds = communities
-    .filter(
-      (community) =>
-        community.visibility === "Public" ||
-        Boolean(userId && community.memberships.some((member) => member.userId === userId && member.status === "Active"))
-    )
-    .map((community) => community.id);
-  return { OR: [{ communityId: { in: accessibleCommunityIds } }, { communityId: null }] };
+  return readableWhere;
 }
 
 async function canReadCommunity(communityId: string | null, userId: string | undefined) {
@@ -10464,6 +10770,136 @@ async function canReadCommunity(communityId: string | null, userId: string | und
     select: { status: true }
   });
   return membership?.status === "Active";
+}
+
+async function canReadQuestion(question: QuestionAccessRecord, userId: string | undefined) {
+  const audience = normalizeQuestionAudience(question.audience);
+  if (audience === "Public") return true;
+  if (!userId) return false;
+  if (question.proposer === userId) return true;
+  if (!question.communityId) return false;
+  const membership = await prisma.communityMember.findUnique({
+    where: { communityId_userId: { communityId: question.communityId, userId } },
+    select: { status: true }
+  });
+  if (membership?.status === "Active") return true;
+  if (audience !== "Followers") return false;
+  const follow = await prisma.communityFollow.findUnique({
+    where: { communityId_userId: { communityId: question.communityId, userId } },
+    select: { id: true }
+  });
+  return Boolean(follow);
+}
+
+function normalizeQuestionAudience(audience: string | null | undefined): QuestionAudience {
+  if (audience === "Followers" || audience === "Members") return audience;
+  return "Public";
+}
+
+function audienceLabel(audience: string | null | undefined) {
+  const normalized = normalizeQuestionAudience(audience);
+  if (normalized === "Followers") return "followers";
+  if (normalized === "Members") return "members";
+  return "everyone";
+}
+
+async function recordActivity(client: Pick<Prisma.TransactionClient, "activityFeedItem">, input: ActivityRecordInput) {
+  const audience = normalizeQuestionAudience(input.audience);
+  const activityHash = hashJson({
+    protocol: "pc-activity-v0",
+    actorId: input.actorId,
+    activityType: input.activityType,
+    questionId: input.questionId ?? null,
+    communityId: input.communityId ?? null,
+    targetCommunityId: input.targetCommunityId ?? null,
+    audience,
+    shellText: input.shellText
+  });
+  return client.activityFeedItem.create({
+    data: {
+      id: `activity-${nanoid(10)}`,
+      actorId: input.actorId,
+      activityType: input.activityType,
+      questionId: input.questionId ?? null,
+      communityId: input.communityId ?? null,
+      targetCommunityId: input.targetCommunityId ?? input.communityId ?? null,
+      audience,
+      shellText: input.shellText,
+      activityHash
+    }
+  });
+}
+
+async function toQuestionFeedItem<T extends QuestionAccessRecord & { title: string; answerSchemaId: string; createdAt: Date; community?: { slug: string; kind: string } | null }>(
+  question: T,
+  userId: string | undefined
+) {
+  const canRead = await canReadQuestion(question, userId);
+  return {
+    id: `question:${question.id}`,
+    itemType: "question",
+    visibility: canRead ? "full" : "redacted",
+    createdAt: question.createdAt,
+    question: canRead ? enrichQuestion(question) : null,
+    shellText: canRead ? `${targetNameForQuestion(question)} asked: ${question.title}` : `A ${audienceLabel(question.audience)} question is active in ${targetNameForQuestion(question)}.`,
+    lockedReason: canRead ? null : "Follow or join this community to see the full question."
+  };
+}
+
+async function toActivityFeedItem<
+  TActivity extends {
+    id: string;
+    actorId: string;
+    activityType: string;
+    questionId: string | null;
+    communityId: string | null;
+    targetCommunityId: string | null;
+    audience: string;
+    shellText: string;
+    activityHash: string;
+    createdAt: Date;
+  },
+  TQuestion extends QuestionAccessRecord & { answerSchemaId: string; createdAt: Date } & Record<string, unknown>
+>(activity: TActivity, question: TQuestion | undefined, userId: string | undefined) {
+  if (!(await canReadActivityShell(activity, userId))) return null;
+  const canReadLinkedQuestion = question ? await canReadQuestion(question, userId) : false;
+  return {
+    id: `activity:${activity.id}`,
+    itemType: "activity",
+    activityType: activity.activityType,
+    visibility: canReadLinkedQuestion ? "full" : "shell",
+    createdAt: activity.createdAt,
+    actorId: activity.actorId,
+    shellText: activity.shellText,
+    activityHash: activity.activityHash,
+    question: question && canReadLinkedQuestion ? enrichQuestion(question) : null,
+    lockedReason: question && !canReadLinkedQuestion ? "The action is visible, but the question details are private." : null
+  };
+}
+
+async function canReadActivityShell(activity: ActivityRecordInput & { audience?: string | null }, userId: string | undefined) {
+  const audience = normalizeQuestionAudience(activity.audience);
+  if (audience === "Public") return true;
+  if (!userId) return false;
+  if (activity.actorId === userId) return true;
+  const targetCommunityId = activity.targetCommunityId ?? activity.communityId ?? null;
+  if (!targetCommunityId) return false;
+  const membership = await prisma.communityMember.findUnique({
+    where: { communityId_userId: { communityId: targetCommunityId, userId } },
+    select: { status: true }
+  });
+  if (membership?.status === "Active") return true;
+  if (audience !== "Followers") return false;
+  const follow = await prisma.communityFollow.findUnique({
+    where: { communityId_userId: { communityId: targetCommunityId, userId } },
+    select: { id: true }
+  });
+  return Boolean(follow);
+}
+
+function targetNameForQuestion(question: { community?: { slug: string; kind: string } | null }) {
+  if (!question.community) return "the public feed";
+  return question.community.kind === "Profile" ? `@${question.community.slug.replace(/^user-/, "")}` : `p/${question.community.slug}`;
 }
 
 function enrichQuestion<T extends { answerSchemaId: string }>(question: T): T & { answerSchema: ReturnType<typeof getAnswerSchema> } {
@@ -10486,6 +10922,43 @@ function slugify(value: string) {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || `community-${nanoid(6)}`
   );
+}
+
+async function createProfileCommunityForUser(
+  client: Prisma.TransactionClient,
+  user: { id: string; username: string; displayName: string; bio?: string | null; profileCommunityId: string }
+) {
+  await client.community.create({
+    data: {
+      id: user.profileCommunityId,
+      slug: profileCommunitySlug(user.username || user.id),
+      name: user.displayName || user.username || user.id,
+      description: user.bio || `${user.displayName || user.username || "This member"}'s personal question feed.`,
+      kind: "Profile",
+      profileUserId: user.id,
+      visibility: "Public",
+      credentialSchemaId: "credential-vancouver-resident",
+      defaultAuthorityLevel: "Advisory",
+      createdBy: user.id
+    }
+  });
+  await client.communityMember.create({
+    data: {
+      id: `member-${user.profileCommunityId}-${user.id}`,
+      communityId: user.profileCommunityId,
+      userId: user.id,
+      role: "Owner",
+      status: "Active"
+    }
+  });
+}
+
+function profileCommunityIdForUser(userId: string) {
+  return `community-profile-${userId.replace(/[^a-zA-Z0-9-]/g, "-").toLowerCase()}`;
+}
+
+function profileCommunitySlug(username: string) {
+  return `user-${slugify(username).replace(/^community-/, "")}`;
 }
 
 function portableProfileId(userId: string) {

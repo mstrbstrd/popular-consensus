@@ -55,6 +55,7 @@ export async function ensureSeedData() {
       update: { ...user, profileId, profileHash: profileArtifact.hash },
       create: { ...user, profileId, profileHash: profileArtifact.hash }
     });
+    await ensureProfileCommunityForUser(user.id, user.username, user.displayName, user.bio);
   }
 
   await prisma.community.upsert({
@@ -211,10 +212,11 @@ export async function ensureSeedData() {
         answerSchemaId: "answer-binary-support-oppose",
         credentialSchemaId: "credential-vancouver-resident",
         communityId: "community-vancouver",
+        audience: "Public",
         topicIds: ["transit", "public-space"],
         geoScope: "Vancouver",
         sponsorDisclosureHash: sponsorArtifact.hash,
-        methodologyLabel: "Verified city resident response, self-selected sample",
+        methodologyLabel: "Answered by city residents who chose to take part",
         authorityLevel: "Advisory",
         opensAt: new Date(),
         closesAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
@@ -311,6 +313,7 @@ export async function resetDemoData() {
   await prisma.discussionModerationAppeal.deleteMany();
   await prisma.discussionModerationRecord.deleteMany();
   await prisma.discussionPost.deleteMany();
+  await prisma.activityFeedItem.deleteMany();
   await prisma.dataUnionAccessGrant.deleteMany();
   await prisma.dataUnionProduct.deleteMany();
   await prisma.dataUnionConsent.deleteMany();
@@ -388,4 +391,53 @@ function buildSeedProtocolTransactionResult(eventType: string, subjectId: string
 
 function portableProfileId(userId: string) {
   return `did:pc:${userId}`;
+}
+
+async function ensureProfileCommunityForUser(userId: string, username: string, displayName: string, bio?: string | null) {
+  const communityId = profileCommunityIdForUser(userId);
+  await prisma.community.upsert({
+    where: { id: communityId },
+    update: {
+      name: displayName,
+      description: bio || `${displayName}'s personal question feed.`,
+      profileUserId: userId,
+      kind: "Profile",
+      visibility: "Public"
+    },
+    create: {
+      id: communityId,
+      slug: profileCommunitySlug(username),
+      name: displayName,
+      description: bio || `${displayName}'s personal question feed.`,
+      kind: "Profile",
+      profileUserId: userId,
+      visibility: "Public",
+      credentialSchemaId: "credential-vancouver-resident",
+      defaultAuthorityLevel: "Advisory",
+      createdBy: userId
+    }
+  });
+  await prisma.communityMember.upsert({
+    where: { communityId_userId: { communityId, userId } },
+    update: { role: "Owner", status: "Active" },
+    create: {
+      id: `member-${communityId}-${userId}`,
+      communityId,
+      userId,
+      role: "Owner",
+      status: "Active"
+    }
+  });
+  await prisma.userAccount.update({
+    where: { id: userId },
+    data: { profileCommunityId: communityId }
+  });
+}
+
+function profileCommunityIdForUser(userId: string) {
+  return `community-profile-${userId.replace(/[^a-zA-Z0-9-]/g, "-").toLowerCase()}`;
+}
+
+function profileCommunitySlug(username: string) {
+  return `user-${username.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")}`;
 }

@@ -11,6 +11,14 @@ import {
 } from "@pc/shared";
 import Image from "next/image";
 import logoMark from "../src/logo2026_nobackground.png";
+import {
+  publicAuthorityLabel,
+  publicDiscussionLabel,
+  publicPollStatus,
+  publicQuestionStatus,
+  publicRoleLabel,
+  siteCopy
+} from "./copy";
 
 type UserAccount = {
   id: string;
@@ -60,6 +68,8 @@ type DiscoveryIndex = {
   topicFollows: Array<{ id: string; topicId: string; userId: string }>;
 };
 
+type QuestionAudience = "Public" | "Followers" | "Members";
+
 type AdoptionPolicy = {
   id: string;
   authorityLevel: "Advisory" | "Recognized" | "Binding";
@@ -101,6 +111,7 @@ type Question = {
   methodologyLabel: string;
   authorityLevel: string;
   proposer: string;
+  audience?: QuestionAudience;
   answerSchemaId: string;
   answerSchema?: AnswerSchema;
   topicIds?: string[];
@@ -123,6 +134,7 @@ const emptyQuestion = {
   title: "",
   body: "",
   sponsorDisclosure: "",
+  audience: "Public" as QuestionAudience,
   answerSchemaId: "answer-binary-support-oppose"
 };
 
@@ -138,22 +150,18 @@ const emptyResponseDraft = {
 const discussionKindLabels: Record<DiscussionPostKind, string> = {
   Comment: "Comment",
   Source: "Source",
-  ProArgument: "Pro",
-  ConArgument: "Con",
-  ClarifyingQuestion: "Clarifying",
-  ModeratorNote: "Moderator"
+  ProArgument: "For",
+  ConArgument: "Against",
+  ClarifyingQuestion: "Question",
+  ModeratorNote: "Guide note"
 };
 
 const feedModes: Array<{ key: FeedMode; label: string }> = [
-  { key: "home", label: "Home" },
+  { key: "home", label: "All" },
   { key: "open", label: "Voting" },
-  { key: "review", label: "Review" },
+  { key: "review", label: "Checking" },
   { key: "results", label: "Results" }
 ];
-
-function formatStatus(status: string) {
-  return status.replace(/([a-z])([A-Z])/g, "$1 $2");
-}
 
 function initials(name: string) {
   return name
@@ -172,60 +180,60 @@ function compactHash(value?: string | null) {
 function buildDiscussionViews(posts: DiscussionPost[]): DiscussionView[] {
   return DiscussionViewDefinitions.map((view) => {
     const viewPosts = posts.filter((post) => post.kind === view.kind);
-    return { key: view.key, kind: view.kind, label: view.label, count: viewPosts.length, posts: viewPosts };
+    return { key: view.key, kind: view.kind, label: publicDiscussionLabel(view.kind), count: viewPosts.length, posts: viewPosts };
   });
 }
 
 function authorityCopy(authorityLevel: string) {
   if (authorityLevel === "Binding") {
-    return "Binding means a recognized decision-maker has committed to honor the result under an adoption policy.";
+    return "This result is tied to a decision-maker that has promised to act on it.";
   }
   if (authorityLevel === "Recognized") {
-    return "Recognized means the community has a stated adoption policy, but implementation still sits outside this demo.";
+    return "This community has named how the result should guide the next step.";
   }
-  return "Advisory signals community preference; no automatic legal or operational effect is implied.";
+  return "This is a community signal: it shows where the community is leaning, without forcing an outside decision.";
 }
 
 function lifecycleSummary(question: Question | null, pollStatus: string, pendingChallenge: Question["challenges"][number] | null) {
   if (!question) {
     return {
       label: "No question selected",
-      body: "Choose a question from the feed to review its registry state, ballot controls, and artifacts."
+      body: "Choose a question to see its votes, proof, and result."
     };
   }
   if (pendingChallenge) {
     return {
-      label: "Challenge pending",
-      body: "A wording or eligibility challenge is active. Rule on it or let the proposer amend before opening the poll."
+      label: "Flag under review",
+      body: "Someone flagged wording or eligibility. A community guide can clear it, keep it, or let the asker clarify."
     };
   }
   if (question.status === "Submitted" && pollStatus === "Configured") {
     return {
-      label: "Registry review",
-      body: "The proposal bond is escrowed and the poll is configured. Review scope, disclosure, and challenges before opening voting."
+      label: "Question check",
+      body: "The question is drafted and ready for a community guide to check before voting opens."
     };
   }
   if (pollStatus === "Open") {
     return {
-      label: "Encrypted voting open",
-      body: "Eligible members can issue a demo credential and submit one encrypted ballot with duplicate-nullifier protection."
+      label: "Voting open",
+      body: "Members can get a voting pass and cast one private vote."
     };
   }
   if (pollStatus === "ResultPublished") {
     return {
-      label: "Result artifact published",
-      body: "The coordinator has published aggregate counts, turnout, privacy report, and proof references."
+      label: "Results posted",
+      body: "The app has published the count, turnout, privacy note, and public receipt."
     };
   }
   if (question.status === "Rejected") {
     return {
-      label: "Rejected in review",
-      body: "A challenge was sustained. The poll remains closed unless a new proposal is submitted."
+      label: "Not moving forward",
+      body: "A flag was kept, so this question stays closed unless someone asks a clearer version."
     };
   }
   return {
-    label: formatStatus(question.status),
-    body: question.poll ? `Poll status: ${formatStatus(pollStatus)}.` : "No poll has been configured for this question."
+    label: publicQuestionStatus(question.status),
+    body: question.poll ? `Vote status: ${publicPollStatus(pollStatus)}.` : "No vote has been set up for this question."
   };
 }
 
@@ -265,7 +273,7 @@ export function TransitDemo() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [credential, setCredential] = useState<{ credentialId: string; credentialSecret: string } | null>(null);
   const [result, setResult] = useState<unknown>(null);
-  const [message, setMessage] = useState("Choose a community or propose a civic question.");
+  const [message, setMessage] = useState("Choose a community or ask a question.");
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedError, setFeedError] = useState("");
   const [actionPending, setActionPending] = useState(false);
@@ -349,7 +357,7 @@ export function TransitDemo() {
     [selected]
   );
   const pollStatus = selected?.poll?.status ?? "NotCreated";
-  const pollStatusLabel = selected?.poll ? `Poll ${formatStatus(pollStatus)}` : "No poll";
+  const pollStatusLabel = selected?.poll ? publicPollStatus(pollStatus) : "No vote yet";
   const isPollOpen = pollStatus === "Open";
   const canLoadResult = Boolean(selected?.poll?.result) || pollStatus === "ResultPublished";
   const activeCommunityIsPrivate = selectedCommunity?.visibility === "Private";
@@ -386,79 +394,79 @@ export function TransitDemo() {
   const lifecycle = lifecycleSummary(selected, pollStatus, pendingChallenge);
   const challengeDisabledReason = selected
     ? !activeUser
-      ? "Choose an account before opening a challenge."
+      ? "Choose an account before flagging a question."
       : activeUserIsProposer
-      ? "Proposer cannot challenge their own question."
+      ? "The asker cannot flag their own question."
       : canChallengeQuestion
       ? ""
-      : "Challenges are only available before a poll opens or after a challenge is rejected."
-    : "Select a question before opening a challenge.";
+      : "Flags are only available before voting opens or after a flag is cleared."
+    : "Select a question before flagging it.";
   const acceptDisabledReason = selected
     ? !activeUser
-      ? "Choose an account before accepting a question."
+      ? "Choose an account before opening voting."
       : activeUserIsProposer
-      ? "Proposer cannot accept their own question."
+      ? "The asker cannot check their own question."
       : !canCurateSelectedCommunity
-      ? "Only community owners or moderators can accept registry questions."
+      ? "Only community guides can check questions."
       : !selected.poll
-      ? "This question does not have a configured poll."
+      ? "This question does not have voting set up."
       : pendingChallenge
-      ? "Resolve the pending challenge before opening the poll."
+      ? "Resolve the open flag before voting starts."
       : pollStatus !== "Configured"
-      ? "The poll must be configured and still closed."
+      ? "Voting must be ready and still closed."
       : ["Submitted", "Accepted"].includes(selected.status)
       ? ""
-      : "Only submitted or accepted registry items can open a poll."
-    : "Select a question before accepting it.";
+      : "Only submitted or checked questions can open voting."
+    : "Select a question before opening voting.";
   const amendDisabledReason = selected
     ? activeUser?.id !== selected.proposer
-      ? "Only the original proposer can amend this question."
+      ? "Only the original asker can clarify this question."
       : canAmendQuestion
       ? ""
-      : "Amendments are only available during registry review or remand."
-    : "Select a question before amending it.";
+      : "Clarifying is only available while a question is being checked."
+    : "Select a question before clarifying it.";
   const rulingDisabledReason = pendingChallenge
     ? !activeUser
-      ? "Choose an account before ruling."
+      ? "Choose an account before resolving a flag."
       : activeUserIsProposer
-      ? "Proposer cannot rule on their own question challenge."
+      ? "The asker cannot resolve their own flag."
       : activeUserIsChallenger
-      ? "Challenger cannot rule on their own challenge."
+      ? "The person who flagged it cannot resolve the flag."
       : !canCurateSelectedCommunity
-      ? "Only community owners or moderators can rule on challenges."
+      ? "Only community guides can resolve flags."
       : ""
-    : "Open or select a pending challenge before ruling.";
-  const credentialDisabledReason = activeUser ? "" : "Choose an account before issuing a credential.";
+    : "Open or select a flag before resolving it.";
+  const credentialDisabledReason = activeUser ? "" : "Choose an account before getting a voting pass.";
   const ballotDisabledReason = selected?.poll
     ? !isPollOpen
       ? pollStatus === "Configured"
-        ? "Voting opens after registry acceptance."
+        ? "Voting opens after a community guide checks the question."
         : pollStatus === "ResultPublished"
-        ? "Voting is closed because results are published."
-        : `Voting is disabled while the poll is ${formatStatus(pollStatus)}.`
+        ? "Voting is closed because results are posted."
+        : `Voting is disabled while this vote is ${publicPollStatus(pollStatus)}.`
       : credential
       ? ""
-      : "Issue a demo resident credential before submitting an encrypted ballot."
-    : "Open a poll before voting.";
+      : "Get a voting pass before submitting a private vote."
+    : "Open voting before casting a vote.";
   const closeDisabledReason = selected?.poll
     ? isPollOpen
       ? ""
-      : "Close and tally is available only while the poll is open."
-    : "Open a poll before tallying.";
+      : "Counting votes is available only while voting is open."
+    : "Open voting before counting.";
   const resultDisabledReason = selected?.poll
     ? canLoadResult
       ? ""
-      : "A result artifact appears after close and tally."
-    : "No poll is attached to this question.";
+      : "A public receipt appears after votes are counted."
+    : "No vote is attached to this question.";
   const proposeDisabledReason = activeUser
     ? selectedCommunity
       ? selectedCommunity.visibility === "Private" && !selectedCommunity.isMember
-        ? "Join this private community before proposing a question."
+        ? "Join this private community before asking a question."
         : ""
-      : "Choose one community, not the all-feed, before proposing."
-    : "Choose or create an account before proposing.";
+      : "Choose one community, not the all-feed, before asking."
+    : "Choose or create an account before asking.";
   const registryHint = pendingChallenge
-    ? "Pending challenge must be ruled on or amended before acceptance."
+    ? "Open flag must be resolved or clarified before voting starts."
     : acceptDisabledReason || challengeDisabledReason || amendDisabledReason;
 
   async function call(path: string, init?: RequestInit) {
@@ -644,8 +652,8 @@ export function TransitDemo() {
     await refreshQuestions(community.id, activeUser?.id ?? "");
     setMessage(
       community.visibility === "Private"
-        ? `${community.name} is private. Only active members can view and propose questions.`
-        : `${community.name} feed loaded.`
+        ? `${community.name} is private. Only active members can see and ask questions.`
+        : `${community.name} questions loaded.`
     );
   }
 
@@ -665,19 +673,19 @@ export function TransitDemo() {
     setArchive(null);
     setResponseDraft(emptyResponseDraft);
     if (question.poll?.status === "Open") {
-      setMessage("Poll is open. Issue a demo resident credential to submit one encrypted ballot.");
+      setMessage("Voting is open. Get a voting pass to cast one private vote.");
       return;
     }
     if (question.poll?.status === "ResultPublished") {
-      setMessage("Poll has published aggregate result artifacts. Load the result to inspect them.");
+      setMessage("Results are posted. Load the result to inspect the public receipt.");
       return;
     }
     setMessage(
       question.poll?.status === "Configured"
-        ? "Question is in registry review. Resolve challenges, then accept it to open the poll."
+        ? "Question is being checked. Resolve flags, then open voting."
         : question.poll
-        ? `Poll status: ${formatStatus(question.poll.status)}.`
-        : "No poll has been opened for this question."
+        ? `Vote status: ${publicPollStatus(question.poll.status)}.`
+        : "No vote has been opened for this question."
     );
   }
 
@@ -686,13 +694,13 @@ export function TransitDemo() {
     const data = await call("/users", { method: "POST", body: JSON.stringify(newUser) });
     setNewUser({ username: "", displayName: "" });
     setActiveUserId(data.user.id);
-    setMessage(`Account created for ${data.user.displayName}.`);
+    setMessage(`Test account created for ${data.user.displayName}.`);
     await refreshAll(selectedCommunityId, data.user.id);
   }
 
   async function createCommunity(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!activeUser) throw new Error("Create an account before creating a community");
+    if (!activeUser) throw new Error("Create an account before starting a community");
     const data = await call("/communities", {
       method: "POST",
       body: JSON.stringify({ ...newCommunity, creatorId: activeUser.id })
@@ -736,13 +744,13 @@ export function TransitDemo() {
         communityId: selectedCommunity.id,
         topicIds: ["community", selectedCommunity.slug],
         geoScope: selectedCommunity.name,
-        methodologyLabel: `Verified ${selectedCommunity.name} community response, self-selected sample`,
+        methodologyLabel: `Answered by ${selectedCommunity.name} members who chose to take part`,
         credentialSchemaId: selectedCommunity.credentialSchemaId
       })
     });
     setDraft(emptyQuestion);
     setSelectedId(data.question.id);
-    setMessage(`Question submitted with ${data.stakedPc} PC proposal stake and sent to registry review.`);
+    setMessage(`Question asked with ${data.stakedPc} PC stake and sent for checking.`);
     await refreshAll(selectedCommunity.id, activeUser.id, data.question.id);
   }
 
@@ -752,7 +760,7 @@ export function TransitDemo() {
       method: "POST",
       body: JSON.stringify({ challenger: activeUser?.id ?? "demo-challenger" })
     });
-    setMessage(`Challenge opened with ${data.stakedPc} PC challenge stake.`);
+    setMessage(`Question flagged with ${data.stakedPc} PC stake.`);
     await refreshAll(selectedCommunity?.id, activeUser?.id, selected.id);
   }
 
@@ -762,7 +770,7 @@ export function TransitDemo() {
       method: "POST",
       body: JSON.stringify({ curator: activeUser.id })
     });
-    setMessage("Question accepted into the registry and poll opened.");
+    setMessage("Question checked. Voting is open.");
     await refreshAll(selectedCommunity?.id, activeUser.id, selected.id);
   }
 
@@ -775,18 +783,18 @@ export function TransitDemo() {
         juror: activeUser.id,
         resolution:
           ruling === "Sustained"
-            ? "The challenge is sustained under demo registry rules."
+            ? "The flag is kept under the demo review rules."
             : ruling === "Rejected"
-            ? "The challenge is rejected under demo registry rules."
-            : "The challenge is remanded for proposer amendment."
+            ? "The flag is cleared under the demo review rules."
+            : "The question is sent back for the asker to clarify."
       })
     });
     setMessage(
       ruling === "Sustained"
-        ? "Challenge sustained. Question rejected and proposal bond settled."
+        ? "Flag kept. Question closed and proposal stake settled."
         : ruling === "Rejected"
-        ? "Challenge rejected. Question accepted for registry opening."
-        : "Challenge remanded. Proposer can amend and resubmit."
+        ? "Flag cleared. Question is ready for voting."
+        : "Flag sent back. The asker can clarify and resubmit."
     );
     await refreshAll(selectedCommunity?.id, activeUser.id, selected.id);
   }
@@ -800,7 +808,7 @@ export function TransitDemo() {
         body: "A community advisory poll with clarified scope, temporary implementation, and post-pilot review."
       })
     });
-    setMessage("Question amended and returned to registry review.");
+    setMessage("Question clarified and sent back for checking.");
     await refreshAll(selectedCommunity?.id, activeUser?.id, selected.id);
   }
 
@@ -813,7 +821,7 @@ export function TransitDemo() {
       credentialId: data.credential.credentialId,
       credentialSecret: data.credential.secret
     });
-    setMessage("Demo resident credential issued. Secret is held in browser state for this local demo.");
+    setMessage("Voting pass issued. Secret is held in browser state for this local demo.");
   }
 
   async function vote(response: BallotResponse, label: string) {
@@ -822,7 +830,7 @@ export function TransitDemo() {
       method: "POST",
       body: JSON.stringify({ ...credential, response })
     });
-    setMessage(`Encrypted ${label} ballot accepted. Try voting twice to see duplicate nullifier protection.`);
+    setMessage(`Private ${label} vote accepted. Try voting twice to see duplicate-vote protection.`);
     await refreshAll(selectedCommunity?.id, activeUser?.id, selected.id);
   }
 
@@ -836,7 +844,7 @@ export function TransitDemo() {
     await call(`/polls/${selected.poll.id}/close`, { method: "POST", body: "{}" });
     const data = await call(`/polls/${selected.poll.id}/tally`, { method: "POST", body: "{}" });
     setResult(data.artifact);
-    setMessage("Poll closed and coordinator published aggregate result artifacts.");
+    setMessage("Votes counted and public result receipt posted.");
     await refreshAll(selectedCommunity?.id, activeUser?.id, selected.id);
   }
 
@@ -846,7 +854,7 @@ export function TransitDemo() {
     if (activeUser?.id) params.set("userId", activeUser.id);
     const data = await call(`/polls/${selected.poll.id}/results?${params.toString()}`);
     setResult(data.artifact);
-    setMessage("Loaded public result artifact.");
+    setMessage("Loaded public result receipt.");
   }
 
   async function challengeResult() {
@@ -859,7 +867,7 @@ export function TransitDemo() {
         evidence: "Review the published privacy report before finalization."
       })
     });
-    setMessage(`Result challenge opened with ${data.stakedPc} PC challenge stake.`);
+    setMessage(`Result flagged with ${data.stakedPc} PC stake.`);
     await refreshAll(selectedCommunity?.id, activeUser.id, selected.id);
   }
 
@@ -876,7 +884,7 @@ export function TransitDemo() {
             : "Privacy review rejected; result can proceed to finalization."
       })
     });
-    setMessage(ruling === "Sustained" ? "Result challenge sustained and artifact corrected." : "Result challenge rejected.");
+    setMessage(ruling === "Sustained" ? "Result flag kept and receipt corrected." : "Result flag cleared.");
     await refreshAll(selectedCommunity?.id, activeUser.id, selected.id);
   }
 
@@ -885,7 +893,7 @@ export function TransitDemo() {
     await call(`/polls/${selected.poll.id}/finalize`, { method: "POST", body: JSON.stringify({ curator: activeUser.id }) });
     const data = await call(`/questions/${selected.id}/archive`, { method: "POST", body: JSON.stringify({ curator: activeUser.id }) });
     setArchive(data.artifact);
-    setMessage("Result finalized and public archive published.");
+    setMessage("Final result saved to the public record.");
     await refreshAll(selectedCommunity?.id, activeUser.id, selected.id);
   }
 
@@ -895,7 +903,7 @@ export function TransitDemo() {
     params.set("userId", activeUser.id);
     const data = await call(`/questions/${selected.id}/archive?${params.toString()}`);
     setArchive(data.artifact);
-    setMessage("Loaded archived civic record.");
+    setMessage("Loaded saved public record.");
   }
 
   async function postDiscussion(event: FormEvent<HTMLFormElement>) {
@@ -907,7 +915,7 @@ export function TransitDemo() {
     });
     setDiscussionDraft("");
     setActiveDiscussionView(DiscussionViewDefinitions.find((view) => view.kind === discussionDraftKind)?.key ?? "comments");
-    setMessage(`${discussionKindLabels[discussionDraftKind]} note posted.`);
+    setMessage(`${discussionKindLabels[discussionDraftKind]} comment posted.`);
     await refreshDiscussion(selected.id, activeUser.id);
   }
 
@@ -926,7 +934,7 @@ export function TransitDemo() {
         forkRule: "Community may fork metadata and archive references."
       })
     });
-    setMessage(`${data.policy.authorityLevel} adoption policy proposed.`);
+    setMessage(`${publicAuthorityLabel(data.policy.authorityLevel)} rule suggested.`);
     await refreshAdoption(selectedCommunity.id, activeUser.id);
   }
 
@@ -936,7 +944,7 @@ export function TransitDemo() {
       method: "POST",
       body: JSON.stringify({ steward: activeUser.id, adoptionRecord: "Community steward activated the policy for local MVP." })
     });
-    setMessage("Adoption policy activated.");
+    setMessage("Next-step rule turned on.");
     await refreshAdoption(selectedCommunity.id, activeUser.id);
   }
 
@@ -946,7 +954,7 @@ export function TransitDemo() {
       method: "POST",
       body: JSON.stringify({ steward: activeUser.id, reason: "Community steward paused this policy pending review." })
     });
-    setMessage("Adoption policy suspended.");
+    setMessage("Next-step rule paused.");
     await refreshAdoption(selectedCommunity.id, activeUser.id);
   }
 
@@ -1143,23 +1151,23 @@ export function TransitDemo() {
   }
 
   return (
-    <main className="shell">
+    <section className="shell testing-shell">
       <section className="topbar">
         <div className="brand-lockup">
           <Image className="brand-mark" src={logoMark} alt="" priority />
           <div>
             <p className="eyebrow">Popular Consensus</p>
-            <h1>Community Feed</h1>
+            <h1>{siteCopy.nav.testing}</h1>
           </div>
         </div>
         <div className="topbar-actions">
           <div className="network-stats" aria-label="Network stats">
             <span>{communities.length} communities</span>
-            <span>{questions.length} posts</span>
+            <span>{questions.length} questions</span>
             <span>{followedCommunityCount + followedTopicCount} follows</span>
           </div>
           <div className="account-switcher">
-            <label htmlFor="active-user">Account</label>
+            <label htmlFor="active-user">Test as</label>
             <select id="active-user" value={activeUser?.id ?? ""} onChange={(event) => void runAction(() => switchUser(event.target.value))}>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
@@ -1181,15 +1189,15 @@ export function TransitDemo() {
             </div>
             <dl className="profile-metrics">
               <div>
-                <dt>Rep</dt>
+                <dt>Trust</dt>
                 <dd>{activeUser?.reputation ?? 0}</dd>
               </div>
               <div>
                 <dt>Role</dt>
-                <dd>{activeRoleLabel}</dd>
+                <dd>{publicRoleLabel(activeRoleLabel)}</dd>
               </div>
               <div>
-                <dt>Credential</dt>
+                <dt>Voting pass</dt>
                 <dd>{credential ? "Ready" : "None"}</dd>
               </div>
             </dl>
@@ -1203,8 +1211,8 @@ export function TransitDemo() {
             <div className="community-list">
               <div className={selectedCommunityId === "all" ? "community-row active" : "community-row"}>
                 <button className="community-select" onClick={() => void runAction(selectAllFeed)}>
-                  <span>Home</span>
-                  <small>All visible communities</small>
+                  <span>All questions</span>
+                  <small>Everything you can see</small>
                 </button>
               </div>
               {socialCommunities.map((community) => {
@@ -1218,7 +1226,7 @@ export function TransitDemo() {
                     <button className="community-select" onClick={() => void runAction(() => selectCommunity(community))}>
                       <span>p/{community.slug}</span>
                       <small>
-                        {community.memberCount} members · {community.followerCount} followers · {community.questionCount} posts
+                        {community.memberCount} members · {community.followerCount} followers · {community.questionCount} questions
                       </small>
                     </button>
                     <button
@@ -1279,7 +1287,7 @@ export function TransitDemo() {
                   >
                     <span>#{topic.topicId}</span>
                     <small>
-                      {topic.questionCount} posts · {topic.followerCount} followers
+                      {topic.questionCount} questions · {topic.followerCount} followers
                     </small>
                     <span className="topic-action">{topic.followedByActiveUser ? "Following" : "Follow topic"}</span>
                   </button>
@@ -1291,7 +1299,7 @@ export function TransitDemo() {
           </section>
 
           <form className="stacked-form mini-form" onSubmit={(event) => void runAction(() => createCommunity(event))}>
-            <h3>Create Community</h3>
+            <h3>Start a community</h3>
             <input
               aria-label="Community name"
               placeholder="Community name"
@@ -1315,7 +1323,7 @@ export function TransitDemo() {
               <option value="Private">Private</option>
             </select>
             <button type="submit" disabled={!activeUser || actionPending} title={!activeUser ? "Choose or create an account first." : undefined}>
-              Create community
+              Start community
             </button>
           </form>
         </aside>
@@ -1323,8 +1331,8 @@ export function TransitDemo() {
         <section className="feed">
           <section className="panel community-hero">
             <div className="community-copy">
-              <p className="eyebrow">{selectedCommunity ? `p/${selectedCommunity.slug}` : "Home"}</p>
-              <h2>{selectedCommunity?.name ?? "All Visible Communities"}</h2>
+              <p className="eyebrow">{selectedCommunity ? `p/${selectedCommunity.slug}` : "All questions"}</p>
+              <h2>{selectedCommunity?.name ?? "All questions"}</h2>
               <p>{selectedCommunity?.description ?? "A combined feed of public questions and private questions from communities you have joined."}</p>
             </div>
             <div className="community-snapshot">
@@ -1339,12 +1347,12 @@ export function TransitDemo() {
                 </div>
                 <div>
                   <strong>{feedStats.open}</strong>
-                  <small>open polls</small>
+                  <small>open votes</small>
                 </div>
               </div>
               <div className="statusline">
                 <span className={activeCommunityIsPrivate ? "poll-closed" : "poll-open"}>{selectedCommunity?.visibility ?? "Mixed"}</span>
-                <span>{selectedCommunity?.defaultAuthorityLevel ?? "Advisory default"}</span>
+                <span>{publicAuthorityLabel(selectedCommunity?.defaultAuthorityLevel ?? "Advisory")}</span>
                 <span className={selectedCommunity?.isMember ? "poll-open" : "poll-closed"}>
                   {selectedCommunity ? (selectedCommunity.isMember ? "Member" : "Not joined") : "Visible"}
                 </span>
@@ -1356,21 +1364,33 @@ export function TransitDemo() {
             <div className="composer-head">
               <div className="avatar small">{initials(activeUser?.displayName ?? "PC")}</div>
               <div>
-                <h2>Start a Consensus Post</h2>
-                <p className="muted">{selectedCommunity ? `Posting to p/${selectedCommunity.slug}` : "Choose a community to post"}</p>
+                <h2>{siteCopy.actions.askCrowd}</h2>
+                <p className="muted">{selectedCommunity ? `Asking in p/${selectedCommunity.slug}` : "Choose a community to ask"}</p>
               </div>
-              <span className="badge-soft">{selectedCommunity?.defaultAuthorityLevel ?? "Advisory"}</span>
+              <span className="badge-soft">{publicAuthorityLabel(selectedCommunity?.defaultAuthorityLevel ?? "Advisory")}</span>
             </div>
+            <label className="field-label">
+              Who can see it?
+              <select
+                aria-label="Question audience"
+                value={draft.audience}
+                onChange={(event) => setDraft((current) => ({ ...current, audience: event.target.value as QuestionAudience }))}
+              >
+                <option value="Public">Everyone</option>
+                <option value="Followers">Followers</option>
+                <option value="Members">Members</option>
+              </select>
+            </label>
             <input
               aria-label="Question title"
-              placeholder="Question title"
+              placeholder="What should this community decide or estimate?"
               value={draft.title}
               onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
               required
             />
             <textarea
               aria-label="Question body"
-              placeholder="Context, scope, and what a support response means"
+              placeholder="Add context. Keep it simple."
               value={draft.body}
               onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))}
               required
@@ -1388,13 +1408,13 @@ export function TransitDemo() {
             </select>
             <input
               aria-label="Sponsor disclosure"
-              placeholder="Sponsor disclosure"
+              placeholder="Who is asking?"
               value={draft.sponsorDisclosure}
               onChange={(event) => setDraft((current) => ({ ...current, sponsorDisclosure: event.target.value }))}
               required
             />
             <button type="submit" disabled={!canProposeQuestion || actionPending} title={proposeDisabledReason || undefined}>
-              {selectedCommunity ? "Submit question with PC stake" : "Choose a community to propose"}
+              {selectedCommunity ? "Ask question" : "Choose a community to ask"}
             </button>
             {!canProposeQuestion ? <small className="form-hint">{proposeDisabledReason}</small> : null}
           </form>
@@ -1402,14 +1422,12 @@ export function TransitDemo() {
           <section className="panel">
             <div className="section-heading">
               <div>
-                <h2>Feed</h2>
+                  <h2>Question list</h2>
                 <p className="muted">
-                  {selectedCommunity
-                    ? `${selectedCommunity.questionCount} total questions in p/${selectedCommunity.slug}`
-                    : "Public communities plus private communities joined by this account"}
+                  {selectedCommunity ? `${selectedCommunity.questionCount} questions in p/${selectedCommunity.slug}` : "Everything this test account can see"}
                 </p>
               </div>
-              <span className="badge-soft">{feedLoading ? "Loading" : `${questions.length} visible`}</span>
+              <span className="badge-soft">{feedLoading ? "Loading" : `${questions.length} visible questions`}</span>
             </div>
             <div className="feed-tabs" role="tablist" aria-label="Feed filters">
               {feedModes.map((mode) => (
@@ -1438,7 +1456,7 @@ export function TransitDemo() {
               {feedLoading ? (
                 <div className="empty-state">
                   <strong>Loading question feed</strong>
-                  <p>Fetching the latest visible registry items for this account.</p>
+                  <p>Fetching the latest visible questions for this account.</p>
                 </div>
               ) : feedError ? (
                 <div className="empty-state warning">
@@ -1459,17 +1477,18 @@ export function TransitDemo() {
                     <strong>{question.title}</strong>
                     <span className="post-summary">{question.methodologyLabel}</span>
                     <span className="post-badges">
-                      <small>{formatStatus(question.status)}</small>
-                      <small>{question.poll ? `Poll ${formatStatus(question.poll.status)}` : "No poll"}</small>
-                      <small>{question.authorityLevel}</small>
+                      <small>{publicQuestionStatus(question.status)}</small>
+                      <small>{question.poll ? publicPollStatus(question.poll.status) : "No vote yet"}</small>
+                      <small>{publicAuthorityLabel(question.authorityLevel)}</small>
                       {(question.topicIds ?? []).slice(0, 2).map((topicId) => (
                         <small key={topicId}>#{topicId}</small>
                       ))}
                     </span>
                     <span className="post-metrics">
                       <small>by {question.proposer}</small>
+                      <small>{question.audience === "Members" ? "Members" : question.audience === "Followers" ? "Followers" : "Everyone"}</small>
                       <small>{question.answerSchema?.label ?? question.answerSchemaId}</small>
-                      <small>{question.challenges?.length ?? 0} challenges</small>
+                      <small>{question.challenges?.length ?? 0} flags</small>
                       <small>{question.poll?.result?.turnout ?? 0} turnout</small>
                       {question.id === selected?.id ? <small>{discussion.length} notes</small> : null}
                     </span>
@@ -1477,15 +1496,15 @@ export function TransitDemo() {
                 ))
               ) : (
                 <div className="empty-state">
-                  <strong>No posts in this view</strong>
+                  <strong>No questions in this view</strong>
                   <p>
                     {questions.length
                       ? "Try another feed filter."
                       : selectedCommunity
                       ? selectedCommunity.visibility === "Private" && !selectedCommunity.isMember
                         ? "Join this private community to view its questions."
-                        : "Propose the first question for this community."
-                      : "Join private communities or choose a public community to start a proposal."}
+                        : "Ask the first question for this community."
+                      : "Join private communities or choose a public community to ask a question."}
                   </p>
                 </div>
               )}
@@ -1495,30 +1514,30 @@ export function TransitDemo() {
 
         <aside className="panel detail">
           <div className="statusline">
-            <span>{selected ? `Question ${formatStatus(selected.status)}` : "No question"}</span>
+            <span>{selected ? publicQuestionStatus(selected.status) : "No question"}</span>
             <span className={isPollOpen ? "poll-open" : "poll-closed"}>{pollStatusLabel}</span>
-            <span>{selected?.authorityLevel ?? "Advisory"}</span>
+            <span>{publicAuthorityLabel(selected?.authorityLevel ?? "Advisory")}</span>
             <span>v{selected?.version ?? 1}</span>
           </div>
           <h2>{selected?.title ?? "Select a question"}</h2>
-          <p>{selected?.methodologyLabel ?? "Community-scoped civic response, self-selected sample"}</p>
+          <p>{selected?.methodologyLabel ?? "Community answer from people who chose to take part"}</p>
           {selected ? <p className="schema-line">{activeAnswerSchema.label}</p> : null}
 
           <section className="workflow-summary">
-            <p className="eyebrow">Current Stage</p>
+            <p className="eyebrow">Current step</p>
             <h3>{lifecycle.label}</h3>
             <p>{lifecycle.body}</p>
             <dl className="meta-grid">
               <div>
-                <dt>Authority</dt>
-                <dd>{selected?.authorityLevel ?? "Advisory"}</dd>
+                <dt>Signal</dt>
+                <dd>{publicAuthorityLabel(selected?.authorityLevel ?? "Advisory")}</dd>
               </div>
               <div>
-                <dt>Credential</dt>
+                <dt>Voting pass</dt>
                 <dd>{selected?.community?.credentialSchemaId ?? selectedCommunity?.credentialSchemaId ?? "credential-vancouver-resident"}</dd>
               </div>
               <div>
-                <dt>Challenges</dt>
+                <dt>Flags</dt>
                 <dd>{selected?.challenges?.length ?? 0} total</dd>
               </div>
             </dl>
@@ -1528,7 +1547,7 @@ export function TransitDemo() {
             <div className="section-heading">
               <div>
                 <h3>Thread</h3>
-                <p className="muted">{selected ? `${discussion.length} notes across context, sources, arguments, and moderation.` : "Select a post to open its thread."}</p>
+                <p className="muted">{selected ? `${discussion.length} comments and context from the community.` : "Select a question to open its thread."}</p>
               </div>
               <span className="badge-soft">{activeDiscussionPanel?.label ?? "Comments"}</span>
             </div>
@@ -1547,13 +1566,13 @@ export function TransitDemo() {
               </select>
               <textarea
                 aria-label="Discussion note"
-                placeholder="Add context, source notes, or a concern"
+                placeholder="Add context, a source, or a concern"
                 value={discussionDraft}
                 onChange={(event) => setDiscussionDraft(event.target.value)}
                 disabled={!selected || !activeUser || actionPending}
               />
               <button type="submit" disabled={!selected || !discussionDraft.trim() || actionPending}>
-                Post note
+                Post comment
               </button>
             </form>
             <div className="discussion-tabs" role="tablist" aria-label="Discussion views">
@@ -1589,14 +1608,14 @@ export function TransitDemo() {
 
           <details className="protocol-drawer" open>
             <summary>
-              <span>Protocol Controls</span>
-              <small>Registry, ballot, result, and adoption actions</small>
+              <span>Testing Lab Controls</span>
+              <small>Question, vote, result, and next-step actions</small>
             </summary>
           <div className="action-groups">
             <section className="action-group">
               <div className="group-heading">
-                <h3>Registry Review</h3>
-                <p>Challenge wording, resolve pending review, amend as proposer, then accept to open voting.</p>
+                <h3>Question check</h3>
+                <p>Flag wording, resolve open flags, clarify as asker, then open voting.</p>
               </div>
               <div className="actions">
                 <button
@@ -1604,27 +1623,27 @@ export function TransitDemo() {
                   disabled={!canChallengeQuestion || actionPending}
                   title={challengeDisabledReason || undefined}
                 >
-                  Open wording challenge
+                  Flag question
                 </button>
                 <button
                   onClick={() => void runAction(() => ruleChallenge("Rejected"))}
                   disabled={!canRuleChallenge || actionPending}
                   title={rulingDisabledReason || undefined}
                 >
-                  Reject challenge
+                  Clear flag
                 </button>
                 <button
                   onClick={() => void runAction(() => ruleChallenge("Sustained"))}
                   disabled={!canRuleChallenge || actionPending}
                   title={rulingDisabledReason || undefined}
                 >
-                  Sustain challenge
+                  Keep flag
                 </button>
                 <button onClick={() => void runAction(amendQuestion)} disabled={!canAmendQuestion || actionPending} title={amendDisabledReason || undefined}>
-                  Accept amendment
+                  Clarify question
                 </button>
                 <button onClick={() => void runAction(acceptQuestion)} disabled={!canAcceptQuestion || actionPending} title={acceptDisabledReason || undefined}>
-                  Accept and open poll
+                  Open voting
                 </button>
               </div>
               {registryHint ? <small className="action-hint">{registryHint}</small> : null}
@@ -1632,12 +1651,12 @@ export function TransitDemo() {
 
             <section className="action-group">
               <div className="group-heading">
-                <h3>Credential and Encrypted Ballot</h3>
-                <p>{credential ? `Credential ready: ${credential.credentialId}` : "Issue a demo resident credential before casting a private ballot."}</p>
+                <h3>Voting pass and private vote</h3>
+                <p>{credential ? `Voting pass ready: ${credential.credentialId}` : "Get a demo voting pass before casting a private vote."}</p>
               </div>
               <div className="actions ballot-actions">
                 <button onClick={() => void runAction(issueCredential)} disabled={!activeUser || actionPending} title={credentialDisabledReason || undefined}>
-                  Issue demo resident credential
+                  Get voting pass
                 </button>
                 {renderBallotControls()}
               </div>
@@ -1646,12 +1665,12 @@ export function TransitDemo() {
 
             <section className="action-group">
               <div className="group-heading">
-                <h3>Closeout and Artifacts</h3>
-                <p>Close the open poll, tally encrypted ballots, then inspect the public aggregate artifact.</p>
+                <h3>Results</h3>
+                <p>Close voting, count private votes, then inspect the public receipt.</p>
               </div>
               <div className="actions">
                 <button onClick={() => void runAction(closeAndTally)} disabled={!isPollOpen || actionPending} title={closeDisabledReason || undefined}>
-                  Close and tally
+                  Count votes
                 </button>
                 <button
                   onClick={() => void runAction(loadResult)}
@@ -1666,55 +1685,55 @@ export function TransitDemo() {
 
             <section className="action-group">
               <div className="group-heading">
-                <h3>Result Integrity</h3>
-                <p>Challenge aggregate artifacts, resolve review, then publish the final archive.</p>
+                <h3>Proof check</h3>
+                <p>Flag the public receipt, resolve the review, then save the final record.</p>
               </div>
               <div className="actions">
                 <button
                   onClick={() => void runAction(challengeResult)}
                   disabled={!selected?.poll?.result || Boolean(pendingResultChallenge) || actionPending}
-                  title={!selected?.poll?.result ? "Publish a result before challenging it." : undefined}
+                  title={!selected?.poll?.result ? "Publish a result before flagging it." : undefined}
                 >
-                  Challenge result
+                  Flag result
                 </button>
                 <button
                   onClick={() => void runAction(() => ruleResultChallenge("Rejected"))}
                   disabled={!pendingResultChallenge || !canCurateSelectedCommunity || actionPending}
                 >
-                  Reject result challenge
+                  Clear result flag
                 </button>
                 <button
                   onClick={() => void runAction(() => ruleResultChallenge("Sustained"))}
                   disabled={!pendingResultChallenge || !canCurateSelectedCommunity || actionPending}
                 >
-                  Sustain result challenge
+                  Keep result flag
                 </button>
                 <button onClick={() => void runAction(finalizeAndArchive)} disabled={!canFinalizeResult || actionPending}>
-                  Finalize and archive
+                  Save final result
                 </button>
                 <button onClick={() => void runAction(loadArchive)} disabled={selected?.status !== "Archived" || actionPending}>
-                  Load archive
+                  Load saved record
                 </button>
               </div>
-              {pendingResultChallenge ? <small className="action-hint">Result challenge pending: {pendingResultChallenge.reasonCode}</small> : null}
+              {pendingResultChallenge ? <small className="action-hint">Result flag open: {pendingResultChallenge.reasonCode}</small> : null}
             </section>
 
             {selectedCommunity ? (
               <section className="action-group">
                 <div className="group-heading">
-                  <h3>Adoption Policy</h3>
-                  <p>Record recognized or binding community authority separately from advisory defaults.</p>
+                  <h3>What happens next</h3>
+                  <p>Record whether this answer is only a community signal or should guide a real next step.</p>
                 </div>
                 <div className="ballot-control">
                   <select
-                    aria-label="Adoption authority"
+                    aria-label="Next-step rule"
                     value={adoptionDraft.authorityLevel}
                     onChange={(event) =>
                       setAdoptionDraft((current) => ({ ...current, authorityLevel: event.target.value as "Recognized" | "Binding" }))
                     }
                   >
-                    <option value="Recognized">Recognized</option>
-                    <option value="Binding">Binding</option>
+                    <option value="Recognized">Recognized next step</option>
+                    <option value="Binding">Binding decision</option>
                   </select>
                   {adoptionDraft.authorityLevel === "Binding" ? (
                     <input
@@ -1728,14 +1747,14 @@ export function TransitDemo() {
                     onClick={() => void runAction(proposeAdoptionPolicy)}
                     disabled={!canCurateSelectedCommunity || actionPending || (adoptionDraft.authorityLevel === "Binding" && !adoptionDraft.legalHandoff)}
                   >
-                    Propose policy
+                    Suggest rule
                   </button>
                 </div>
                 <div className="post-list compact-list">
                   {adoptionPolicies.map((policy) => (
                     <div className="post" key={policy.id}>
                       <strong>
-                        {policy.authorityLevel} · {policy.status}
+                        {publicAuthorityLabel(policy.authorityLevel)} · {policy.status}
                       </strong>
                       <small>{policy.credentialSchemaIds.join(", ")}</small>
                       <div className="actions">
@@ -1743,13 +1762,13 @@ export function TransitDemo() {
                           onClick={() => void runAction(() => activateAdoptionPolicy(policy.id))}
                           disabled={policy.status !== "Proposed" || !canCurateSelectedCommunity || actionPending}
                         >
-                          Activate
+                          Turn on
                         </button>
                         <button
                           onClick={() => void runAction(() => suspendAdoptionPolicy(policy.id))}
                           disabled={policy.status !== "Active" || !canCurateSelectedCommunity || actionPending}
                         >
-                          Suspend
+                          Pause
                         </button>
                       </div>
                     </div>
@@ -1766,7 +1785,7 @@ export function TransitDemo() {
 
           <div className="detail-stack">
             <article>
-              <h3>Challenge History</h3>
+              <h3>Flag history</h3>
               {selected?.challenges?.length ? (
                 selected.challenges.map((challenge) => (
                   <p key={challenge.id}>
@@ -1774,11 +1793,11 @@ export function TransitDemo() {
                   </p>
                 ))
               ) : (
-                <p>No challenges yet.</p>
+                <p>No flags yet.</p>
               )}
             </article>
             <article>
-              <h3>Authority and Adoption</h3>
+              <h3>What happens next</h3>
               <p>{authorityCopy(selected?.authorityLevel ?? selectedCommunity?.defaultAuthorityLevel ?? "Advisory")}</p>
             </article>
             <article>
@@ -1788,14 +1807,14 @@ export function TransitDemo() {
             </article>
             <article>
               <h3>Privacy Note</h3>
-              <p>Ballots are encrypted before storage. The API returns aggregate artifacts only, not individual choices.</p>
+              <p>Votes are private before storage. The API returns aggregate receipts only, not individual choices.</p>
             </article>
             <article>
-              <h3>Result Artifact</h3>
+              <h3>Public receipt</h3>
               <pre>{result ? JSON.stringify(result, null, 2) : "No published result yet."}</pre>
             </article>
             <article>
-              <h3>Final Archive</h3>
+              <h3>Saved public record</h3>
               <pre>{archive ? JSON.stringify(archive, null, 2) : "No archive yet."}</pre>
             </article>
           </div>
@@ -1804,7 +1823,7 @@ export function TransitDemo() {
 
       <section className="panel account-panel">
         <form className="inline-form" onSubmit={(event) => void runAction(() => createUser(event))}>
-          <h2>Create Account</h2>
+          <h2>Create test account</h2>
           <input
             aria-label="Username"
             placeholder="username"
@@ -1819,9 +1838,9 @@ export function TransitDemo() {
             onChange={(event) => setNewUser((current) => ({ ...current, displayName: event.target.value }))}
             required
           />
-          <button type="submit">Create local account</button>
+          <button type="submit">Create test account</button>
         </form>
       </section>
-    </main>
+    </section>
   );
 }
