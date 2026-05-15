@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { FlaskConical, Rss, UserPlus } from "lucide-react";
 import { AppFrame } from "../components/AppFrame";
+import { IconLabel } from "../components/IconLabel";
 import { siteCopy } from "../components/copy";
 import logoMark from "../src/logo2026_nobackground.png";
 
@@ -17,10 +19,10 @@ export default function Page() {
           <p>Shape the questions that shape our world.</p>
           <div className="button-row">
             <Link className="button-link" href="/feed">
-              {siteCopy.actions.seeQuestions}
+              <IconLabel icon={Rss}>{siteCopy.actions.seeQuestions}</IconLabel>
             </Link>
             <Link className="button-link secondary" href="/signup">
-              {siteCopy.actions.joinCrowd}
+              <IconLabel icon={UserPlus}>{siteCopy.actions.joinCrowd}</IconLabel>
             </Link>
           </div>
         </div>
@@ -28,19 +30,25 @@ export default function Page() {
       <section className="home-grid">
         <Link className="home-tile" href="/feed">
           <span>01</span>
-          <strong>Feed</strong>
+          <strong>
+            <IconLabel icon={Rss}>Feed</IconLabel>
+          </strong>
           <small>
             See what communities are asking and vote when you are eligible
           </small>
         </Link>
-        <Link className="home-tile" href="/account">
+        <Link className="home-tile" href="/signup">
           <span>02</span>
-          <strong>My Account</strong>
-          <small>Manage your profile and communities</small>
+          <strong>
+            <IconLabel icon={UserPlus}>Create account</IconLabel>
+          </strong>
+          <small>Get a passkey or wallet account before joining in</small>
         </Link>
         <Link className="home-tile" href="/testing">
           <span>03</span>
-          <strong>Testing Lab</strong>
+          <strong>
+            <IconLabel icon={FlaskConical}>Testing Lab</IconLabel>
+          </strong>
           <small>Try the local vote and result flow</small>
         </Link>
       </section>

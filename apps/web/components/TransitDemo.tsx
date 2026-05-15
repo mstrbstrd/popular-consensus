@@ -9,8 +9,24 @@ import {
   type DiscussionPostKind,
   type DiscussionViewKey
 } from "@pc/shared";
+import {
+  Archive,
+  BadgeCheck,
+  BarChart3,
+  CheckCircle2,
+  FileText,
+  Flag,
+  Heart,
+  MessageCircle,
+  Send,
+  ShieldCheck,
+  UserPlus,
+  UsersRound,
+  Vote
+} from "lucide-react";
 import Image from "next/image";
 import logoMark from "../src/logo2026_nobackground.png";
+import { IconLabel } from "./IconLabel";
 import {
   publicAuthorityLabel,
   publicDiscussionLabel,
@@ -128,7 +144,8 @@ type Question = {
 
 type FeedMode = "home" | "open" | "review" | "results";
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:4000";
+const communityPageSize = 100;
 
 const emptyQuestion = {
   title: "",
@@ -264,6 +281,23 @@ function buildDraftResponse(answerSchema: AnswerSchema, draft: typeof emptyRespo
   return { type: "single_choice", choice: "abstain" };
 }
 
+async function fetchCommunities(userId: string): Promise<Community[]> {
+  const communities: Community[] = [];
+  let cursor: string | null = "0";
+
+  while (cursor !== null) {
+    const params: URLSearchParams = new URLSearchParams({ limit: String(communityPageSize), cursor });
+    if (userId) params.set("userId", userId);
+    const response: Response = await fetch(`${apiBase}/communities?${params.toString()}`, { cache: "no-store" });
+    const data: { communities?: Community[]; page?: { nextCursor?: string | null }; error?: string } = await response.json();
+    if (!response.ok) throw new Error(data.error ?? "Communities failed to load");
+    communities.push(...(data.communities ?? []));
+    cursor = data.page?.nextCursor ?? null;
+  }
+
+  return communities;
+}
+
 export function TransitDemo() {
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [activeUserId, setActiveUserId] = useState("");
@@ -304,16 +338,24 @@ export function TransitDemo() {
   );
   const socialCommunities = useMemo(
     () =>
-      communities.map((community) => {
-        const discovered = discoveryCommunityById.get(community.id);
-        return {
-          ...community,
-          followerCount: discovered?.followerCount ?? 0,
-          followedByActiveUser: discovered?.followedByActiveUser ?? false
-        };
-      }),
-    [communities, discoveryCommunityById]
+      communities
+        .map((community) => {
+          const discovered = discoveryCommunityById.get(community.id);
+          return {
+            ...community,
+            followerCount: discovered?.followerCount ?? 0,
+            followedByActiveUser: discovered?.followedByActiveUser ?? false
+          };
+        })
+        .sort((left, right) => {
+          if (left.id === selectedCommunityId) return -1;
+          if (right.id === selectedCommunityId) return 1;
+          if (left.isMember !== right.isMember) return left.isMember ? -1 : 1;
+          return 0;
+        }),
+    [communities, discoveryCommunityById, selectedCommunityId]
   );
+  const visibleSocialCommunities = useMemo(() => socialCommunities.slice(0, 16), [socialCommunities]);
   const selectedDiscoveryCommunity = selectedCommunity ? discoveryCommunityById.get(selectedCommunity.id) ?? null : null;
   const trendingTopics = useMemo(
     () =>
@@ -566,12 +608,7 @@ export function TransitDemo() {
       const effectiveUserId = nextUserId || nextUsers[0]?.id || "";
       if (!activeUserId && effectiveUserId) setActiveUserId(effectiveUserId);
 
-      const communityParams = new URLSearchParams();
-      if (effectiveUserId) communityParams.set("userId", effectiveUserId);
-      const communitiesResponse = await fetch(`${apiBase}/communities?${communityParams.toString()}`, { cache: "no-store" });
-      const communitiesData = await communitiesResponse.json();
-      if (!communitiesResponse.ok) throw new Error(communitiesData.error ?? "Communities failed to load");
-      const nextCommunities = communitiesData.communities ?? [];
+      const nextCommunities = await fetchCommunities(effectiveUserId);
       setCommunities(nextCommunities);
       await refreshDiscovery(effectiveUserId).catch(() => setDiscovery(null));
 
@@ -1215,7 +1252,7 @@ export function TransitDemo() {
                   <small>Everything you can see</small>
                 </button>
               </div>
-              {socialCommunities.map((community) => {
+              {visibleSocialCommunities.map((community) => {
                 const followDisabled =
                   !activeUser ||
                   actionPending ||
@@ -1241,11 +1278,31 @@ export function TransitDemo() {
                           : undefined
                       }
                     >
-                      {community.followedByActiveUser ? "Following" : "Follow"}
+                      <IconLabel icon={Heart}>{community.followedByActiveUser ? "Following" : "Follow"}</IconLabel>
                     </button>
                   </div>
                 );
               })}
+              {socialCommunities.length > visibleSocialCommunities.length ? (
+                <label className="field-label compact-field community-jump">
+                  Jump to community
+                  <select
+                    aria-label="Jump to community"
+                    value={selectedCommunity?.id ?? ""}
+                    onChange={(event) => {
+                      const nextCommunity = socialCommunities.find((community) => community.id === event.target.value);
+                      if (nextCommunity) void runAction(() => selectCommunity(nextCommunity));
+                    }}
+                  >
+                    <option value="">Choose from the full registry</option>
+                    {socialCommunities.map((community) => (
+                      <option key={community.id} value={community.id}>
+                        p/{community.slug}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
             </div>
           </section>
 
@@ -1253,7 +1310,7 @@ export function TransitDemo() {
             <div className="sidebar-actions">
               {!selectedCommunity.isMember ? (
                 <button className="wide-action" onClick={() => void runAction(() => joinCommunity(selectedCommunity))} disabled={actionPending}>
-                  Join {selectedCommunity.visibility.toLowerCase()} community
+                  <IconLabel icon={UsersRound}>Join {selectedCommunity.visibility.toLowerCase()} community</IconLabel>
                 </button>
               ) : null}
               <button
@@ -1266,7 +1323,7 @@ export function TransitDemo() {
                   (selectedCommunity.visibility === "Private" && !selectedCommunity.isMember)
                 }
               >
-                {selectedDiscoveryCommunity?.followedByActiveUser ? "Following community" : "Follow community"}
+                <IconLabel icon={Heart}>{selectedDiscoveryCommunity?.followedByActiveUser ? "Following community" : "Follow community"}</IconLabel>
               </button>
             </div>
           ) : null}
@@ -1323,7 +1380,7 @@ export function TransitDemo() {
               <option value="Private">Private</option>
             </select>
             <button type="submit" disabled={!activeUser || actionPending} title={!activeUser ? "Choose or create an account first." : undefined}>
-              Start community
+              <IconLabel icon={UsersRound}>Start community</IconLabel>
             </button>
           </form>
         </aside>
@@ -1414,7 +1471,7 @@ export function TransitDemo() {
               required
             />
             <button type="submit" disabled={!canProposeQuestion || actionPending} title={proposeDisabledReason || undefined}>
-              {selectedCommunity ? "Ask question" : "Choose a community to ask"}
+              <IconLabel icon={Send}>{selectedCommunity ? "Ask question" : "Choose a community to ask"}</IconLabel>
             </button>
             {!canProposeQuestion ? <small className="form-hint">{proposeDisabledReason}</small> : null}
           </form>
@@ -1572,7 +1629,7 @@ export function TransitDemo() {
                 disabled={!selected || !activeUser || actionPending}
               />
               <button type="submit" disabled={!selected || !discussionDraft.trim() || actionPending}>
-                Post comment
+                <IconLabel icon={MessageCircle}>Post comment</IconLabel>
               </button>
             </form>
             <div className="discussion-tabs" role="tablist" aria-label="Discussion views">
@@ -1623,27 +1680,27 @@ export function TransitDemo() {
                   disabled={!canChallengeQuestion || actionPending}
                   title={challengeDisabledReason || undefined}
                 >
-                  Flag question
+                  <IconLabel icon={Flag}>Flag question</IconLabel>
                 </button>
                 <button
                   onClick={() => void runAction(() => ruleChallenge("Rejected"))}
                   disabled={!canRuleChallenge || actionPending}
                   title={rulingDisabledReason || undefined}
                 >
-                  Clear flag
+                  <IconLabel icon={CheckCircle2}>Clear flag</IconLabel>
                 </button>
                 <button
                   onClick={() => void runAction(() => ruleChallenge("Sustained"))}
                   disabled={!canRuleChallenge || actionPending}
                   title={rulingDisabledReason || undefined}
                 >
-                  Keep flag
+                  <IconLabel icon={ShieldCheck}>Keep flag</IconLabel>
                 </button>
                 <button onClick={() => void runAction(amendQuestion)} disabled={!canAmendQuestion || actionPending} title={amendDisabledReason || undefined}>
-                  Clarify question
+                  <IconLabel icon={FileText}>Clarify question</IconLabel>
                 </button>
                 <button onClick={() => void runAction(acceptQuestion)} disabled={!canAcceptQuestion || actionPending} title={acceptDisabledReason || undefined}>
-                  Open voting
+                  <IconLabel icon={Vote}>Open voting</IconLabel>
                 </button>
               </div>
               {registryHint ? <small className="action-hint">{registryHint}</small> : null}
@@ -1656,7 +1713,7 @@ export function TransitDemo() {
               </div>
               <div className="actions ballot-actions">
                 <button onClick={() => void runAction(issueCredential)} disabled={!activeUser || actionPending} title={credentialDisabledReason || undefined}>
-                  Get voting pass
+                  <IconLabel icon={BadgeCheck}>Get voting pass</IconLabel>
                 </button>
                 {renderBallotControls()}
               </div>
@@ -1670,14 +1727,14 @@ export function TransitDemo() {
               </div>
               <div className="actions">
                 <button onClick={() => void runAction(closeAndTally)} disabled={!isPollOpen || actionPending} title={closeDisabledReason || undefined}>
-                  Count votes
+                  <IconLabel icon={BarChart3}>Count votes</IconLabel>
                 </button>
                 <button
                   onClick={() => void runAction(loadResult)}
                   disabled={!selected?.poll || !canLoadResult || actionPending}
                   title={resultDisabledReason || undefined}
                 >
-                  Load result
+                  <IconLabel icon={FileText}>Load result</IconLabel>
                 </button>
               </div>
               {resultDisabledReason ? <small className="action-hint">{resultDisabledReason}</small> : null}
@@ -1694,25 +1751,25 @@ export function TransitDemo() {
                   disabled={!selected?.poll?.result || Boolean(pendingResultChallenge) || actionPending}
                   title={!selected?.poll?.result ? "Publish a result before flagging it." : undefined}
                 >
-                  Flag result
+                  <IconLabel icon={Flag}>Flag result</IconLabel>
                 </button>
                 <button
                   onClick={() => void runAction(() => ruleResultChallenge("Rejected"))}
                   disabled={!pendingResultChallenge || !canCurateSelectedCommunity || actionPending}
                 >
-                  Clear result flag
+                  <IconLabel icon={CheckCircle2}>Clear result flag</IconLabel>
                 </button>
                 <button
                   onClick={() => void runAction(() => ruleResultChallenge("Sustained"))}
                   disabled={!pendingResultChallenge || !canCurateSelectedCommunity || actionPending}
                 >
-                  Keep result flag
+                  <IconLabel icon={ShieldCheck}>Keep result flag</IconLabel>
                 </button>
                 <button onClick={() => void runAction(finalizeAndArchive)} disabled={!canFinalizeResult || actionPending}>
-                  Save final result
+                  <IconLabel icon={Archive}>Save final result</IconLabel>
                 </button>
                 <button onClick={() => void runAction(loadArchive)} disabled={selected?.status !== "Archived" || actionPending}>
-                  Load saved record
+                  <IconLabel icon={FileText}>Load saved record</IconLabel>
                 </button>
               </div>
               {pendingResultChallenge ? <small className="action-hint">Result flag open: {pendingResultChallenge.reasonCode}</small> : null}
@@ -1747,7 +1804,7 @@ export function TransitDemo() {
                     onClick={() => void runAction(proposeAdoptionPolicy)}
                     disabled={!canCurateSelectedCommunity || actionPending || (adoptionDraft.authorityLevel === "Binding" && !adoptionDraft.legalHandoff)}
                   >
-                    Suggest rule
+                    <IconLabel icon={FileText}>Suggest rule</IconLabel>
                   </button>
                 </div>
                 <div className="post-list compact-list">
@@ -1762,13 +1819,13 @@ export function TransitDemo() {
                           onClick={() => void runAction(() => activateAdoptionPolicy(policy.id))}
                           disabled={policy.status !== "Proposed" || !canCurateSelectedCommunity || actionPending}
                         >
-                          Turn on
+                          <IconLabel icon={Vote}>Turn on</IconLabel>
                         </button>
                         <button
                           onClick={() => void runAction(() => suspendAdoptionPolicy(policy.id))}
                           disabled={policy.status !== "Active" || !canCurateSelectedCommunity || actionPending}
                         >
-                          Pause
+                          <IconLabel icon={ShieldCheck}>Pause</IconLabel>
                         </button>
                       </div>
                     </div>
@@ -1838,7 +1895,9 @@ export function TransitDemo() {
             onChange={(event) => setNewUser((current) => ({ ...current, displayName: event.target.value }))}
             required
           />
-          <button type="submit">Create test account</button>
+          <button type="submit">
+            <IconLabel icon={UserPlus}>Create test account</IconLabel>
+          </button>
         </form>
       </section>
     </section>

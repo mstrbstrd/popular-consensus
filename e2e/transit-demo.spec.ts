@@ -220,18 +220,37 @@ test("routes the social client pages around the testing hub", async ({ page, req
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Seek the Wisdom of the Crowd." })).toBeVisible();
+  await expect(page.locator(".site-nav").getByRole("link", { name: "My Account" })).toHaveCount(0);
   await page.getByRole("link", { name: "Open feed" }).click();
   await expect(page).toHaveURL(/\/feed$/);
-  await expect(page.getByRole("heading", { name: "Feed" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Feed", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Ask a question" }).click();
+  await expect(page.getByRole("heading", { name: "Log in to ask a question" })).toBeVisible();
+  await page.getByRole("button", { name: "Close compose" }).click();
+  await page.getByRole("link", { name: /Should Vancouver pilot car-free Sundays/ }).click();
+  await expect(page).toHaveURL(/\/q\/question-/);
+  await expect(page.getByRole("heading", { name: /Should Vancouver pilot car-free Sundays/ })).toBeVisible();
+  await expect(page.locator("details").filter({ hasText: "Actions" }).locator("summary")).toBeVisible();
+  await expect(page.locator("details").filter({ hasText: "Proof everyone can check" }).locator("summary")).toBeVisible();
+  await expect(page.locator("details").filter({ hasText: "Data Rewards" }).locator("summary")).toBeVisible();
+  await expect(page.locator("details").filter({ hasText: "What happens next" }).locator("summary")).toBeVisible();
+  await expect(page.locator(".vote-panel").getByRole("link", { name: "Log in to vote" })).toBeVisible();
+  await page.locator("details").filter({ hasText: "Actions" }).locator("summary").click();
+  await expect(page.locator(".civic-actions-panel").getByRole("link", { name: "Log in to act" })).toBeVisible();
+  await page.locator("details").filter({ hasText: "Data Rewards" }).locator("summary").click();
+  await expect(page.getByText("Log in for Data Rewards")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Suggest sharing rules" })).toHaveCount(0);
+  await page.locator("details").filter({ hasText: "What happens next" }).locator("summary").click();
+  await expect(page.getByText("Log in for next-step rules")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Suggest next-step rule" })).toHaveCount(0);
+
+  await page.goto("/u/demo-proposer");
+  await expect(page).toHaveURL(/\/u\/demo-proposer$/);
+  await expect(page.getByRole("heading", { name: "Demo Proposer", exact: true })).toBeVisible();
+  await expect(page.getByText("@demo_proposer")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Demo Proposer's questions" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Should Vancouver pilot car-free Sundays/ })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Proof everyone can check" })).toBeVisible();
-  await expect(page.getByText("Actions")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Get voting pass" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Data Rewards" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Suggest sharing rules" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Publish report" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "What happens next" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Suggest next-step rule" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Log in to follow" })).toBeVisible();
 
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
@@ -247,7 +266,8 @@ test("routes the social client pages around the testing hub", async ({ page, req
 
   await page.goto("/account");
   await expect(page.getByRole("heading", { name: "My Account" })).toBeVisible();
-  await expect(page.locator(".account-session-panel").getByRole("link", { name: "Log in" })).toBeVisible();
+  await expect(page.getByText("Log in to view My Account")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Start a community" })).toHaveCount(0);
 
   await page.goto("/testing");
   await expect(page.locator(".detail").getByText("Ready for check", { exact: true })).toBeVisible();

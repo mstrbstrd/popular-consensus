@@ -5,6 +5,12 @@ export const CommunityVisibilitySchema = z.enum(["Public", "Private"]);
 export const CommunityKindSchema = z.enum(["Group", "Profile"]);
 export const QuestionAudienceSchema = z.enum(["Public", "Followers", "Members"]);
 export const FeedModeSchema = z.enum(["global", "for-you", "following", "profile", "community"]);
+export const CommunityRegistryStatusSchema = z.enum(["Active", "Pending", "Rejected", "Suspended"]);
+export const MembershipSourceStatusSchema = z.enum(["Active", "Inactive"]);
+export const MembershipSourceTypeSchema = z.enum(["DirectJoin", "ChildCommunity", "Seed", "ProposalCreator"]);
+export const CommunityChildProposalStatusSchema = z.enum(["Pending", "Approved", "ApprovedByMembers", "Rejected"]);
+export const CommunityChildProposalVoteSchema = z.enum(["Support", "Oppose"]);
+export const PollResultModeSchema = z.enum(["PeopleVote", "CommunitiesSignal", "ShowBoth"]);
 export const QuestionStatusSchema = z.enum([
   "Drafted",
   "Submitted",
@@ -782,6 +788,11 @@ export const EncryptedBallotSchema = z.object({
   tallyPublicKeyId: z.string(),
   nullifier: z.string(),
   proofHash: z.string(),
+  proofSystem: z.string().default("DemoCredentialProof"),
+  eligibilityGroupId: z.string().nullable().optional(),
+  eligibilityGroupRoot: z.string().nullable().optional(),
+  representedCommunityId: z.string().nullable().optional(),
+  representedCommunityPath: z.string().nullable().optional(),
   submittedAt: z.number().int()
 });
 
@@ -867,6 +878,8 @@ export const TallyResultSchema = z.object({
   questionVersionHash: z.string(),
   resultArtifactHash: z.string(),
   aggregateCountsHash: z.string(),
+  individualResultHash: z.string().nullable().optional(),
+  communityBlockResultHash: z.string().nullable().optional(),
   tallyProofHash: z.string(),
   tallyPublicationProofHash: z.string().nullable().optional(),
   turnout: z.number().int().nonnegative(),
@@ -957,6 +970,10 @@ export const CommunitySchema = z.object({
   name: z.string(),
   description: z.string(),
   kind: CommunityKindSchema.default("Group"),
+  parentId: z.string().nullable().optional(),
+  path: z.string().optional(),
+  depth: z.number().int().nonnegative().optional(),
+  registryStatus: CommunityRegistryStatusSchema.default("Active").optional(),
   profileUserId: z.string().nullable().optional(),
   visibility: CommunityVisibilitySchema,
   credentialSchemaId: z.string(),
@@ -972,6 +989,58 @@ export const CommunityMemberSchema = z.object({
   role: z.enum(["Owner", "Moderator", "Member"]),
   status: z.enum(["Active", "Pending", "Removed"]),
   createdAt: z.number().int()
+});
+
+export const CommunityMembershipSourceSchema = z.object({
+  id: z.string(),
+  communityId: z.string(),
+  userId: z.string(),
+  sourceType: MembershipSourceTypeSchema.or(z.string()),
+  sourceKey: z.string(),
+  sourceCommunityId: z.string().nullable().optional(),
+  status: MembershipSourceStatusSchema.or(z.string()),
+  createdAt: z.union([z.number().int(), z.string().datetime(), z.date()]),
+  updatedAt: z.union([z.number().int(), z.string().datetime(), z.date()]).optional()
+});
+
+export const CommunityRegistryPolicySchema = z.object({
+  id: z.string(),
+  communityId: z.string(),
+  approvalThresholdPercent: z.number().int().min(1).max(100),
+  quorumPercent: z.number().int().min(0).max(100),
+  reviewWindowHours: z.number().int().positive(),
+  status: z.string(),
+  createdBy: z.string(),
+  createdAt: z.union([z.number().int(), z.string().datetime(), z.date()]),
+  updatedAt: z.union([z.number().int(), z.string().datetime(), z.date()]).optional()
+});
+
+export const CommunityChildProposalRecordSchema = z.object({
+  id: z.string(),
+  parentId: z.string(),
+  proposedCommunityId: z.string(),
+  proposerId: z.string(),
+  title: z.string(),
+  description: z.string(),
+  status: CommunityChildProposalStatusSchema.or(z.string()),
+  proposalHash: z.string(),
+  thresholdPercent: z.number().int().min(1).max(100),
+  quorumPercent: z.number().int().min(0).max(100),
+  approvedBy: z.string().nullable().optional(),
+  rejectedBy: z.string().nullable().optional(),
+  resolutionHash: z.string().nullable().optional(),
+  createdAt: z.union([z.number().int(), z.string().datetime(), z.date()]),
+  resolvedAt: z.union([z.number().int(), z.string().datetime(), z.date()]).nullable().optional(),
+  updatedAt: z.union([z.number().int(), z.string().datetime(), z.date()]).optional()
+});
+
+export const CommunityChildProposalVoteRecordSchema = z.object({
+  id: z.string(),
+  proposalId: z.string(),
+  voterId: z.string(),
+  vote: CommunityChildProposalVoteSchema.or(z.string()),
+  voteHash: z.string(),
+  createdAt: z.union([z.number().int(), z.string().datetime(), z.date()])
 });
 
 export const CommunityFollowSchema = z.object({
@@ -1953,6 +2022,7 @@ export const PublicApiV0QuestionResponseSchema = z
     status: QuestionStatusSchema,
     communityId: z.string().nullable(),
     authorityLevel: AuthorityLevelSchema,
+    resultMode: PollResultModeSchema.optional(),
     adoptionPolicyId: z.string().nullable().optional(),
     credentialSchemaId: z.string(),
     answerSchemaId: z.string(),
@@ -2017,6 +2087,8 @@ export const PublicApiV0CivicRecordResultSchema = z
     pollId: z.string(),
     resultArtifactHash: z.string(),
     aggregateCountsHash: z.string(),
+    individualResultHash: z.string().nullable().optional(),
+    communityBlockResultHash: z.string().nullable().optional(),
     tallyProofHash: z.string(),
     tallyPublicationProofHash: z.string().nullable().optional(),
     turnout: z.number().int().nonnegative(),
@@ -2496,6 +2568,10 @@ export const PublicApiV0DiscoveryCommunitySchema = z
     slug: z.string(),
     name: z.string(),
     kind: CommunityKindSchema.default("Group"),
+    parentId: z.string().nullable().optional(),
+    path: z.string().optional(),
+    depth: z.number().int().nonnegative().optional(),
+    registryStatus: CommunityRegistryStatusSchema.default("Active").optional(),
     profileUserId: z.string().nullable().optional(),
     visibility: CommunityVisibilitySchema,
     memberCount: z.number().int().nonnegative(),
@@ -2833,8 +2909,26 @@ export const CreateCommunityRequestSchema = z.object({
   description: z.string().min(1).max(280),
   visibility: CommunityVisibilitySchema.default("Public"),
   kind: CommunityKindSchema.default("Group"),
+  parentId: z.string().min(1).optional(),
   creatorId: z.string().min(1),
   credentialSchemaId: z.string().default("credential-vancouver-resident")
+});
+
+export const SetCommunityRegistryPolicyRequestSchema = z.object({
+  steward: z.string().min(1),
+  approvalThresholdPercent: z.number().int().min(1).max(100).default(66),
+  quorumPercent: z.number().int().min(0).max(100).default(10),
+  reviewWindowHours: z.number().int().positive().default(168)
+});
+
+export const ResolveCommunityChildProposalRequestSchema = z.object({
+  curator: z.string().min(1),
+  reason: z.string().min(1).max(1000).default("Resolved under the parent community registry policy.")
+});
+
+export const VoteCommunityChildProposalRequestSchema = z.object({
+  voterId: z.string().min(1),
+  vote: CommunityChildProposalVoteSchema.default("Support")
 });
 
 export const JoinCommunityRequestSchema = z.object({
@@ -2987,6 +3081,7 @@ export const CreateQuestionRequestSchema = z.object({
   proposer: z.string().default("demo-proposer"),
   communityId: z.string().default("community-vancouver"),
   audience: QuestionAudienceSchema.default("Public"),
+  resultMode: PollResultModeSchema.default("ShowBoth"),
   answerSchemaId: z.string().default("answer-binary-support-oppose"),
   topicIds: z.array(z.string()).default(["transit", "public-space"]),
   geoScope: z.string().default("Vancouver"),
@@ -3137,10 +3232,59 @@ export const CredentialProofRequestSchema = z.object({
   membershipProof: CredentialMembershipProofSchema.optional()
 });
 
-export const VoteRequestSchema = CredentialProofRequestSchema.extend({
+export const EncryptedBallotPayloadSchema = z.object({
+  version: z.literal("pc-encrypted-ballot-v1"),
+  ephemeralPublicKeyPem: z.string().min(1),
+  iv: z.string().min(1),
+  authTag: z.string().min(1),
+  ciphertext: z.string().min(1)
+});
+
+export const AnonymousBallotProofSchema = z.object({
+  protocol: z.literal("popular-consensus"),
+  schemaVersion: z.literal("anonymous-ballot-proof-v1"),
+  proofSystem: z.literal("SemaphoreV4"),
+  groupId: z.string().min(1),
+  groupRoot: z.string().min(1),
+  signal: z.string().min(1),
+  scope: z.string().min(1),
+  nullifier: z.string().min(1),
+  proof: z.record(z.string(), z.unknown())
+});
+
+export const DemoVoteRequestSchema = CredentialProofRequestSchema.extend({
+  proofMode: z.literal("DemoCredential").optional(),
   choice: z.string().optional(),
-  response: BallotResponseSchema.optional()
+  response: BallotResponseSchema.optional(),
+  representedCommunityId: z.string().min(1).optional()
 }).refine((value) => value.choice || value.response, "A ballot response is required");
+
+export const AnonymousVoteRequestSchema = z.object({
+  proofMode: z.literal("AnonymousZk"),
+  encryptedPayload: EncryptedBallotPayloadSchema,
+  ballotCommitment: z.string().min(1),
+  anonymousProof: AnonymousBallotProofSchema,
+  rewardReceiptHash: z.string().min(1),
+  representedCommunityId: z.string().min(1).optional()
+});
+
+export const VoteRequestSchema = z.union([DemoVoteRequestSchema, AnonymousVoteRequestSchema]);
+
+export const RegisterAnonymousEligibilityGroupRequestSchema = z.object({
+  groupId: z.string().min(1),
+  credentialSchemaId: z.string().min(1),
+  issuerId: z.string().min(1),
+  communityId: z.string().min(1).nullable().optional(),
+  groupRoot: z.string().min(1),
+  commitmentCount: z.number().int().nonnegative(),
+  stewardId: z.string().min(1)
+});
+
+export const RedeemParticipationReceiptRequestSchema = z.object({
+  pollId: z.string().min(1),
+  receiptSecret: z.string().min(32),
+  destinationAccount: z.string().min(1)
+});
 
 export const GovernanceParameterInputSchema = z.object({
   proposalBondPc: z.number().int().nonnegative().default(100),
@@ -3295,6 +3439,9 @@ export type CredentialRevocationRoot = z.infer<typeof CredentialRevocationRootSc
 export type CommunityCredentialTrustPolicy = z.infer<typeof CommunityCredentialTrustPolicySchema>;
 export type WalletCredential = z.infer<typeof WalletCredentialSchema>;
 export type CredentialMembershipProof = z.infer<typeof CredentialMembershipProofSchema>;
+export type AnonymousBallotProof = z.infer<typeof AnonymousBallotProofSchema>;
+export type AnonymousVoteRequest = z.infer<typeof AnonymousVoteRequestSchema>;
+export type DemoVoteRequest = z.infer<typeof DemoVoteRequestSchema>;
 export type ProposalBond = z.infer<typeof ProposalBondSchema>;
 export type TreasuryLedgerEntry = z.infer<typeof TreasuryLedgerEntrySchema>;
 export type TreasuryLedgerTotals = z.infer<typeof TreasuryLedgerTotalsSchema>;
@@ -3326,6 +3473,10 @@ export type ReputationEvent = z.infer<typeof ReputationEventSchema>;
 export type UserAccount = z.infer<typeof UserAccountSchema>;
 export type Community = z.infer<typeof CommunitySchema>;
 export type CommunityMember = z.infer<typeof CommunityMemberSchema>;
+export type CommunityMembershipSource = z.infer<typeof CommunityMembershipSourceSchema>;
+export type CommunityRegistryPolicy = z.infer<typeof CommunityRegistryPolicySchema>;
+export type CommunityChildProposalRecord = z.infer<typeof CommunityChildProposalRecordSchema>;
+export type CommunityChildProposalVoteRecord = z.infer<typeof CommunityChildProposalVoteRecordSchema>;
 export type CommunityFollow = z.infer<typeof CommunityFollowSchema>;
 export type TopicFollow = z.infer<typeof TopicFollowSchema>;
 export type CommunityFork = z.infer<typeof CommunityForkSchema>;
@@ -3343,6 +3494,9 @@ export type DiscussionModerationAppeal = z.infer<typeof DiscussionModerationAppe
 export type ArchiveRecord = z.infer<typeof ArchiveRecordSchema>;
 export type FollowCommunityRequest = z.infer<typeof FollowCommunityRequestSchema>;
 export type FollowTopicRequest = z.infer<typeof FollowTopicRequestSchema>;
+export type SetCommunityRegistryPolicyRequest = z.infer<typeof SetCommunityRegistryPolicyRequestSchema>;
+export type ResolveCommunityChildProposalRequest = z.infer<typeof ResolveCommunityChildProposalRequestSchema>;
+export type VoteCommunityChildProposalRequest = z.infer<typeof VoteCommunityChildProposalRequestSchema>;
 export type ReputationReplayRequest = z.infer<typeof ReputationReplayRequestSchema>;
 export type CreateCommunityForkRequest = z.infer<typeof CreateCommunityForkRequestSchema>;
 export type CommunityImportReplayRequest = z.infer<typeof CommunityImportReplayRequestSchema>;

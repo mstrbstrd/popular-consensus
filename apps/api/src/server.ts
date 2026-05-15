@@ -60,9 +60,12 @@ import {
   ProposeDataUnionPolicyRequestSchema,
   ProposeGovernanceParametersRequestSchema,
   PublishDataUnionProductRequestSchema,
+  RedeemParticipationReceiptRequestSchema,
   ReputationReplayRequestSchema,
+  RegisterAnonymousEligibilityGroupRequestSchema,
   ResultChallengeRulingRequestSchema,
   ResolveChallengeAppealRequestSchema,
+  ResolveCommunityChildProposalRequestSchema,
   ResolveCommunityEmergencySuspensionRequestSchema,
   ResolveModerationAppealRequestSchema,
   RevokeCredentialRequestSchema,
@@ -71,6 +74,7 @@ import {
   SelectJurorRequestSchema,
   SetCommunityCredentialTrustPolicyRequestSchema,
   SetCommunityFrontendConfigRequestSchema,
+  SetCommunityRegistryPolicyRequestSchema,
   SetupTallyPublicKeyRequestSchema,
   StartPasskeyDeploymentRequestSchema,
   StartPasskeyLoginRequestSchema,
@@ -83,6 +87,7 @@ import {
   VerifyPasskeyLoginRequestSchema,
   VerifyPasskeyRegistrationRequestSchema,
   VerifyWalletAuthRequestSchema,
+  VoteCommunityChildProposalRequestSchema,
   VoteRequestSchema,
   choiceToBallotResponse,
   getAnswerSchema,
@@ -96,6 +101,7 @@ import {
   type DataUnionPolicy,
   type DataUnionProduct,
   type DataUnionRevenueSplit,
+  type DemoVoteRequest,
   type DiscussionModerationAction,
   type DiscussionPostKind,
   type DiscussionViewKey,
@@ -107,6 +113,8 @@ import {
   type WalletCredential
 } from "@pc/shared";
 import {
+  anonymousBallotProofHash,
+  anonymousPollScope,
   ballotCommitment,
   createCoordinatorKeypair,
   createCredentialMembershipProof,
@@ -115,10 +123,13 @@ import {
   hashDemoCredentialSecret,
   issueDemoCredential,
   normalizeTallyPublicKeyPem,
+  participationReceiptHash,
   tallyEncryptedBallots,
   tallyPublicKeyId,
+  verifyAnonymousBallotProof,
   verifyCredentialMembershipProof,
   verifyDemoCredential,
+  type AnonymousBallotProof,
   type EncryptedBallotPayload
 } from "@pc/privacy";
 import Fastify, { type FastifyReply } from "fastify";
@@ -177,6 +188,12 @@ const AUTHORITY_RANK = {
 const DEFAULT_PAGE_LIMIT = 50;
 const MAX_PAGE_LIMIT = 100;
 const CURATOR_ROLES = ["Owner", "Moderator"];
+const COMMUNITY_ROLE_RANK = { Member: 0, Moderator: 1, Owner: 2 } as const;
+const DEFAULT_REGISTRY_POLICY = {
+  approvalThresholdPercent: 66,
+  quorumPercent: 10,
+  reviewWindowHours: 168
+};
 const STEWARD_POWERS: StewardPower[] = [
   {
     role: "Owner",
@@ -204,6 +221,58 @@ const UPGRADE_SAFETY_KNOWN_MVP_LIMITS = [
   "Local devnet records model timelocked activation through effectiveAt fields; production deployments should enforce the minimum review window at the contract/appchain layer.",
   "The public testnet independent-operator gate remains pending until external operators run and replay the protocol feed."
 ];
+const PUBLIC_ARTIFACT_KINDS = new Set<string>([
+  "credential-schema",
+  "credential-issuer",
+  "credential-issuer-suspension",
+  "credential-revocation-root",
+  "community-credential-trust-policy",
+  "tally-committee-proposal",
+  "tally-committee-activation",
+  "tally-committee-failure",
+  "tally-key-setup",
+  "tally-decryption-share",
+  "tally-publication-proof",
+  "user-profile",
+  "social-follow",
+  "reputation-export",
+  "result-artifact",
+  "result-artifact-correction",
+  "question-archive",
+  "community-fork",
+  "community-frontend-config",
+  "governance-parameter-proposal",
+  "governance-parameter-activation",
+  "community-emergency-suspension",
+  "community-emergency-resolution",
+  "adoption-policy-proposal",
+  "adoption-policy-activation",
+  "adoption-policy-suspension",
+  "data-union-policy",
+  "data-union-policy-activation",
+  "data-union-product",
+  "data-union-access-grant"
+]);
+const COMMUNITY_GATED_ARTIFACT_KINDS = new Set<string>([
+  "question-body",
+  "sponsor-disclosure",
+  "question-challenge-evidence",
+  "question-challenge-resolution",
+  "challenge-appeal",
+  "challenge-appeal-resolution",
+  "juror-selection",
+  "juror-conflict-disclosure",
+  "discussion-post",
+  "discussion-moderation",
+  "discussion-moderation-appeal",
+  "discussion-moderation-resolution",
+  "result-challenge-evidence",
+  "result-challenge-resolution",
+  "data-union-consent",
+  "data-union-consent-revocation",
+  "community-export",
+  "credential-revocation"
+]);
 const PUBLIC_TESTNET_OPERATOR_REQUIREMENTS = [
   {
     role: "deployer",
@@ -277,9 +346,10 @@ for (const protocolModule of CanonicalProtocolBoundary.modules) {
 }
 
 export function buildServer() {
-  const app = Fastify({ logger: true });
+  assertProductionPrivacyConfig();
+  const app = Fastify({ logger: config.devMode });
   const artifactStore = createFileArtifactStorage(config.artifactDir);
-  void app.register(cors, { origin: true });
+  void app.register(cors, { origin: config.corsOrigin, credentials: true });
 
   app.get("/health", async () => ({ ok: true, devMode: config.devMode, demoMode: config.demoMode }));
 
@@ -651,9 +721,10 @@ export function buildServer() {
     return { jsonrpc: "2.0", id, result: userOperationHash };
   });
 
-  app.post("/auth/logout", async (request) => {
+  app.post("/auth/logout", async (request, reply) => {
     const token = readBearerToken(request);
     if (token) await prisma.authSession.deleteMany({ where: { tokenHash: hashSessionToken(token) } });
+    clearAuthSessionCookie(reply);
     return { ok: true };
   });
 
@@ -795,8 +866,9 @@ export function buildServer() {
         return { user: created, controller: created.authControllers[0] };
       });
       const session = await createAuthSession(user.id, smartAccountAddress, controller.id);
+      setAuthSessionCookie(reply, session.token);
       const passkeyDeployment = await maybeCreatePasskeyDeploymentChallenge(controller).catch(() => null);
-      return { user, controller, session, profileArtifact, passkeyDeployment };
+      return { user, controller, session: authSessionResponse(session), profileArtifact, passkeyDeployment };
     } catch {
       return reply.code(409).send({ error: "Username or passkey is already registered" });
     }
@@ -865,7 +937,8 @@ export function buildServer() {
     });
     await prisma.authChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date(), userId: controller.userId } });
     const session = await createAuthSession(controller.userId, controller.aaAccountAddress, controller.id);
-    return { user: controller.user, controller, session };
+    setAuthSessionCookie(reply, session.token);
+    return { user: controller.user, controller, session: authSessionResponse(session) };
   });
 
   app.post("/auth/passkey/deploy/options", async (request, reply) => {
@@ -1029,7 +1102,8 @@ export function buildServer() {
       await prisma.authController.update({ where: { id: existing.id }, data: { lastUsedAt: new Date() } });
       await prisma.authChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date(), userId: existing.userId } });
       const session = await createAuthSession(existing.userId, existing.aaAccountAddress, existing.id);
-      return { user: existing.user, controller: existing, session };
+      setAuthSessionCookie(reply, session.token);
+      return { user: existing.user, controller: existing, session: authSessionResponse(session) };
     }
     if (!challenge.username || !challenge.displayName) return reply.code(400).send({ error: "Wallet registration challenge is incomplete" });
     const aaExecution = await maybeSubmitWalletDeploymentUserOperation({
@@ -1109,18 +1183,28 @@ export function buildServer() {
         return { user: created, controller: created.authControllers[0] };
       });
       const session = await createAuthSession(user.id, smartAccountAddress, controller.id);
-      return { user, controller, session, profileArtifact, aaExecution: aaExecution && "error" in aaExecution ? null : aaExecution };
+      setAuthSessionCookie(reply, session.token);
+      return { user, controller, session: authSessionResponse(session), profileArtifact, aaExecution: aaExecution && "error" in aaExecution ? null : aaExecution };
     } catch {
       return reply.code(409).send({ error: "Username or wallet is already registered" });
     }
   });
 
   app.get("/profiles/resolve", async (request, reply) => {
-    const { profileId, userId } = request.query as { profileId?: string; userId?: string };
-    if (!profileId && !userId) return reply.code(400).send({ error: "Provide profileId or userId" });
-    const profile = await prisma.userAccount.findFirst({
-      where: profileId ? { profileId } : { id: userId }
+    const { profileId, userId, username } = request.query as { profileId?: string; userId?: string; username?: string };
+    if (!profileId && !userId && !username) return reply.code(400).send({ error: "Provide profileId, userId, or username" });
+    let profile = await prisma.userAccount.findFirst({
+      where: profileId ? { profileId } : userId ? { id: userId } : { username: username?.toLowerCase() }
     });
+    if (!profile && username) {
+      const profileCommunity = await prisma.community.findFirst({
+        where: { kind: "Profile", slug: profileCommunitySlug(username) },
+        select: { profileUserId: true }
+      });
+      if (profileCommunity?.profileUserId) {
+        profile = await prisma.userAccount.findUnique({ where: { id: profileCommunity.profileUserId } });
+      }
+    }
     if (!profile) return reply.code(404).send({ error: "Profile not found" });
     const profileArtifact = profile.profileHash
       ? { hash: profile.profileHash, artifact: await artifactStore.read(profile.profileHash).catch(() => null) }
@@ -1129,7 +1213,7 @@ export function buildServer() {
   });
 
   app.get("/communities", async (request) => {
-    const { userId, visibility, credentialSchemaId, authorityLevel, slug, query, kind, includeProfiles } = request.query as {
+    const { userId, visibility, credentialSchemaId, authorityLevel, slug, query, kind, includeProfiles, parentId, includePending } = request.query as {
       userId?: string;
       visibility?: string;
       credentialSchemaId?: string;
@@ -1138,11 +1222,15 @@ export function buildServer() {
       query?: string;
       kind?: string;
       includeProfiles?: string;
+      parentId?: string;
+      includePending?: string;
     };
     const page = parsePageQuery(request.query);
     const where: Prisma.CommunityWhereInput = {
       ...(kind ? { kind } : includeProfiles === "true" ? {} : { kind: "Group" }),
       ...(visibility ? { visibility } : {}),
+      ...(includePending === "true" ? {} : { registryStatus: "Active" }),
+      ...(parentId ? { parentId: parentId === "root" ? null : parentId } : {}),
       ...(credentialSchemaId ? { credentialSchemaId } : {}),
       ...(authorityLevel ? { defaultAuthorityLevel: normalizeAuthority(authorityLevel) } : {}),
       ...(slug ? { slug } : {}),
@@ -1159,7 +1247,7 @@ export function buildServer() {
     const [communities, total] = await Promise.all([
       prisma.community.findMany({
         where,
-        orderBy: [{ visibility: "asc" }, { createdAt: "asc" }],
+        orderBy: [{ depth: "asc" }, { visibility: "asc" }, { createdAt: "asc" }],
         skip: page.offset,
         take: page.limit,
         include: { memberships: true, _count: { select: { questions: true, memberships: true } } }
@@ -1190,18 +1278,46 @@ export function buildServer() {
     if (!(await requireAuthenticatedActor(request, reply, input.creatorId))) return;
     const creator = await prisma.userAccount.findUnique({ where: { id: input.creatorId } });
     if (!creator) return reply.code(404).send({ error: "Creator account not found" });
+    const parent = input.parentId
+      ? await prisma.community.findUnique({
+          where: { id: input.parentId },
+          include: { memberships: true, registryPolicy: true }
+        })
+      : null;
+    if (input.parentId && !parent) return reply.code(404).send({ error: "Parent community not found" });
+    if (parent && parent.registryStatus !== "Active") return reply.code(409).send({ error: "Parent community is not active" });
+    const parentMembership = parent?.memberships.find((member) => member.userId === input.creatorId && member.status === "Active") ?? null;
+    if (parent && !parentMembership) return reply.code(403).send({ error: "Join the parent community before proposing a child community" });
+    const parentCurator = Boolean(parentMembership && CURATOR_ROLES.includes(parentMembership.role));
+    const registryPolicy = parent?.registryPolicy ?? null;
+    const thresholdPercent = registryPolicy?.approvalThresholdPercent ?? DEFAULT_REGISTRY_POLICY.approvalThresholdPercent;
+    const quorumPercent = registryPolicy?.quorumPercent ?? DEFAULT_REGISTRY_POLICY.quorumPercent;
     const slug = input.slug ?? slugify(input.name);
     const communityId = `community-${slug}`;
+    const path = buildCommunityPath(parent, slug);
+    const depth = parent ? parent.depth + 1 : 0;
+    const registryStatus = parent ? (parentCurator ? "Active" : "Pending") : "Active";
     try {
       const communityCreatedEvent = prepareProtocolEvent({
         eventType: "CommunityCreated",
         subjectId: communityId,
         actor: creator.id,
         previousHash: null,
-        newHash: hashJson({ slug, visibility: input.visibility })
+        newHash: hashJson({ slug, visibility: input.visibility, parentId: parent?.id ?? null, registryStatus })
       });
+      const proposalId = parent ? `child-proposal-${nanoid(10)}` : null;
+      const childProposalEvent = parent
+        ? prepareProtocolEvent({
+            eventType: parentCurator ? "CommunityChildApproved" : "CommunityChildProposed",
+            subjectId: parent.id,
+            actor: creator.id,
+            previousHash: null,
+            newHash: hashJson({ proposalId, proposedCommunityId: communityId, parentId: parent.id, status: parentCurator ? "Approved" : "Pending" })
+          })
+        : null;
       const community = await prisma.$transaction(async (tx) => {
-        const protocolEvent = await ingestProtocolEvent(tx, communityCreatedEvent);
+        const protocolEvents = [await ingestProtocolEvent(tx, communityCreatedEvent)];
+        if (childProposalEvent) protocolEvents.push(await ingestProtocolEvent(tx, childProposalEvent));
         const created = await tx.community.create({
           data: {
             id: communityId,
@@ -1209,25 +1325,58 @@ export function buildServer() {
             name: input.name,
             description: input.description,
             kind: "Group",
+            parentId: parent?.id ?? null,
+            path,
+            depth,
+            registryStatus,
             visibility: input.visibility,
             credentialSchemaId: input.credentialSchemaId,
             defaultAuthorityLevel: "Advisory",
-            createdBy: creator.id,
-            memberships: {
-              create: {
-                id: `member-${nanoid(10)}`,
-                userId: creator.id,
-                role: "Owner",
-                status: "Active"
-              }
-            }
+            createdBy: creator.id
           },
           include: { memberships: true }
         });
-        await recordProtocolCommitments(protocolEvent, tx);
+        await upsertMembershipWithSource(tx, {
+          communityId: created.id,
+          userId: creator.id,
+          role: "Owner",
+          sourceType: parent ? "ProposalCreator" : "DirectJoin",
+          sourceKey: parent ? `proposal:${proposalId}` : `direct:${created.id}`,
+          sourceCommunityId: created.id
+        });
+        if (parent && proposalId) {
+          await tx.communityChildProposal.create({
+            data: {
+              id: proposalId,
+              parentId: parent.id,
+              proposedCommunityId: created.id,
+              proposerId: creator.id,
+              title: input.name,
+              description: input.description,
+              status: parentCurator ? "Approved" : "Pending",
+              proposalHash: hashJson({
+                protocol: "pc-child-community-proposal-v0",
+                parentId: parent.id,
+                proposedCommunityId: created.id,
+                proposerId: creator.id,
+                slug,
+                visibility: input.visibility,
+                thresholdPercent,
+                quorumPercent
+              }),
+              thresholdPercent,
+              quorumPercent,
+              approvedBy: parentCurator ? creator.id : null,
+              resolvedAt: parentCurator ? new Date() : null
+            }
+          });
+          if (parentCurator) await propagateChildMembershipsToAncestors(tx, created.id);
+        }
+        for (const protocolEvent of protocolEvents) await recordProtocolCommitments(protocolEvent, tx);
         return created;
       });
-      return { community };
+      const childProposal = proposalId ? await prisma.communityChildProposal.findUnique({ where: { id: proposalId } }) : null;
+      return { community, childProposal };
     } catch {
       return reply.code(409).send({ error: "Community slug is already taken" });
     }
@@ -1240,6 +1389,7 @@ export function buildServer() {
     const community = await prisma.community.findUnique({ where: { id: communityId } });
     const user = await prisma.userAccount.findUnique({ where: { id: input.userId } });
     if (!community || !user) return reply.code(404).send({ error: "Community or account not found" });
+    if (community.registryStatus !== "Active") return reply.code(409).send({ error: "Community is not active yet" });
     const communityJoinedEvent = prepareProtocolEvent({
       eventType: "CommunityJoined",
       subjectId: community.id,
@@ -1249,17 +1399,15 @@ export function buildServer() {
     });
     const membership = await prisma.$transaction(async (tx) => {
       const protocolEvent = await ingestProtocolEvent(tx, communityJoinedEvent);
-      const upserted = await tx.communityMember.upsert({
-        where: { communityId_userId: { communityId, userId: input.userId } },
-        update: { status: "Active" },
-        create: {
-          id: `member-${nanoid(10)}`,
-          communityId,
-          userId: input.userId,
-          role: "Member",
-          status: "Active"
-        }
+      const upserted = await upsertMembershipWithSource(tx, {
+        communityId,
+        userId: input.userId,
+        role: "Member",
+        sourceType: "DirectJoin",
+        sourceKey: `direct:${communityId}`,
+        sourceCommunityId: communityId
       });
+      await propagateMembershipToAncestors(tx, communityId, input.userId);
       await recordProtocolCommitments(protocolEvent, tx);
       return upserted;
     });
@@ -1426,10 +1574,179 @@ export function buildServer() {
     return { follow, followArtifact };
   });
 
+  app.get("/communities/:communityId/children", async (request, reply) => {
+    const { communityId } = request.params as { communityId: string };
+    const { userId, includePending } = request.query as { userId?: string; includePending?: string };
+    const parent = await prisma.community.findUnique({ where: { id: communityId } });
+    if (!parent) return reply.code(404).send({ error: "Community not found" });
+    if (!(await canReadCommunity(communityId, userId))) return reply.code(403).send({ error: "Join this private community to view child communities" });
+    const children = await prisma.community.findMany({
+      where: {
+        parentId: communityId,
+        ...(includePending === "true" ? {} : { registryStatus: "Active" })
+      },
+      orderBy: [{ registryStatus: "asc" }, { name: "asc" }],
+      include: { memberships: true, follows: true, _count: { select: { questions: true, memberships: true } } }
+    });
+    return {
+      parent,
+      children: children.map((community) => ({
+        ...community,
+        memberCount: community._count.memberships,
+        questionCount: community._count.questions,
+        followerCount: community.follows.length,
+        isMember: userId ? community.memberships.some((member) => member.userId === userId && member.status === "Active") : false,
+        activeUserRole: userId
+          ? community.memberships.find((member) => member.userId === userId && member.status === "Active")?.role ?? null
+          : null,
+        memberships: undefined,
+        follows: undefined,
+        _count: undefined
+      }))
+    };
+  });
+
+  app.get("/communities/:communityId/registry-policy", async (request, reply) => {
+    const { communityId } = request.params as { communityId: string };
+    const { userId } = request.query as { userId?: string };
+    if (!(await canReadCommunity(communityId, userId))) return reply.code(403).send({ error: "Join this private community to view registry policy" });
+    const community = await prisma.community.findUnique({ where: { id: communityId }, include: { registryPolicy: true } });
+    if (!community) return reply.code(404).send({ error: "Community not found" });
+    const policy = community.registryPolicy ?? defaultRegistryPolicyView(community);
+    return { communityId, policy };
+  });
+
+  app.post("/communities/:communityId/registry-policy", async (request, reply) => {
+    const { communityId } = request.params as { communityId: string };
+    const input = SetCommunityRegistryPolicyRequestSchema.parse(request.body ?? {});
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
+    if (!stewardCheck) return;
+    const policyHash = hashJson({
+      protocol: "pc-community-registry-policy-v0",
+      communityId,
+      approvalThresholdPercent: input.approvalThresholdPercent,
+      quorumPercent: input.quorumPercent,
+      reviewWindowHours: input.reviewWindowHours
+    });
+    const policyEvent = prepareProtocolEvent({
+      eventType: "CommunityRegistryPolicyUpdated",
+      subjectId: communityId,
+      actor: input.steward,
+      previousHash: null,
+      newHash: policyHash
+    });
+    const policy = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, policyEvent);
+      const updated = await tx.communityRegistryPolicy.upsert({
+        where: { communityId },
+        update: {
+          approvalThresholdPercent: input.approvalThresholdPercent,
+          quorumPercent: input.quorumPercent,
+          reviewWindowHours: input.reviewWindowHours,
+          status: "Active"
+        },
+        create: {
+          id: `registry-policy-${nanoid(10)}`,
+          communityId,
+          approvalThresholdPercent: input.approvalThresholdPercent,
+          quorumPercent: input.quorumPercent,
+          reviewWindowHours: input.reviewWindowHours,
+          createdBy: input.steward
+        }
+      });
+      await recordProtocolCommitments(protocolEvent, tx);
+      return updated;
+    });
+    return { policy };
+  });
+
+  app.get("/communities/:communityId/child-proposals", async (request, reply) => {
+    const { communityId } = request.params as { communityId: string };
+    const { userId, status } = request.query as { userId?: string; status?: string };
+    if (!(await canReadCommunity(communityId, userId))) return reply.code(403).send({ error: "Join this private community to view child proposals" });
+    const proposals = await prisma.communityChildProposal.findMany({
+      where: { parentId: communityId, ...(status ? { status } : {}) },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      include: {
+        votes: true
+      }
+    });
+    const proposedCommunities = proposals.length
+      ? await prisma.community.findMany({ where: { id: { in: proposals.map((proposal) => proposal.proposedCommunityId) } } })
+      : [];
+    const communitiesById = new Map(proposedCommunities.map((community) => [community.id, community]));
+    return {
+      proposals: await Promise.all(
+        proposals.map(async (proposal) => ({
+          ...proposal,
+          proposedCommunity: communitiesById.get(proposal.proposedCommunityId) ?? null,
+          tally: await childProposalTally(proposal)
+        }))
+      )
+    };
+  });
+
+  app.post("/communities/:communityId/child-proposals/:proposalId/approve", async (request, reply) => {
+    const { communityId, proposalId } = request.params as { communityId: string; proposalId: string };
+    const input = ResolveCommunityChildProposalRequestSchema.parse(request.body ?? {});
+    const curatorCheck = await requireCommunityCurator(communityId, input.curator, reply, request);
+    if (!curatorCheck) return;
+    const proposal = await prisma.communityChildProposal.findUnique({ where: { id: proposalId } });
+    if (!proposal || proposal.parentId !== communityId) return reply.code(404).send({ error: "Child proposal not found" });
+    const approved = await approveChildProposal(proposal.id, input.curator, "Approved", input.reason);
+    return approved;
+  });
+
+  app.post("/communities/:communityId/child-proposals/:proposalId/reject", async (request, reply) => {
+    const { communityId, proposalId } = request.params as { communityId: string; proposalId: string };
+    const input = ResolveCommunityChildProposalRequestSchema.parse(request.body ?? {});
+    const curatorCheck = await requireCommunityCurator(communityId, input.curator, reply, request);
+    if (!curatorCheck) return;
+    const proposal = await prisma.communityChildProposal.findUnique({ where: { id: proposalId } });
+    if (!proposal || proposal.parentId !== communityId) return reply.code(404).send({ error: "Child proposal not found" });
+    if (proposal.status !== "Pending") return reply.code(409).send({ error: "Child proposal is already resolved" });
+    const resolutionHash = hashJson({ proposalId, ruling: "Rejected", reason: input.reason });
+    const rejected = await prisma.$transaction(async (tx) => {
+      await tx.community.update({ where: { id: proposal.proposedCommunityId }, data: { registryStatus: "Rejected" } });
+      return tx.communityChildProposal.update({
+        where: { id: proposal.id },
+        data: { status: "Rejected", rejectedBy: input.curator, resolutionHash, resolvedAt: new Date() },
+        include: { votes: true }
+      });
+    });
+    return { proposal: rejected, tally: await childProposalTally(rejected) };
+  });
+
+  app.post("/communities/:communityId/child-proposals/:proposalId/votes", async (request, reply) => {
+    const { communityId, proposalId } = request.params as { communityId: string; proposalId: string };
+    const input = VoteCommunityChildProposalRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.voterId))) return;
+    const proposal = await prisma.communityChildProposal.findUnique({ where: { id: proposalId }, include: { votes: true } });
+    if (!proposal || proposal.parentId !== communityId) return reply.code(404).send({ error: "Child proposal not found" });
+    if (proposal.status !== "Pending") return reply.code(409).send({ error: "Child proposal is already resolved" });
+    const membership = await prisma.communityMember.findUnique({ where: { communityId_userId: { communityId, userId: input.voterId } } });
+    if (membership?.status !== "Active") return reply.code(403).send({ error: "Join the parent community before voting on child proposals" });
+    const voteHash = hashJson({ protocol: "pc-child-proposal-vote-v0", proposalId, voterId: input.voterId, vote: input.vote });
+    const vote = await prisma.communityChildProposalVote.upsert({
+      where: { proposalId_voterId: { proposalId, voterId: input.voterId } },
+      update: { vote: input.vote, voteHash },
+      create: { id: `child-proposal-vote-${nanoid(10)}`, proposalId, voterId: input.voterId, vote: input.vote, voteHash }
+    });
+    const refreshed = await prisma.communityChildProposal.findUnique({ where: { id: proposalId }, include: { votes: true } });
+    if (!refreshed) return reply.code(404).send({ error: "Child proposal not found" });
+    const tally = await childProposalTally(refreshed);
+    if (tally.quorumMet && tally.thresholdMet) {
+      const approved = await approveChildProposal(refreshed.id, input.voterId, "ApprovedByMembers", "Approved by parent community member vote.");
+      return { vote, ...approved };
+    }
+    return { vote, proposal: refreshed, tally };
+  });
+
   app.get("/discovery", async (request) => {
     const { userId } = request.query as { userId?: string };
     const communities = await prisma.community.findMany({
-      orderBy: [{ visibility: "asc" }, { createdAt: "asc" }],
+      where: { registryStatus: "Active" },
+      orderBy: [{ depth: "asc" }, { visibility: "asc" }, { createdAt: "asc" }],
       include: {
         memberships: true,
         follows: true,
@@ -1455,6 +1772,10 @@ export function buildServer() {
       slug: community.slug,
       name: community.name,
       kind: community.kind,
+      parentId: community.parentId,
+      path: community.path,
+      depth: community.depth,
+      registryStatus: community.registryStatus,
       profileUserId: community.profileUserId,
       visibility: community.visibility,
       memberCount: community._count.memberships,
@@ -1644,6 +1965,7 @@ export function buildServer() {
     const answerSchema = safeAnswerSchema(input.answerSchemaId);
     if (!answerSchema) return reply.code(400).send({ error: "Unknown answer schema" });
     const audience = normalizeQuestionAudience(input.audience);
+    const resultMode = normalizePollResultMode(input.resultMode);
     const proposerMembership = community.memberships.find((member) => member.userId === input.proposer && member.status === "Active");
     if (community.kind === "Profile" && community.profileUserId !== input.proposer) {
       return reply.code(403).send({ error: "Only the profile owner can ask from this profile feed" });
@@ -1656,7 +1978,7 @@ export function buildServer() {
     }
     if (!(await ensureCommunityProtocolWritable(community.id, reply))) return;
     const bodyArtifact = await artifactStore.write(
-      withArtifactSchema("question-body", { title: input.title, body: input.body, answerSchemaId: answerSchema.answerSchemaId, audience })
+      withArtifactSchema("question-body", { title: input.title, body: input.body, answerSchemaId: answerSchema.answerSchemaId, audience, resultMode })
     );
     const sponsorArtifact = await artifactStore.write(withArtifactSchema("sponsor-disclosure", { disclosure: input.sponsorDisclosure }));
     const activeKeySetup = await activeTallyKeySetupForCommunity(community.id);
@@ -1709,6 +2031,7 @@ export function buildServer() {
           sponsorDisclosureHash: sponsorArtifact.hash,
           methodologyLabel: input.methodologyLabel,
           authorityLevel: adoptionAuthority.authorityLevel,
+          resultMode,
           adoptionPolicyId: adoptionAuthority.policyId,
           opensAt: new Date(),
           closesAt: hoursFromNow(governance.pollDurationHours),
@@ -2481,6 +2804,7 @@ export function buildServer() {
   });
 
   app.post("/credentials/demo-resident", async (request, reply) => {
+    if (!config.demoMode) return reply.code(404).send({ error: "Demo credential issuance is disabled outside demo mode" });
     const input = DemoResidentCredentialRequestSchema.parse(request.body ?? {});
     if (!(await requireAuthenticatedActor(request, reply, input.holderAlias))) return;
     const registryError = await credentialRegistryError({ schemaId: input.schemaId, issuerId: input.issuerId });
@@ -2525,6 +2849,7 @@ export function buildServer() {
   });
 
   app.post("/credentials/:credentialId/export", async (request, reply) => {
+    if (!config.demoMode) return reply.code(404).send({ error: "Demo credential export is disabled outside demo mode" });
     const { credentialId } = request.params as { credentialId: string };
     const input = ExportWalletCredentialRequestSchema.parse(request.body ?? {});
     const credential = await prisma.credential.findUnique({ where: { id: credentialId } });
@@ -2536,6 +2861,7 @@ export function buildServer() {
   });
 
   app.post("/credentials/import", async (request, reply) => {
+    if (!config.demoMode) return reply.code(404).send({ error: "Demo credential import is disabled outside demo mode" });
     const input = ImportWalletCredentialRequestSchema.parse(request.body ?? {});
     const walletCredential = input.credential;
     const expectedCredentialId = credentialIdForDemoCredential(
@@ -2593,7 +2919,66 @@ export function buildServer() {
     }
   });
 
+  app.post("/anonymous-eligibility-groups", async (request, reply) => {
+    const input = RegisterAnonymousEligibilityGroupRequestSchema.parse(request.body ?? {});
+    if (!(await requireAuthenticatedActor(request, reply, input.stewardId))) return;
+    const [schema, issuer, community] = await Promise.all([
+      prisma.credentialSchema.findUnique({ where: { id: input.credentialSchemaId } }),
+      prisma.credentialIssuer.findUnique({ where: { id: input.issuerId } }),
+      input.communityId ? prisma.community.findUnique({ where: { id: input.communityId } }) : Promise.resolve(null)
+    ]);
+    if (!schema || schema.status !== "Active") return reply.code(404).send({ error: "Active credential schema not found" });
+    if (!issuer || issuer.status !== "Active" || !issuer.schemaIds.includes(input.credentialSchemaId)) {
+      return reply.code(403).send({ error: "Issuer is not active for this credential schema" });
+    }
+    if (input.communityId && !community) return reply.code(404).send({ error: "Community not found" });
+    if (input.communityId && !(await requireCommunityCurator(input.communityId, input.stewardId, reply, request))) return;
+
+    const groupHash = hashJson({
+      protocol: "pc-anonymous-eligibility-group-v1",
+      groupId: input.groupId,
+      groupRoot: input.groupRoot,
+      credentialSchemaId: input.credentialSchemaId,
+      issuerId: input.issuerId,
+      communityId: input.communityId ?? null,
+      commitmentCount: input.commitmentCount
+    });
+    const groupRegisteredEvent = prepareProtocolEvent({
+      eventType: "AnonymousEligibilityGroupRegistered",
+      subjectId: input.groupId,
+      actor: input.stewardId,
+      previousHash: null,
+      newHash: groupHash
+    });
+    const group = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, groupRegisteredEvent);
+      const created = await tx.anonymousEligibilityGroup.upsert({
+        where: { id: input.groupId },
+        update: {
+          groupRoot: input.groupRoot,
+          credentialSchemaId: input.credentialSchemaId,
+          issuerId: input.issuerId,
+          communityId: input.communityId ?? null,
+          commitmentCount: input.commitmentCount,
+          status: "Active"
+        },
+        create: {
+          id: input.groupId,
+          groupRoot: input.groupRoot,
+          credentialSchemaId: input.credentialSchemaId,
+          issuerId: input.issuerId,
+          communityId: input.communityId ?? null,
+          commitmentCount: input.commitmentCount
+        }
+      });
+      await recordProtocolCommitments(protocolEvent, tx);
+      return created;
+    });
+    return { group };
+  });
+
   app.post("/polls/:pollId/credential-proof", async (request, reply) => {
+    if (!config.demoMode) return reply.code(404).send({ error: "Demo credential proofs are disabled outside demo mode" });
     const { pollId } = request.params as { pollId: string };
     const input = CredentialProofRequestSchema.parse(request.body ?? {});
     const poll = await prisma.poll.findUnique({ where: { id: pollId }, include: { question: true } });
@@ -2618,6 +3003,7 @@ export function buildServer() {
   });
 
   app.post("/polls/:pollId/signup", async (request, reply) => {
+    if (!config.demoMode) return reply.code(404).send({ error: "Demo poll signup is disabled outside demo mode" });
     const { pollId } = request.params as { pollId: string };
     const input = CredentialProofRequestSchema.parse(request.body ?? {});
     const poll = await prisma.poll.findUnique({ where: { id: pollId }, include: { question: true } });
@@ -2648,8 +3034,116 @@ export function buildServer() {
   app.post("/polls/:pollId/vote", async (request, reply) => {
     const { pollId } = request.params as { pollId: string };
     const input = VoteRequestSchema.parse(request.body ?? {});
+    if ("proofMode" in input && input.proofMode === "AnonymousZk") {
+      const poll = await prisma.poll.findUnique({ where: { id: pollId }, include: { question: true } });
+      if (!poll) return reply.code(404).send({ error: "Poll not found" });
+      if (poll.status !== "Open" || poll.question.status !== "Open") return reply.code(409).send({ error: "Poll is not open" });
+      if (!(await ensureCommunityProtocolWritable(poll.question.communityId, reply))) return;
+
+      const group = await prisma.anonymousEligibilityGroup.findUnique({ where: { id: input.anonymousProof.groupId } });
+      if (!group || group.status !== "Active") return reply.code(403).send({ error: "Anonymous eligibility group is not active" });
+      if (group.credentialSchemaId !== poll.credentialSchemaId) return reply.code(403).send({ error: "Anonymous proof schema mismatch" });
+      if (group.groupRoot !== input.anonymousProof.groupRoot) return reply.code(403).send({ error: "Anonymous eligibility root mismatch" });
+
+      const representedCommunity = input.representedCommunityId
+        ? await prisma.community.findUnique({ where: { id: input.representedCommunityId } })
+        : null;
+      if (input.representedCommunityId && !representedCommunity) return reply.code(404).send({ error: "Represented community not found" });
+      const expectedCommunityId = representedCommunity?.id ?? poll.question.communityId ?? null;
+      if (group.communityId !== expectedCommunityId) {
+        return reply.code(403).send({ error: "Anonymous eligibility group is not scoped to this poll community" });
+      }
+      if (representedCommunity) {
+        if (representedCommunity.registryStatus !== "Active") return reply.code(409).send({ error: "Represented community is not active" });
+        if (!poll.question.communityId || representedCommunity.parentId !== poll.question.communityId) {
+          return reply.code(403).send({ error: "Represented community must be a direct child of this poll community" });
+        }
+      }
+
+      const nullifier = input.anonymousProof.nullifier;
+      const scope = anonymousPollScope(pollId, poll.credentialSchemaId);
+      const commitment = ballotCommitment(input.encryptedPayload as EncryptedBallotPayload, nullifier);
+      if (commitment !== input.ballotCommitment) return reply.code(400).send({ error: "Ballot commitment does not match encrypted payload and nullifier" });
+      if (input.anonymousProof.signal !== commitment) return reply.code(400).send({ error: "Anonymous proof signal must be the ballot commitment" });
+      if (input.anonymousProof.scope !== scope) return reply.code(400).send({ error: "Anonymous proof scope does not match this poll" });
+      const proofVerified = await verifyAnonymousBallotProof(input.anonymousProof as AnonymousBallotProof, {
+        groupRoot: group.groupRoot,
+        signal: commitment,
+        scope
+      });
+      if (!proofVerified) return reply.code(403).send({ error: "Anonymous ballot proof rejected" });
+
+      const encryptedPayloadHash = hashJson(input.encryptedPayload);
+      const proofHash = anonymousBallotProofHash(input.anonymousProof as AnonymousBallotProof);
+      const ballotAcceptedEvent = prepareProtocolEvent({
+        eventType: "BallotAccepted",
+        subjectId: poll.questionId,
+        actor: "anonymous-voter",
+        previousHash: null,
+        newHash: commitment
+      });
+
+      try {
+        const ballot = await prisma.$transaction(async (tx) => {
+          const protocolEvent = await ingestProtocolEvent(tx, ballotAcceptedEvent);
+          const accepted = await tx.ballot.create({
+            data: {
+              id: `ballot-${nanoid(10)}`,
+              pollId,
+              questionId: poll.questionId,
+              nullifier,
+              ballotCommitment: commitment,
+              encryptedPayloadHash,
+              encryptedPayloadJson: JSON.stringify(input.encryptedPayload),
+              tallyPublicKeyId: poll.tallyPublicKeyId,
+              proofHash,
+              proofSystem: "SemaphoreV4",
+              eligibilityGroupId: group.id,
+              eligibilityGroupRoot: group.groupRoot,
+              representedCommunityId: representedCommunity?.id ?? null,
+              representedCommunityPath: representedCommunity?.path ?? null
+            }
+          });
+          await tx.participationReceipt.create({
+            data: {
+              id: `participation-receipt-${nanoid(10)}`,
+              pollId,
+              receiptHash: input.rewardReceiptHash
+            }
+          });
+          await recordProtocolCommitments(protocolEvent, tx);
+          return accepted;
+        });
+        return {
+          ballot: {
+            pollId: ballot.pollId,
+            questionId: ballot.questionId,
+            nullifier: ballot.nullifier,
+            ballotCommitment: ballot.ballotCommitment,
+            encryptedPayloadHash: ballot.encryptedPayloadHash,
+            tallyPublicKeyId: ballot.tallyPublicKeyId,
+            proofHash: ballot.proofHash,
+            proofSystem: ballot.proofSystem,
+            eligibilityGroupId: ballot.eligibilityGroupId,
+            eligibilityGroupRoot: ballot.eligibilityGroupRoot,
+            representedCommunityId: ballot.representedCommunityId,
+            representedCommunityPath: ballot.representedCommunityPath,
+            submittedAt: ballot.submittedAt
+          },
+          participationReceipt: {
+            receiptHash: input.rewardReceiptHash,
+            status: "Issued"
+          }
+        };
+      } catch {
+        return reply.code(409).send({ error: "Duplicate ballot nullifier or reward receipt rejected" });
+      }
+    }
+
+    if (!config.demoMode) return reply.code(403).send({ error: "Production voting requires an anonymous ZK proof" });
+    const demoInput = input as DemoVoteRequest;
     const poll = await prisma.poll.findUnique({ where: { id: pollId }, include: { question: true } });
-    const credential = await prisma.credential.findUnique({ where: { id: input.credentialId } });
+    const credential = await prisma.credential.findUnique({ where: { id: demoInput.credentialId } });
     if (!poll || !credential) return reply.code(404).send({ error: "Poll or credential not found" });
     if (poll.status !== "Open" || poll.question.status !== "Open") return reply.code(409).send({ error: "Poll is not open" });
     const registryError = await credentialRegistryError(credential);
@@ -2660,17 +3154,38 @@ export function buildServer() {
       return reply.code(403).send({ error: "Follow or join this community before voting in its poll" });
     }
     if (!(await ensureCommunityProtocolWritable(poll.question.communityId, reply))) return;
-    if (!verifyDemoCredential(input.credentialSecret, credential.secretHash)) {
+    if (!verifyDemoCredential(demoInput.credentialSecret, credential.secretHash)) {
       return reply.code(403).send({ error: "Invalid credential" });
     }
     if (credential.schemaId !== poll.credentialSchemaId) {
       return reply.code(403).send({ error: "Credential schema mismatch" });
     }
-    const membershipProof = resolveCredentialMembershipProof(input.membershipProof, credential, input.credentialSecret, pollId);
+    const membershipProof = resolveCredentialMembershipProof(demoInput.membershipProof, credential, demoInput.credentialSecret, pollId);
     if (!membershipProof) return reply.code(403).send({ error: "Invalid credential membership proof" });
+    const representedCommunity = demoInput.representedCommunityId
+      ? await prisma.community.findUnique({ where: { id: demoInput.representedCommunityId } })
+      : null;
+    if (demoInput.representedCommunityId && !representedCommunity) return reply.code(404).send({ error: "Represented community not found" });
+    if (representedCommunity) {
+      if (representedCommunity.registryStatus !== "Active") return reply.code(409).send({ error: "Represented community is not active" });
+      if (!poll.question.communityId || representedCommunity.parentId !== poll.question.communityId) {
+        return reply.code(403).send({ error: "Represented community must be a direct child of this poll community" });
+      }
+      const representedMembership = await prisma.communityMember.findUnique({
+        where: { communityId_userId: { communityId: representedCommunity.id, userId: credential.holderAlias } },
+        select: { status: true }
+      });
+      if (representedMembership?.status !== "Active") {
+        return reply.code(403).send({ error: "Join the represented child community before casting its block signal" });
+      }
+    }
+    const resultMode = normalizePollResultMode(poll.question.resultMode);
+    if (resultMode === "CommunitiesSignal" && !representedCommunity) {
+      return reply.code(400).send({ error: "Choose one represented child community for this community-signal poll" });
+    }
 
     const answerSchema = getAnswerSchema(poll.question.answerSchemaId);
-    const response = validateBallotResponse(answerSchema, input.response ?? choiceToBallotResponse(input.choice ?? "abstain"));
+    const response = validateBallotResponse(answerSchema, demoInput.response ?? choiceToBallotResponse(demoInput.choice ?? "abstain"));
     const nullifier = membershipProof.nullifier;
     const payload = encryptBallot(response, poll.tallyPublicKeyPem);
     const commitment = ballotCommitment(payload, nullifier);
@@ -2703,7 +3218,9 @@ export function buildServer() {
             encryptedPayloadHash,
             encryptedPayloadJson: JSON.stringify(payload),
             tallyPublicKeyId: poll.tallyPublicKeyId,
-            proofHash
+            proofHash,
+            representedCommunityId: representedCommunity?.id ?? null,
+            representedCommunityPath: representedCommunity?.path ?? null
           }
         });
         await recordProtocolCommitments(protocolEvent, tx);
@@ -2727,6 +3244,8 @@ export function buildServer() {
           encryptedPayloadHash: ballot.encryptedPayloadHash,
           tallyPublicKeyId: ballot.tallyPublicKeyId,
           proofHash: ballot.proofHash,
+          representedCommunityId: ballot.representedCommunityId,
+          representedCommunityPath: ballot.representedCommunityPath,
           submittedAt: ballot.submittedAt
         },
         membershipProof
@@ -2734,6 +3253,41 @@ export function buildServer() {
     } catch {
       return reply.code(409).send({ error: "Duplicate ballot nullifier rejected" });
     }
+  });
+
+  app.post("/rewards/participation/redeem", async (request, reply) => {
+    const input = RedeemParticipationReceiptRequestSchema.parse(request.body ?? {});
+    const [poll, destinationAccount] = await Promise.all([
+      prisma.poll.findUnique({ where: { id: input.pollId }, select: { id: true } }),
+      prisma.userAccount.findUnique({ where: { id: input.destinationAccount }, select: { id: true } })
+    ]);
+    if (!poll) return reply.code(404).send({ error: "Poll not found" });
+    if (!destinationAccount) return reply.code(404).send({ error: "Destination account not found" });
+
+    const receiptHash = participationReceiptHash(input.receiptSecret);
+    const receipt = await prisma.participationReceipt.findFirst({ where: { pollId: input.pollId, receiptHash } });
+    if (!receipt) return reply.code(404).send({ error: "Participation receipt not found" });
+    if (receipt.status !== "Issued") return reply.code(409).send({ error: "Participation receipt has already been redeemed" });
+
+    const redemptionNullifier = hashJson({ protocol: "pc-participation-receipt-redemption-v1", receiptSecret: input.receiptSecret });
+    const redeemed = await prisma.participationReceipt.updateMany({
+      where: { id: receipt.id, status: "Issued" },
+      data: {
+        status: "Redeemed",
+        redeemedBy: input.destinationAccount,
+        redemptionNullifier,
+        redeemedAt: new Date()
+      }
+    });
+    if (redeemed.count !== 1) return reply.code(409).send({ error: "Participation receipt has already been redeemed" });
+    await addReputation(input.destinationAccount, "PrivateParticipationReceipt", 1, redemptionNullifier);
+    return {
+      redeemed: true,
+      pollId: input.pollId,
+      receiptHash,
+      redemptionNullifier,
+      destinationAccount: input.destinationAccount
+    };
   });
 
   app.post("/polls/:pollId/close", async (request, reply) => {
@@ -2911,6 +3465,23 @@ export function buildServer() {
     }
     const tally = tallyEncryptedBallots(payloads, poll.tallyPrivateKeyPem, answerSchema);
     const aggregateCountsHash = hashJson(tally.counts);
+    const individualResult = {
+      resultMode: normalizePollResultMode(poll.question.resultMode),
+      aggregate: tally.aggregate,
+      counts: tally.counts,
+      turnout: tally.turnout,
+      invalidBallots: tally.invalidBallots
+    };
+    const individualResultHash = hashJson(individualResult);
+    const communityBlockResult = await buildCommunityBlockResult({
+      communityId: poll.question.communityId,
+      resultMode: normalizePollResultMode(poll.question.resultMode),
+      ballots: poll.ballots,
+      answerSchema,
+      tallyPrivateKeyPem: poll.tallyPrivateKeyPem,
+      privacyThreshold: poll.privacyThreshold
+    });
+    const communityBlockResultHash = hashJson(communityBlockResult);
     const ballotCommitmentRoot = hashJson(poll.ballots.map((ballot) => ballot.ballotCommitment).sort());
     const shareArtifactChecks = await Promise.all(
       poll.decryptionShares.map(async (share) => {
@@ -2967,6 +3538,8 @@ export function buildServer() {
     const privacyReport = {
       privacyThreshold: poll.privacyThreshold,
       passes: tally.turnout >= poll.privacyThreshold,
+      communityBlockSignalsPublished: communityBlockResult.publishedSignalCount,
+      communityBlockSignalsHidden: communityBlockResult.hiddenSignalCount,
       note: tallyKeySetup
         ? "Ballots were encrypted to a published threshold tally public key and enough decryption share records were submitted; local MVP tally still uses a coordinator fallback until share proof validation is implemented."
         : activeCommittee
@@ -2981,6 +3554,11 @@ export function buildServer() {
         authorityLevel: poll.question.authorityLevel,
         adoptionPolicyId: poll.question.adoptionPolicyId,
         answerSchema,
+        resultMode: normalizePollResultMode(poll.question.resultMode),
+        individualResult,
+        individualResultHash,
+        communityBlockResult,
+        communityBlockResultHash,
         aggregate: tally.aggregate,
         counts: tally.counts,
         turnout: tally.turnout,
@@ -3050,6 +3628,8 @@ export function buildServer() {
         update: {
           resultArtifactHash: resultArtifact.hash,
           aggregateCountsHash,
+          individualResultHash,
+          communityBlockResultHash,
           tallyProofHash: tallyPublicationProofArtifact.hash,
           tallyPublicationProofHash: tallyPublicationProofArtifact.hash,
           turnout: tally.turnout,
@@ -3062,6 +3642,8 @@ export function buildServer() {
           pollId,
           resultArtifactHash: resultArtifact.hash,
           aggregateCountsHash,
+          individualResultHash,
+          communityBlockResultHash,
           tallyProofHash: tallyPublicationProofArtifact.hash,
           tallyPublicationProofHash: tallyPublicationProofArtifact.hash,
           turnout: tally.turnout,
@@ -5414,6 +5996,8 @@ export function buildServer() {
             pollId: question.poll.id,
             resultArtifactHash: question.poll.result.resultArtifactHash,
             aggregateCountsHash: question.poll.result.aggregateCountsHash,
+            individualResultHash: question.poll.result.individualResultHash,
+            communityBlockResultHash: question.poll.result.communityBlockResultHash,
             tallyProofHash: question.poll.result.tallyProofHash,
             tallyPublicationProofHash: question.poll.result.tallyPublicationProofHash,
             turnout: question.poll.result.turnout,
@@ -5472,24 +6056,28 @@ export function buildServer() {
       }),
       prisma.registryEvent.count({ where })
     ]);
-    const eventIds = events.map((event) => event.id);
+    const viewerId = await effectiveViewerId(request);
+    const visibleEvents = config.demoMode ? events : await redactRegistryEventsForViewer(events, viewerId);
+    const eventIds = visibleEvents.map((event) => event.id);
     const commitments = eventIds.length
       ? (
           await prisma.protocolCommitmentRecord.findMany({
             where: { sourceEventId: { in: eventIds } },
             orderBy: COMMITMENT_RECORD_ORDER
           })
-        ).map(toCommitmentView)
-      : [];
-    const pageInfo = buildPageInfo(page, total);
-    return { protocol: buildRegistryEventsProtocol(events, pageInfo, commitments), page: pageInfo, events, commitments };
+	        ).map(toCommitmentView)
+	      : [];
+    const pageInfo = buildPageInfo(page, config.demoMode ? total : visibleEvents.length);
+    return { protocol: buildRegistryEventsProtocol(visibleEvents, pageInfo, commitments), page: pageInfo, events: visibleEvents, commitments };
   });
 
-  app.get("/registry/protocol-transactions/replay", async () => {
+  app.get("/registry/protocol-transactions/replay", async (request) => {
     const records = await prisma.protocolTransactionResult.findMany({
       orderBy: [{ createdAt: "asc" }, { id: "asc" }]
     });
-    const replay = buildProtocolIndexerReplay(records.map(toProtocolTransactionView));
+    const viewerId = await effectiveViewerId(request);
+    const transactions = config.demoMode ? records.map(toProtocolTransactionView) : await redactProtocolTransactionsForViewer(records.map(toProtocolTransactionView), viewerId);
+    const replay = buildProtocolIndexerReplay(transactions);
     return {
       protocol: buildProtocolIndexerReplayProtocol(replay),
       status: replay.allPassed ? "Verified" : "Mismatch",
@@ -5524,8 +6112,9 @@ export function buildServer() {
       }),
       prisma.protocolTransactionResult.count({ where })
     ]);
-    const pageInfo = buildPageInfo(page, total);
-    const transactions = records.map(toProtocolTransactionView);
+    const viewerId = await effectiveViewerId(request);
+    const transactions = config.demoMode ? records.map(toProtocolTransactionView) : await redactProtocolTransactionsForViewer(records.map(toProtocolTransactionView), viewerId);
+    const pageInfo = buildPageInfo(page, config.demoMode ? total : transactions.length);
     return {
       protocol: buildProtocolTransactionsProtocol(transactions, pageInfo),
       page: pageInfo,
@@ -5556,8 +6145,9 @@ export function buildServer() {
       }),
       prisma.protocolCommitmentRecord.count({ where })
     ]);
-    const pageInfo = buildPageInfo(page, total);
-    const commitments = records.map(toCommitmentView);
+    const viewerId = await effectiveViewerId(request);
+    const commitments = config.demoMode ? records.map(toCommitmentView) : await redactCommitmentsForViewer(records.map(toCommitmentView), viewerId);
+    const pageInfo = buildPageInfo(page, config.demoMode ? total : commitments.length);
     return { protocol: buildCommitmentsProtocol(commitments, pageInfo), page: pageInfo, commitments };
   });
 
@@ -5868,6 +6458,16 @@ export function buildServer() {
 
   app.get("/artifacts/:hash", async (request, reply) => {
     const { hash } = request.params as { hash: string };
+    const artifactRecord = await prisma.artifact.findUnique({ where: { hash } });
+    if (!artifactRecord && !config.demoMode) return reply.code(404).send({ error: "Artifact not found" });
+    if (artifactRecord) {
+      const session = await readAuthSession(request);
+      const { userId } = request.query as { userId?: string };
+      const effectiveUserId = session?.userId ?? (!config.requireAuth ? userId : undefined);
+      if (!(await canReadArtifact(artifactRecord.kind, hash, effectiveUserId))) {
+        return reply.code(403).send({ error: "Artifact is not public for this viewer" });
+      }
+    }
     try {
       const artifact = await artifactStore.read(hash);
       return { protocol: buildArtifactReadProtocol(hash, artifact), hash, artifact };
@@ -6024,6 +6624,10 @@ type DiscoveryCommunityView = {
   slug: string;
   name: string;
   kind: string;
+  parentId?: string | null;
+  path?: string;
+  depth?: number;
+  registryStatus?: string;
   profileUserId: string | null;
   visibility: string;
   memberCount: number;
@@ -6033,6 +6637,7 @@ type DiscoveryCommunityView = {
 };
 
 type QuestionAudience = "Public" | "Followers" | "Members";
+type PollResultMode = "PeopleVote" | "CommunitiesSignal" | "ShowBoth";
 
 type QuestionAccessRecord = {
   id: string;
@@ -7672,8 +8277,16 @@ function toRegistryEventView(value: Record<string, unknown>): RegistryEventView[
       sourceModule: typeof value.sourceModule === "string" ? value.sourceModule : null,
       transactionType: typeof value.transactionType === "string" ? value.transactionType : null,
       emittedAt: value.emittedAt instanceof Date ? value.emittedAt : new Date(typeof value.emittedAt === "string" ? value.emittedAt : 0)
-    }
+  }
   ];
+}
+
+function assertProductionPrivacyConfig() {
+  if (config.runtimeEnv !== "production") return;
+  if (config.devMode) throw new Error("Refusing to start production API with PC_DEV_MODE enabled");
+  if (config.demoMode) throw new Error("Refusing to start production API with PC_DEMO_MODE enabled");
+  if (!config.requireAuth) throw new Error("Refusing to start production API without authenticated writes");
+  if (config.corsOrigin === true) throw new Error("Refusing to start production API with reflected CORS origins");
 }
 
 function bundleHasArtifactReference(bundle: ArtifactExportBundle, reference: ArtifactReference): boolean {
@@ -10163,7 +10776,7 @@ function resolveProtocolTransactionType(eventType: string): string {
 }
 
 function inferProtocolEventModule(eventType: string): string {
-  if (eventType.startsWith("Credential") || eventType.startsWith("CommunityCredentialTrustPolicy")) return "CredentialRegistry";
+  if (eventType.startsWith("Credential") || eventType.startsWith("CommunityCredentialTrustPolicy") || eventType.startsWith("AnonymousEligibility")) return "CredentialRegistry";
   if (eventType.startsWith("Tally")) return "TallyManager";
   if (eventType.startsWith("Poll") || eventType.startsWith("Ballot")) return "PollManager";
   if (eventType.startsWith("ResultChallenge") || eventType === "ResultChallenged") return "ChallengeCourt";
@@ -10263,8 +10876,14 @@ async function storeArtifact(artifact: { hash: string; path: string }, kind: Art
   await prisma.artifact.upsert({
     where: { hash: artifact.hash },
     update: {},
-    create: { hash: artifact.hash, path: artifact.path, kind }
+    create: { hash: artifact.hash, path: artifact.path, kind, privacyLevel: artifactPrivacyLevel(kind) }
   });
+}
+
+function artifactPrivacyLevel(kind: string) {
+  if (PUBLIC_ARTIFACT_KINDS.has(kind)) return "Public";
+  if (COMMUNITY_GATED_ARTIFACT_KINDS.has(kind)) return "CommunityGated";
+  return "Protected";
 }
 
 type CredentialRegistryCheckInput = {
@@ -10660,12 +11279,58 @@ async function createAuthSession(userId: string, aaAccountAddress: string, contr
   };
 }
 
+type CreatedAuthSession = Awaited<ReturnType<typeof createAuthSession>>;
+
+function authSessionResponse(session: CreatedAuthSession) {
+  const response = {
+    id: session.id,
+    expiresAt: session.expiresAt,
+    aaAccountAddress: session.aaAccountAddress,
+    controllerId: session.controllerId
+  };
+  return config.devMode ? { ...response, token: session.token } : response;
+}
+
+function setAuthSessionCookie(reply: FastifyReply, token: string) {
+  reply.header("set-cookie", serializeSessionCookie("pc_auth", token, {
+    maxAgeSeconds: Math.max(60, Math.floor(config.authSessionTtlHours * 60 * 60))
+  }));
+}
+
+function clearAuthSessionCookie(reply: FastifyReply) {
+  reply.header("set-cookie", serializeSessionCookie("pc_auth", "", { maxAgeSeconds: 0 }));
+}
+
 function readBearerToken(request: FastifyRequest) {
   const authorization = request.headers.authorization;
   const rawAuthorization = Array.isArray(authorization) ? authorization[0] : authorization;
   if (rawAuthorization?.startsWith("Bearer ")) return rawAuthorization.slice("Bearer ".length).trim();
   const headerToken = request.headers["x-pc-session-token"];
-  return Array.isArray(headerToken) ? headerToken[0] : headerToken;
+  const tokenFromHeader = Array.isArray(headerToken) ? headerToken[0] : headerToken;
+  return tokenFromHeader ?? readCookie(request, "pc_auth");
+}
+
+function serializeSessionCookie(name: string, value: string, options: { maxAgeSeconds: number }) {
+  const parts = [
+    `${name}=${encodeURIComponent(value)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${options.maxAgeSeconds}`
+  ];
+  if (config.secureAuthCookies) parts.push("Secure");
+  return parts.join("; ");
+}
+
+function readCookie(request: FastifyRequest, name: string) {
+  const rawCookie = request.headers.cookie;
+  const cookie = Array.isArray(rawCookie) ? rawCookie.join("; ") : rawCookie;
+  if (!cookie) return undefined;
+  for (const part of cookie.split(";")) {
+    const [rawName, ...rawValue] = part.trim().split("=");
+    if (rawName === name) return decodeURIComponent(rawValue.join("="));
+  }
+  return undefined;
 }
 
 async function readAuthSession(request: FastifyRequest) {
@@ -10732,6 +11397,269 @@ function normalizeAuthority(authorityLevel: string): keyof typeof AUTHORITY_RANK
   return "Advisory";
 }
 
+function normalizePollResultMode(resultMode: string | null | undefined): PollResultMode {
+  if (resultMode === "PeopleVote" || resultMode === "CommunitiesSignal") return resultMode;
+  return "ShowBoth";
+}
+
+function buildCommunityPath(parent: { path: string; slug: string } | null | undefined, slug: string) {
+  const parentPath = parent?.path || parent?.slug || "";
+  return parentPath ? `${parentPath}/${slug}` : slug;
+}
+
+function defaultRegistryPolicyView(community: { id: string; createdBy: string }) {
+  return {
+    id: `registry-policy-default-${community.id}`,
+    communityId: community.id,
+    ...DEFAULT_REGISTRY_POLICY,
+    status: "Active",
+    createdBy: community.createdBy,
+    createdAt: new Date(0),
+    updatedAt: new Date(0)
+  };
+}
+
+function strongerCommunityRole(left: string | null | undefined, right: string) {
+  const current = COMMUNITY_ROLE_RANK[(left ?? "Member") as keyof typeof COMMUNITY_ROLE_RANK] ?? COMMUNITY_ROLE_RANK.Member;
+  const next = COMMUNITY_ROLE_RANK[right as keyof typeof COMMUNITY_ROLE_RANK] ?? COMMUNITY_ROLE_RANK.Member;
+  return next > current ? right : left ?? "Member";
+}
+
+async function upsertMembershipWithSource(
+  client: Pick<Prisma.TransactionClient, "communityMember" | "communityMembershipSource">,
+  input: {
+    communityId: string;
+    userId: string;
+    role: "Owner" | "Moderator" | "Member";
+    sourceType: string;
+    sourceKey: string;
+    sourceCommunityId?: string | null;
+  }
+) {
+  const existing = await client.communityMember.findUnique({
+    where: { communityId_userId: { communityId: input.communityId, userId: input.userId } }
+  });
+  const membership = await client.communityMember.upsert({
+    where: { communityId_userId: { communityId: input.communityId, userId: input.userId } },
+    update: {
+      status: "Active",
+      role: strongerCommunityRole(existing?.role, input.role) as "Owner" | "Moderator" | "Member"
+    },
+    create: {
+      id: `member-${nanoid(10)}`,
+      communityId: input.communityId,
+      userId: input.userId,
+      role: input.role,
+      status: "Active"
+    }
+  });
+  await client.communityMembershipSource.upsert({
+    where: {
+      communityId_userId_sourceKey: {
+        communityId: input.communityId,
+        userId: input.userId,
+        sourceKey: input.sourceKey
+      }
+    },
+    update: { status: "Active", sourceType: input.sourceType, sourceCommunityId: input.sourceCommunityId ?? null },
+    create: {
+      id: `membership-source-${nanoid(10)}`,
+      communityId: input.communityId,
+      userId: input.userId,
+      sourceType: input.sourceType,
+      sourceKey: input.sourceKey,
+      sourceCommunityId: input.sourceCommunityId ?? null,
+      status: "Active"
+    }
+  });
+  return membership;
+}
+
+async function ancestorCommunities(
+  client: Pick<Prisma.TransactionClient, "community"> | typeof prisma,
+  communityId: string
+) {
+  const ancestors: Array<{ id: string; parentId: string | null; path: string; slug: string; depth: number }> = [];
+  const seen = new Set<string>();
+  let current = await client.community.findUnique({
+    where: { id: communityId },
+    select: { parentId: true }
+  });
+  while (current?.parentId && !seen.has(current.parentId)) {
+    seen.add(current.parentId);
+    const parent = await client.community.findUnique({
+      where: { id: current.parentId },
+      select: { id: true, parentId: true, path: true, slug: true, depth: true }
+    });
+    if (!parent) break;
+    ancestors.push(parent);
+    current = parent;
+  }
+  return ancestors;
+}
+
+async function propagateMembershipToAncestors(client: Prisma.TransactionClient, joinedCommunityId: string, userId: string) {
+  const ancestors = await ancestorCommunities(client, joinedCommunityId);
+  for (const ancestor of ancestors) {
+    await upsertMembershipWithSource(client, {
+      communityId: ancestor.id,
+      userId,
+      role: "Member",
+      sourceType: "ChildCommunity",
+      sourceKey: `child:${joinedCommunityId}`,
+      sourceCommunityId: joinedCommunityId
+    });
+  }
+}
+
+async function propagateChildMembershipsToAncestors(client: Prisma.TransactionClient, childCommunityId: string) {
+  const childMembers = await client.communityMember.findMany({
+    where: { communityId: childCommunityId, status: "Active" },
+    select: { userId: true }
+  });
+  for (const member of childMembers) {
+    await propagateMembershipToAncestors(client, childCommunityId, member.userId);
+  }
+}
+
+async function childProposalTally(proposal: { id?: string; parentId: string; thresholdPercent: number; quorumPercent: number; votes?: Array<{ vote: string }> }) {
+  const [memberCount, votes] = await Promise.all([
+    prisma.communityMember.count({ where: { communityId: proposal.parentId, status: "Active" } }),
+    "votes" in proposal && proposal.votes
+      ? Promise.resolve(proposal.votes)
+      : prisma.communityChildProposalVote.findMany({ where: { proposalId: proposal.id ?? "__none__" } })
+  ]);
+  const support = votes.filter((vote) => vote.vote === "Support").length;
+  const oppose = votes.filter((vote) => vote.vote === "Oppose").length;
+  const total = support + oppose;
+  const supportPercent = total ? Math.round((support / total) * 100) : 0;
+  const quorumPercent = memberCount ? Math.round((total / memberCount) * 100) : 0;
+  return {
+    support,
+    oppose,
+    total,
+    eligibleMembers: memberCount,
+    supportPercent,
+    quorumPercent,
+    requiredThresholdPercent: proposal.thresholdPercent,
+    requiredQuorumPercent: proposal.quorumPercent,
+    thresholdMet: total > 0 && supportPercent >= proposal.thresholdPercent,
+    quorumMet: proposal.quorumPercent === 0 || quorumPercent >= proposal.quorumPercent
+  };
+}
+
+async function approveChildProposal(proposalId: string, actorId: string, status: "Approved" | "ApprovedByMembers", reason: string) {
+  const proposal = await prisma.communityChildProposal.findUnique({ where: { id: proposalId } });
+  if (!proposal) throw new Error("Child proposal not found");
+  if (proposal.status !== "Pending" && proposal.status !== "Approved") throw new Error("Child proposal is already resolved");
+  const resolutionHash = hashJson({ proposalId, ruling: status, reason });
+  const approved = await prisma.$transaction(async (tx) => {
+    await tx.community.update({ where: { id: proposal.proposedCommunityId }, data: { registryStatus: "Active" } });
+    const updated = await tx.communityChildProposal.update({
+      where: { id: proposal.id },
+      data: { status, approvedBy: actorId, resolutionHash, resolvedAt: new Date() },
+      include: { votes: true }
+    });
+    await propagateChildMembershipsToAncestors(tx, proposal.proposedCommunityId);
+    return updated;
+  });
+  return { proposal: approved, tally: await childProposalTally(approved) };
+}
+
+async function buildCommunityBlockResult(input: {
+  communityId: string | null;
+  resultMode: PollResultMode;
+  ballots: Array<{
+    representedCommunityId: string | null;
+    encryptedPayloadJson: string;
+  }>;
+  answerSchema: ReturnType<typeof getAnswerSchema>;
+  tallyPrivateKeyPem: string;
+  privacyThreshold: number;
+}) {
+  const directChildren = input.communityId
+    ? await prisma.community.findMany({
+        where: { parentId: input.communityId, registryStatus: "Active" },
+        orderBy: { name: "asc" },
+        select: { id: true, slug: true, name: true, path: true }
+      })
+    : [];
+  const childrenById = new Map(directChildren.map((child) => [child.id, child]));
+  const grouped = new Map<string, EncryptedBallotPayload[]>();
+  for (const ballot of input.ballots) {
+    if (!ballot.representedCommunityId || !childrenById.has(ballot.representedCommunityId)) continue;
+    const payload = JSON.parse(ballot.encryptedPayloadJson) as EncryptedBallotPayload;
+    grouped.set(ballot.representedCommunityId, [...(grouped.get(ballot.representedCommunityId) ?? []), payload]);
+  }
+
+  const signals: Array<{
+    communityId: string;
+    slug: string;
+    name: string;
+    path: string;
+    turnout: number;
+    primaryChoice: string | null;
+    aggregate: unknown;
+    counts: Record<string, number>;
+  }> = [];
+  const hiddenCommunities: Array<{ communityId: string; slug: string; turnout: number; reason: string }> = [];
+  const blockCounts: Record<string, number> = {};
+
+  for (const [communityId, payloads] of grouped) {
+    const child = childrenById.get(communityId);
+    if (!child) continue;
+    const tally = tallyEncryptedBallots(payloads, input.tallyPrivateKeyPem, input.answerSchema);
+    if (tally.turnout < input.privacyThreshold) {
+      hiddenCommunities.push({
+        communityId,
+        slug: child.slug,
+        turnout: tally.turnout,
+        reason: "Below privacy threshold"
+      });
+      continue;
+    }
+    const primaryChoice = primaryChoiceFromCounts(tally.counts);
+    if (primaryChoice) blockCounts[primaryChoice] = (blockCounts[primaryChoice] ?? 0) + 1;
+    signals.push({
+      communityId,
+      slug: child.slug,
+      name: child.name,
+      path: child.path,
+      turnout: tally.turnout,
+      primaryChoice,
+      aggregate: tally.aggregate,
+      counts: tally.counts
+    });
+  }
+
+  return {
+    schemaVersion: "community-block-result-v0",
+    resultMode: input.resultMode,
+    parentCommunityId: input.communityId,
+    eligibleDirectChildCommunityIds: directChildren.map((child) => child.id),
+    representedCommunityCount: grouped.size,
+    publishedSignalCount: signals.length,
+    hiddenSignalCount: hiddenCommunities.length,
+    privacyThreshold: input.privacyThreshold,
+    blockCounts,
+    signals,
+    hiddenCommunities,
+    rule: "One person casts one ballot per poll and may attribute it to one direct child community they belong to."
+  };
+}
+
+function primaryChoiceFromCounts(counts: Record<string, number>) {
+  let winner: string | null = null;
+  let winnerCount = Number.NEGATIVE_INFINITY;
+  for (const [choice, count] of Object.entries(counts)) {
+    if (count > winnerCount) {
+      winner = choice;
+      winnerCount = count;
+    }
+  }
+  return winnerCount > 0 ? winner : null;
+}
+
 async function questionFeedWhere(communityId: string | undefined, userId: string | undefined, reply: FastifyReply) {
   const readableWhere = readableQuestionWhere(userId);
   if (communityId) {
@@ -10770,6 +11698,104 @@ async function canReadCommunity(communityId: string | null, userId: string | und
     select: { status: true }
   });
   return membership?.status === "Active";
+}
+
+async function canReadArtifact(kind: string, hash: string, userId: string | undefined) {
+  if (PUBLIC_ARTIFACT_KINDS.has(kind)) return true;
+  if (!COMMUNITY_GATED_ARTIFACT_KINDS.has(kind)) return false;
+
+  const question = await prisma.question.findFirst({
+    where: {
+      OR: [
+        { bodyHash: hash },
+        { sponsorDisclosureHash: hash },
+        { archiveRecord: { is: { archiveHash: hash } } },
+        { challenges: { some: { OR: [{ evidenceHash: hash }, { resolutionHash: hash }] } } },
+        { challengeAppeals: { some: { OR: [{ appealHash: hash }, { resolutionHash: hash }] } } },
+        { discussionPosts: { some: { bodyHash: hash } } },
+        { moderationRecords: { some: { reasonHash: hash } } }
+      ]
+    },
+    select: { id: true, proposer: true, communityId: true, audience: true }
+  });
+  if (question) return canReadQuestion(question, userId);
+
+  const resultChallenge = await prisma.resultChallenge.findFirst({
+    where: { OR: [{ evidenceHash: hash }, { resolutionHash: hash }] },
+    select: { poll: { select: { question: { select: { id: true, proposer: true, communityId: true, audience: true } } } } }
+  });
+  if (resultChallenge) return canReadQuestion(resultChallenge.poll.question, userId);
+
+  const moderationAppeal = await prisma.discussionModerationAppeal.findFirst({
+    where: { OR: [{ appealHash: hash }, { resolutionHash: hash }] },
+    select: { moderationRecord: { select: { question: { select: { id: true, proposer: true, communityId: true, audience: true } } } } }
+  });
+  if (moderationAppeal) return canReadQuestion(moderationAppeal.moderationRecord.question, userId);
+
+  const consent = await prisma.dataUnionConsent.findFirst({
+    where: { OR: [{ consentHash: hash }, { revokedHash: hash }] },
+    select: { communityId: true, userId: true }
+  });
+  if (consent) return Boolean(userId && (userId === consent.userId || (await isActiveCommunityCurator(consent.communityId, userId))));
+
+  return false;
+}
+
+async function effectiveViewerId(request: FastifyRequest) {
+  const session = await readAuthSession(request);
+  const { userId } = request.query as { userId?: string };
+  return session?.userId ?? (!config.requireAuth ? userId : undefined);
+}
+
+async function redactRegistryEventsForViewer(events: RegistryEventView[], userId: string | undefined) {
+  const visible: RegistryEventView[] = [];
+  for (const event of events) {
+    if (await canReadRegistryEvent(event, userId)) visible.push(event);
+  }
+  return visible;
+}
+
+async function canReadRegistryEvent(event: Pick<RegistryEventView, "subjectId" | "newHash">, userId: string | undefined) {
+  const question = await prisma.question.findUnique({
+    where: { id: event.subjectId },
+    select: { id: true, proposer: true, communityId: true, audience: true }
+  });
+  if (question && !(await canReadQuestion(question, userId))) return false;
+
+  const artifact = await prisma.artifact.findUnique({ where: { hash: event.newHash }, select: { kind: true } });
+  if (artifact && !(await canReadArtifact(artifact.kind, event.newHash, userId))) return false;
+
+  return true;
+}
+
+async function redactProtocolTransactionsForViewer(transactions: ProtocolTransactionReplayInput[], userId: string | undefined) {
+  const visible: ProtocolTransactionReplayInput[] = [];
+  for (const transaction of transactions) {
+    const payload = isRecord(transaction.payload) ? transaction.payload : {};
+    const newHash = typeof payload.newHash === "string" ? payload.newHash : null;
+    if (!newHash || (await canReadRegistryEvent({ subjectId: transaction.subjectId, newHash }, userId))) visible.push(transaction);
+  }
+  return visible;
+}
+
+async function redactCommitmentsForViewer(commitments: CommitmentView[], userId: string | undefined) {
+  const visible: CommitmentView[] = [];
+  for (const commitment of commitments) {
+    const payload = isRecord(commitment.payload) ? commitment.payload : {};
+    const sourceEvent = isRecord(payload.sourceEvent) ? payload.sourceEvent : {};
+    const subjectId = typeof sourceEvent.subjectId === "string" ? sourceEvent.subjectId : commitment.subjectId;
+    const newHash = typeof sourceEvent.newHash === "string" ? sourceEvent.newHash : null;
+    if (!newHash || (await canReadRegistryEvent({ subjectId, newHash }, userId))) visible.push(commitment);
+  }
+  return visible;
+}
+
+async function isActiveCommunityCurator(communityId: string, userId: string) {
+  const membership = await prisma.communityMember.findUnique({
+    where: { communityId_userId: { communityId, userId } },
+    select: { status: true, role: true }
+  });
+  return membership?.status === "Active" && CURATOR_ROLES.includes(membership.role);
 }
 
 async function canReadQuestion(question: QuestionAccessRecord, userId: string | undefined) {
@@ -10935,6 +11961,9 @@ async function createProfileCommunityForUser(
       name: user.displayName || user.username || user.id,
       description: user.bio || `${user.displayName || user.username || "This member"}'s personal question feed.`,
       kind: "Profile",
+      path: profileCommunitySlug(user.username || user.id),
+      depth: 0,
+      registryStatus: "Active",
       profileUserId: user.id,
       visibility: "Public",
       credentialSchemaId: "credential-vancouver-resident",
@@ -10948,6 +11977,17 @@ async function createProfileCommunityForUser(
       communityId: user.profileCommunityId,
       userId: user.id,
       role: "Owner",
+      status: "Active"
+    }
+  });
+  await client.communityMembershipSource.create({
+    data: {
+      id: `membership-source-${nanoid(10)}`,
+      communityId: user.profileCommunityId,
+      userId: user.id,
+      sourceType: "DirectJoin",
+      sourceKey: `direct:${user.profileCommunityId}`,
+      sourceCommunityId: user.profileCommunityId,
       status: "Active"
     }
   });

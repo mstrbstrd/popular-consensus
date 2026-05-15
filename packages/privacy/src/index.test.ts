@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 import { BuiltInAnswerSchemas, getAnswerSchema, type BallotResponse } from "@pc/shared";
 import {
   ballotCommitment,
+  anonymousBallotProofHash,
+  anonymousPollScope,
   createCoordinatorKeypair,
+  createParticipationReceipt,
   decryptBallot,
   deriveNullifier,
   encryptBallot,
   issueDemoCredential,
+  participationReceiptHash,
   tallyEncryptedBallots,
+  verifyAnonymousBallotProof,
   verifyDemoCredential
 } from "./index";
 
@@ -141,5 +146,48 @@ describe("MACI-derived privacy helpers", () => {
     expect(tally.invalidBallots).toBe(1);
     expect(tally.turnout).toBe(0);
     expect(tally.aggregate).toMatchObject({ counts: { support: 0, oppose: 0, abstain: 0 } });
+  });
+
+  it("creates poll-scoped anonymous proof hashes without embedding identity", () => {
+    const scope = anonymousPollScope("poll-1", "credential-vancouver-resident");
+    const proofHash = anonymousBallotProofHash({
+      protocol: "popular-consensus",
+      schemaVersion: "anonymous-ballot-proof-v1",
+      proofSystem: "SemaphoreV4",
+      groupId: "group-vancouver",
+      groupRoot: "12345",
+      signal: "sha256:ballot-commitment",
+      scope,
+      nullifier: "98765",
+      proof: { merkleTreeDepth: 20, points: ["1", "2", "3", "4", "5", "6", "7", "8"] }
+    });
+
+    expect(scope).toMatch(/^sha256:/);
+    expect(proofHash).toMatch(/^sha256:/);
+    expect(proofHash).not.toContain("demo-resident");
+  });
+
+  it("rejects malformed anonymous ballot proofs instead of accepting hash-only claims", async () => {
+    const proof = {
+      protocol: "popular-consensus" as const,
+      schemaVersion: "anonymous-ballot-proof-v1" as const,
+      proofSystem: "SemaphoreV4" as const,
+      groupId: "group-vancouver",
+      groupRoot: "12345",
+      signal: "sha256:ballot-commitment",
+      scope: anonymousPollScope("poll-1", "credential-vancouver-resident"),
+      nullifier: "98765",
+      proof: {}
+    };
+
+    await expect(verifyAnonymousBallotProof(proof, { groupRoot: proof.groupRoot, signal: proof.signal, scope: proof.scope })).resolves.toBe(false);
+  });
+
+  it("creates private participation receipts that can be hashed for redemption", () => {
+    const receipt = createParticipationReceipt("poll-1");
+
+    expect(receipt.receiptSecret).toHaveLength(64);
+    expect(receipt.receiptHash).toBe(participationReceiptHash(receipt.receiptSecret));
+    expect(receipt.receiptHash).toMatch(/^sha256:/);
   });
 });

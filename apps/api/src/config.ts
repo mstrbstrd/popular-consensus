@@ -1,7 +1,8 @@
 import path from "node:path";
 import { readFileSync } from "node:fs";
 
-const devMode = process.env.PC_DEV_MODE !== "false";
+const nodeEnv = process.env.NODE_ENV ?? "development";
+const devMode = process.env.PC_DEV_MODE ? process.env.PC_DEV_MODE !== "false" : nodeEnv !== "production";
 const allowedAuthOrigins = process.env.PC_AUTH_ORIGINS?.split(",").map((origin) => origin.trim()).filter(Boolean) ?? [
   "http://127.0.0.1:3000",
   "http://127.0.0.1:3001",
@@ -20,14 +21,17 @@ const deployment = loadLocalDeployment();
 const deploymentContracts = deployment?.contracts ?? {};
 
 export const config = {
+  runtimeEnv: nodeEnv,
   port: Number(process.env.PORT ?? 4000),
-  host: process.env.HOST ?? "0.0.0.0",
+  host: process.env.HOST ?? "127.0.0.1",
   artifactDir: process.env.ARTIFACT_DIR ?? path.join(process.cwd(), "..", "..", "data", "artifacts"),
   devMode,
   demoMode: process.env.PC_DEMO_MODE ? process.env.PC_DEMO_MODE !== "false" : devMode,
-  requireAuth: process.env.PC_REQUIRE_AUTH === "true" || !devMode,
+  requireAuth: process.env.PC_REQUIRE_AUTH ? process.env.PC_REQUIRE_AUTH === "true" : !devMode,
   authOrigins: allowedAuthOrigins,
+  corsOrigin: devMode ? true : allowedAuthOrigins,
   authSessionTtlHours: Number(process.env.PC_AUTH_SESSION_TTL_HOURS ?? 24),
+  secureAuthCookies: process.env.PC_SECURE_AUTH_COOKIES ? process.env.PC_SECURE_AUTH_COOKIES !== "false" : !devMode,
   accountAbstraction: {
     chainId: Number(process.env.PC_AA_CHAIN_ID ?? deployment?.chainId ?? 31337),
     rpcUrl: process.env.PC_AA_RPC_URL ?? process.env.RPC_URL ?? "http://127.0.0.1:8545",

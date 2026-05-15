@@ -292,6 +292,14 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       profileArtifact: { hash: newUser.json().profileArtifact.hash }
     });
 
+    const profileResolveByRouteSlug = await app.inject({ method: "GET", url: "/profiles/resolve?username=civic-builder" });
+    expect(profileResolveByRouteSlug.statusCode).toBe(200);
+    expect(profileResolveByRouteSlug.json().profile).toMatchObject({
+      id: newUserId,
+      username: "civic_builder",
+      profileCommunityId: newUserProfileCommunityId
+    });
+
     const profileCommunities = await app.inject({ method: "GET", url: `/communities?kind=Profile&userId=${newUserId}` });
     expect(profileCommunities.statusCode).toBe(200);
     expect(profileCommunities.json().communities).toEqual(
@@ -451,11 +459,19 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       computedHash: allowedPrivateExport.json().exportArtifact.hash
     });
 
-    const filteredCommunities = await app.inject({ method: "GET", url: "/communities?visibility=Public&query=vancouver&limit=1" });
+    const filteredCommunities = await app.inject({ method: "GET", url: "/communities?visibility=Public&query=vancouver&limit=10" });
     expect(filteredCommunities.statusCode).toBe(200);
     PublicApiV0CommunitiesResponseSchema.parse(filteredCommunities.json());
-    expect(filteredCommunities.json().page).toMatchObject({ limit: 1, cursor: "0", total: 1, hasMore: false });
-    expect(filteredCommunities.json().communities[0]).toMatchObject({ id: "community-vancouver", visibility: "Public" });
+    expect(filteredCommunities.json().page).toMatchObject({ limit: 10, cursor: "0", total: 5, hasMore: false });
+    expect(filteredCommunities.json().communities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "community-vancouver-city", visibility: "Public" }),
+        expect.objectContaining({ id: "community-vancouver", visibility: "Public" }),
+        expect.objectContaining({ id: "community-bc-north-vancouver-city", visibility: "Public" }),
+        expect.objectContaining({ id: "community-bc-north-vancouver-district", visibility: "Public" }),
+        expect.objectContaining({ id: "community-bc-west-vancouver", visibility: "Public" })
+      ])
+    );
 
     const created = await app.inject({
       method: "POST",
@@ -4665,6 +4681,161 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
     expect(ownerResult.statusCode).toBe(200);
     expect(ownerResult.json().artifact).not.toHaveProperty("encryptedPayloadJson");
     expect(ownerResult.json().artifact.counts.support).toBe(1);
+  });
+
+  it("curates nested communities, inherited memberships, and community block signals without duplicate votes", async () => {
+    const canada = await app.inject({ method: "GET", url: "/communities?slug=canada&userId=demo-resident" });
+    expect(canada.statusCode).toBe(200);
+    expect(canada.json().communities[0]).toMatchObject({
+      id: "community-canada",
+      path: "world/canada",
+      isMember: true,
+      activeUserRole: "Member"
+    });
+
+    const britishColumbiaChildren = await app.inject({
+      method: "GET",
+      url: "/communities/community-canada-british-columbia/children?userId=demo-resident"
+    });
+    expect(britishColumbiaChildren.statusCode).toBe(200);
+    expect(britishColumbiaChildren.json().children).toHaveLength(161);
+    expect(britishColumbiaChildren.json().children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "community-bc-100-mile-house", path: "world/canada/british-columbia/100-mile-house" }),
+        expect.objectContaining({ id: "community-bc-langley-city", name: "Langley", path: "world/canada/british-columbia/langley-city" }),
+        expect.objectContaining({ id: "community-vancouver-city", name: "Vancouver", path: "world/canada/british-columbia/vancouver" }),
+        expect.objectContaining({ id: "community-bc-zeballos", path: "world/canada/british-columbia/zeballos" })
+      ])
+    );
+
+    const vancouverChildren = await app.inject({
+      method: "GET",
+      url: "/communities/community-vancouver-city/children?userId=demo-resident"
+    });
+    expect(vancouverChildren.statusCode).toBe(200);
+    expect(vancouverChildren.json().children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "community-vancouver", path: "world/canada/british-columbia/vancouver/vancouver-transit" }),
+        expect.objectContaining({ id: "community-housing-coop", path: "world/canada/british-columbia/vancouver/east-van-coop" })
+      ])
+    );
+
+    const proposedChild = await app.inject({
+      method: "POST",
+      url: "/communities",
+      payload: {
+        name: "Mount Pleasant Neighbors",
+        slug: "mount-pleasant-neighbors",
+        description: "A neighborhood child community proposed under Vancouver.",
+        visibility: "Public",
+        parentId: "community-vancouver-city",
+        creatorId: "demo-resident"
+      }
+    });
+    expect(proposedChild.statusCode).toBe(200);
+    expect(proposedChild.json().community).toMatchObject({
+      parentId: "community-vancouver-city",
+      registryStatus: "Pending",
+      path: "world/canada/british-columbia/vancouver/mount-pleasant-neighbors"
+    });
+    expect(proposedChild.json().childProposal).toMatchObject({ status: "Pending", thresholdPercent: 66 });
+    const proposalId = proposedChild.json().childProposal.id as string;
+
+    const supportVote = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver-city/child-proposals/${proposalId}/votes`,
+      payload: { voterId: "demo-proposer", vote: "Support" }
+    });
+    expect(supportVote.statusCode).toBe(200);
+    expect(supportVote.json().proposal.status).toBe("ApprovedByMembers");
+
+    const approvedChildren = await app.inject({
+      method: "GET",
+      url: "/communities/community-vancouver-city/children?userId=demo-resident"
+    });
+    expect(approvedChildren.statusCode).toBe(200);
+    expect(approvedChildren.json().children).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "community-mount-pleasant-neighbors", registryStatus: "Active" })])
+    );
+
+    await app.inject({
+      method: "POST",
+      url: `/communities/${proposedChild.json().community.id}/join`,
+      payload: { userId: "demo-resident" }
+    });
+    expect(await prisma.communityMember.count({ where: { communityId: "community-canada", userId: "demo-resident" } })).toBe(1);
+    expect(
+      await prisma.communityMembershipSource.count({ where: { communityId: "community-canada", userId: "demo-resident", status: "Active" } })
+    ).toBeGreaterThan(1);
+
+    const blockQuestion = await app.inject({
+      method: "POST",
+      url: "/questions",
+      payload: {
+        title: "Should Vancouver prioritize public plazas this summer?",
+        body: "A parent-community poll that shows people and child-community signals.",
+        sponsorDisclosure: "Demo sponsor.",
+        proposer: "demo-proposer",
+        communityId: "community-vancouver-city",
+        resultMode: "ShowBoth",
+        topicIds: ["public-space", "vancouver"],
+        geoScope: "Vancouver"
+      }
+    });
+    expect(blockQuestion.statusCode).toBe(200);
+    const questionId = blockQuestion.json().question.id as string;
+    const pollId = blockQuestion.json().question.poll.id as string;
+    await acceptQuestion(app, questionId, "demo-curator");
+
+    const credential = await app.inject({
+      method: "POST",
+      url: "/credentials/demo-resident",
+      payload: { holderAlias: "demo-resident" }
+    });
+    expect(credential.statusCode).toBe(200);
+    const issued = credential.json().credential;
+
+    const firstVote = await app.inject({
+      method: "POST",
+      url: `/polls/${pollId}/vote`,
+      payload: {
+        credentialId: issued.credentialId,
+        credentialSecret: issued.secret,
+        choice: "support",
+        representedCommunityId: "community-vancouver"
+      }
+    });
+    expect(firstVote.statusCode).toBe(200);
+    expect(firstVote.json().ballot).toMatchObject({
+      representedCommunityId: "community-vancouver",
+      representedCommunityPath: "world/canada/british-columbia/vancouver/vancouver-transit"
+    });
+
+    const duplicateBlockVote = await app.inject({
+      method: "POST",
+      url: `/polls/${pollId}/vote`,
+      payload: {
+        credentialId: issued.credentialId,
+        credentialSecret: issued.secret,
+        choice: "oppose",
+        representedCommunityId: "community-housing-coop"
+      }
+    });
+    expect(duplicateBlockVote.statusCode).toBe(409);
+
+    await app.inject({ method: "POST", url: `/polls/${pollId}/close`, payload: {} });
+    const tally = await app.inject({ method: "POST", url: `/polls/${pollId}/tally`, payload: {} });
+    expect(tally.statusCode).toBe(200);
+    expect(tally.json().result).toMatchObject({
+      turnout: 1,
+      individualResultHash: expect.stringMatching(/^sha256:/),
+      communityBlockResultHash: expect.stringMatching(/^sha256:/)
+    });
+    expect(tally.json().artifact.individualResult.counts.support).toBe(1);
+    expect(tally.json().artifact.communityBlockResult.blockCounts.support).toBe(1);
+    expect(tally.json().artifact.communityBlockResult.signals).toEqual(
+      expect.arrayContaining([expect.objectContaining({ communityId: "community-vancouver", primaryChoice: "support" })])
+    );
   });
 
   it("creates and tallies a non-binary approval poll through the shared answer schema model", async () => {

@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@semaphore-protocol/core": "^4.13.0",
     "@pc/artifacts": "workspace:*",
     "@pc/shared": "workspace:*"
   },

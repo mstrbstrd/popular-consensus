@@ -11,6 +11,7 @@ model Artifact {
   hash      String   @id
   path      String
   kind      String
+  privacyLevel String @default("Public")
   createdAt DateTime @default(now())
 }
 
@@ -82,6 +83,8 @@ model UserAccount {
   reputation  Int               @default(0)
   createdAt   DateTime          @default(now())
   memberships CommunityMember[]
+  membershipSources CommunityMembershipSource[]
+  childProposalVotes CommunityChildProposalVote[]
   communityFollows CommunityFollow[]
   topicFollows     TopicFollow[]
   authControllers AuthController[]
@@ -162,28 +165,40 @@ model Community {
   name                  String
   description           String
   kind                  String            @default("Group")
+  parentId              String?
+  path                  String            @default("")
+  depth                 Int               @default(0)
+  registryStatus        String            @default("Active")
   profileUserId         String?           @unique
   visibility            String            @default("Public")
   credentialSchemaId    String            @default("credential-vancouver-resident")
   defaultAuthorityLevel String            @default("Advisory")
   createdBy             String
   createdAt             DateTime          @default(now())
+  parent                Community?        @relation("CommunityTree", fields: [parentId], references: [id])
+  children              Community[]       @relation("CommunityTree")
   memberships           CommunityMember[]
+  membershipSources     CommunityMembershipSource[]
   questions             Question[]
   forks                 CommunityFork[]
   follows               CommunityFollow[]
+  registryPolicy        CommunityRegistryPolicy?
+  childProposals        CommunityChildProposal[] @relation("CommunityChildProposalParent")
   frontendConfig        CommunityFrontendConfig?
   governanceParameterSets GovernanceParameterSet[]
   emergencySuspensions  CommunityEmergencySuspension[]
   credentialTrustPolicies CommunityCredentialTrustPolicy[]
   tallyCommittees       TallyCommittee[]
   tallyKeySetups        TallyKeySetup[]
+  anonymousEligibilityGroups AnonymousEligibilityGroup[]
   dataUnionPolicies     DataUnionPolicy[]
   dataUnionConsents     DataUnionConsent[]
   dataUnionProducts     DataUnionProduct[]
   dataUnionAccessGrants DataUnionAccessGrant[]
 
   @@index([kind, createdAt])
+  @@index([parentId, registryStatus, createdAt])
+  @@index([path])
   @@index([profileUserId])
 }
 
@@ -200,6 +215,78 @@ model CommunityMember {
   @@unique([communityId, userId])
 }
 
+model CommunityMembershipSource {
+  id                String      @id
+  communityId       String
+  userId            String
+  sourceType        String      @default("DirectJoin")
+  sourceKey         String
+  sourceCommunityId String?
+  status            String      @default("Active")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  community         Community   @relation(fields: [communityId], references: [id])
+  user              UserAccount @relation(fields: [userId], references: [id])
+
+  @@unique([communityId, userId, sourceKey])
+  @@index([communityId, userId, status])
+  @@index([sourceCommunityId])
+}
+
+model CommunityRegistryPolicy {
+  id                       String    @id
+  communityId              String    @unique
+  approvalThresholdPercent Int       @default(66)
+  quorumPercent            Int       @default(10)
+  reviewWindowHours        Int       @default(168)
+  status                   String    @default("Active")
+  createdBy                String
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  community                Community @relation(fields: [communityId], references: [id])
+
+  @@index([status, createdAt])
+}
+
+model CommunityChildProposal {
+  id                  String                       @id
+  parentId            String
+  proposedCommunityId String                       @unique
+  proposerId          String
+  title               String
+  description         String
+  status              String                       @default("Pending")
+  proposalHash        String
+  thresholdPercent    Int
+  quorumPercent       Int
+  approvedBy          String?
+  rejectedBy          String?
+  resolutionHash      String?
+  createdAt           DateTime                     @default(now())
+  resolvedAt          DateTime?
+  updatedAt           DateTime                     @updatedAt
+  parent              Community                    @relation("CommunityChildProposalParent", fields: [parentId], references: [id])
+  votes               CommunityChildProposalVote[]
+
+  @@index([parentId, status, createdAt])
+  @@index([proposedCommunityId])
+  @@index([proposerId])
+}
+
+model CommunityChildProposalVote {
+  id         String                 @id
+  proposalId String
+  voterId    String
+  vote       String                 @default("Support")
+  voteHash   String
+  createdAt  DateTime               @default(now())
+  proposal   CommunityChildProposal @relation(fields: [proposalId], references: [id])
+  voter      UserAccount            @relation(fields: [voterId], references: [id])
+
+  @@unique([proposalId, voterId])
+  @@index([proposalId, vote])
+}
+
 model Question {
   id                    String      @id
   version               Int         @default(1)
@@ -214,6 +301,7 @@ model Question {
   sponsorDisclosureHash String?
   methodologyLabel      String
   authorityLevel        String      @default("Advisory")
+  resultMode            String      @default("ShowBoth")
   opensAt               DateTime
   closesAt              DateTime
   challengeWindowEndsAt DateTime
@@ -315,6 +403,24 @@ model Credential {
   @@unique([holderAlias, schemaId, issuerId])
 }
 
+model AnonymousEligibilityGroup {
+  id                 String   @id
+  groupRoot          String
+  credentialSchemaId String
+  issuerId           String
+  communityId        String?
+  commitmentCount    Int
+  status             String   @default("Active")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @default(now()) @updatedAt
+  community          Community? @relation(fields: [communityId], references: [id])
+  polls              Poll[]
+
+  @@unique([credentialSchemaId, issuerId, communityId, groupRoot])
+  @@index([credentialSchemaId, issuerId, status])
+  @@index([communityId, status])
+}
+
 model CredentialRevocation {
   id             String   @id
   credentialId   String   @unique
@@ -403,13 +509,16 @@ model Poll {
   tallyPublicKeyPem     String
   tallyPrivateKeyPem    String
   tallyKeySetupId       String?
+  anonymousEligibilityGroupId String?
   credentialSchemaId    String
   privacyThreshold      Int      @default(1)
   resultChallengeEndsAt DateTime
   createdAt             DateTime @default(now())
   question              Question @relation(fields: [questionId], references: [id])
   tallyKeySetup         TallyKeySetup? @relation(fields: [tallyKeySetupId], references: [id])
+  anonymousEligibilityGroup AnonymousEligibilityGroup? @relation(fields: [anonymousEligibilityGroupId], references: [id])
   ballots               Ballot[]
+  participationReceipts ParticipationReceipt[]
   decryptionShares      TallyDecryptionShare[]
   result                Result?
   resultChallenges      ResultChallenge[]
@@ -474,10 +583,32 @@ model Ballot {
   encryptedPayloadJson String
   tallyPublicKeyId     String
   proofHash            String
+  proofSystem          String   @default("DemoCredentialProof")
+  eligibilityGroupId   String?
+  eligibilityGroupRoot String?
+  representedCommunityId   String?
+  representedCommunityPath String?
   submittedAt          DateTime @default(now())
   poll                 Poll     @relation(fields: [pollId], references: [id])
 
   @@unique([pollId, nullifier])
+  @@index([proofSystem, eligibilityGroupId])
+  @@index([pollId, representedCommunityId])
+}
+
+model ParticipationReceipt {
+  id                 String   @id
+  pollId             String
+  receiptHash        String   @unique
+  status             String   @default("Issued")
+  redemptionNullifier String? @unique
+  redeemedBy         String?
+  createdAt          DateTime @default(now())
+  redeemedAt         DateTime?
+  poll               Poll     @relation(fields: [pollId], references: [id])
+
+  @@index([pollId, status])
+  @@index([redeemedBy])
 }
 
 model Result {
@@ -485,6 +616,8 @@ model Result {
   pollId              String   @unique
   resultArtifactHash  String
   aggregateCountsHash String
+  individualResultHash String?
+  communityBlockResultHash String?
   tallyProofHash      String
   tallyPublicationProofHash String?
   turnout             Int

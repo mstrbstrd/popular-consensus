@@ -41,6 +41,32 @@ export type EncryptedBallotPayload = {
   ciphertext: string;
 };
 
+export type AnonymousBallotProof = {
+  protocol: "popular-consensus";
+  schemaVersion: "anonymous-ballot-proof-v1";
+  proofSystem: "SemaphoreV4";
+  groupId: string;
+  groupRoot: string;
+  signal: string;
+  scope: string;
+  nullifier: string;
+  proof: unknown;
+};
+
+export type AnonymousBallotProofContext = {
+  groupRoot: string;
+  signal: string;
+  scope: string;
+};
+
+export type ParticipationReceipt = {
+  protocol: "popular-consensus";
+  schemaVersion: "private-participation-receipt-v1";
+  pollId: string;
+  receiptSecret: string;
+  receiptHash: string;
+};
+
 export type TallySummary = {
   aggregate: ReturnType<typeof tallyBallotResponses>;
   counts: Record<string, number>;
@@ -139,6 +165,61 @@ export function verifyCredentialMembershipProof(
   return hashJson(proof) === hashJson(createCredentialMembershipProof(credential, credentialSecret, pollId));
 }
 
+export function anonymousPollScope(pollId: string, credentialSchemaId: string, pollVersion = "v1"): string {
+  return hashJson({ protocol: "pc-anonymous-poll-scope-v1", pollId, credentialSchemaId, pollVersion });
+}
+
+export function anonymousBallotProofHash(proof: AnonymousBallotProof): string {
+  return hashJson({
+    protocol: proof.protocol,
+    schemaVersion: proof.schemaVersion,
+    proofSystem: proof.proofSystem,
+    groupId: proof.groupId,
+    groupRoot: proof.groupRoot,
+    signal: proof.signal,
+    scope: proof.scope,
+    nullifier: proof.nullifier,
+    proof: proof.proof
+  });
+}
+
+export async function verifyAnonymousBallotProof(
+  proof: AnonymousBallotProof,
+  context: AnonymousBallotProofContext
+): Promise<boolean> {
+  if (proof.protocol !== "popular-consensus") return false;
+  if (proof.schemaVersion !== "anonymous-ballot-proof-v1") return false;
+  if (proof.proofSystem !== "SemaphoreV4") return false;
+  if (!sameFieldValue(proof.groupRoot, context.groupRoot)) return false;
+  if (!sameFieldValue(proof.signal, context.signal)) return false;
+  if (!sameFieldValue(proof.scope, context.scope)) return false;
+
+  const semaphoreProof = normalizeSemaphoreProof(proof);
+  if (!semaphoreProof) return false;
+
+  try {
+    const { verifyProof } = await import("@semaphore-protocol/core");
+    return await verifyProof(semaphoreProof as Parameters<typeof verifyProof>[0]);
+  } catch {
+    return false;
+  }
+}
+
+export function createParticipationReceipt(pollId: string): ParticipationReceipt {
+  const receiptSecret = randomBytes(32).toString("hex");
+  return {
+    protocol: "popular-consensus",
+    schemaVersion: "private-participation-receipt-v1",
+    pollId,
+    receiptSecret,
+    receiptHash: participationReceiptHash(receiptSecret)
+  };
+}
+
+export function participationReceiptHash(receiptSecret: string): string {
+  return hashJson({ protocol: "pc-private-participation-receipt-v1", receiptSecret });
+}
+
 export function encryptBallot(response: BallotResponse | string, coordinatorPublicKeyPem: string): EncryptedBallotPayload {
   const ephemeral = generateKeyPairSync("x25519");
   const sharedSecret = diffieHellman({
@@ -210,4 +291,28 @@ export function tallyEncryptedBallots(
 
 function sha256(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+function normalizeSemaphoreProof(proof: AnonymousBallotProof) {
+  if (!isRecord(proof.proof)) return null;
+  const candidate = {
+    ...proof.proof,
+    merkleTreeRoot: proof.groupRoot,
+    message: proof.signal,
+    scope: proof.scope,
+    nullifier: proof.nullifier
+  };
+  return candidate;
+}
+
+function sameFieldValue(left: string, right: string): boolean {
+  return normalizeFieldValue(left) === normalizeFieldValue(right);
+}
+
+function normalizeFieldValue(value: string): string {
+  return value.startsWith("0x") ? BigInt(value).toString() : value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
