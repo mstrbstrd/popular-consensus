@@ -2,6 +2,8 @@
 
 Runnable local demo for the Popular Consensus civic signal protocol.
 
+The project mission is tracked in `docs/popular_consensus_mission.md`. Treat that document as the narrative north star for product, protocol, privacy, governance, and data-union decisions; `docs/mission-to-mvp-traceability.md` maps that mission to current MVP evidence and gaps.
+
 ## Local Run
 
 ```bash

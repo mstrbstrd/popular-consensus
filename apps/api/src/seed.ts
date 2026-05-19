@@ -599,6 +599,7 @@ export async function resetDemoData() {
   await prisma.dataUnionPolicy.deleteMany();
   await prisma.result.deleteMany();
   await prisma.ballot.deleteMany();
+  await prisma.participationReceipt.deleteMany();
   await prisma.tallyDecryptionShare.deleteMany();
   await prisma.poll.deleteMany();
   await prisma.bond.deleteMany();

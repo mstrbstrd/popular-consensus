@@ -1,6 +1,6 @@
 # Popular Consensus MVP Invariants
 
-This document lists the product and protocol invariants the runnable MVP must preserve. These are not feature ideas. They are guardrails: if a change violates one, the MVP is no longer expressing the Popular Consensus model.
+This document lists the product and protocol invariants the runnable MVP must preserve. These are not feature ideas. They are guardrails: if a change violates one, the MVP is no longer expressing the Popular Consensus mission in `docs/popular_consensus_mission.md`. For mission-level evidence and gaps, see `docs/mission-to-mvp-traceability.md`.
 
 ## 1. Civic Purpose, Not Market Mechanics
 

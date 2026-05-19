@@ -1,6 +1,6 @@
 # Decentralized Protocol Roadmap
 
-This tracker turns the larger north star into implementation slices we can mark off as we go.
+This tracker turns the mission in `docs/popular_consensus_mission.md` into implementation slices we can mark off as we go. The mission-to-MVP evidence map is tracked in `docs/mission-to-mvp-traceability.md`.
 
 North star: Popular Consensus becomes shared, privacy-preserving civic infrastructure for community-governed direct democratic opinion polling. The app should centralize civic records without centralizing civic power.
 
