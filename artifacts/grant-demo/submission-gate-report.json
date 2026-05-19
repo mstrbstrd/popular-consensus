@@ -1,0 +1,168 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-submission-gate-v1",
+  "generatedAt": "2026-05-19T23:53:01.371Z",
+  "command": "pnpm grant:submission-gate",
+  "status": "SubmissionGateEvidenceReady",
+  "formalSubmissionReady": false,
+  "productionDeploymentReady": false,
+  "checksPassed": 14,
+  "checksTotal": 14,
+  "failedChecks": [],
+  "criteria": [
+    {
+      "id": "typecheck-command",
+      "status": "clean-run-required",
+      "evidence": "package.json",
+      "note": "`pnpm typecheck` is declared and must pass from the review checkout before formal submission."
+    },
+    {
+      "id": "test-command",
+      "status": "clean-run-required",
+      "evidence": "package.json",
+      "note": "`pnpm test` is declared and must pass from the review checkout before formal submission."
+    },
+    {
+      "id": "contracts-build-command",
+      "status": "clean-run-required",
+      "evidence": "package.json",
+      "note": "`pnpm contracts:build` is declared and must pass from the review checkout before formal submission."
+    },
+    {
+      "id": "grant-demo",
+      "status": "evidence-ready",
+      "evidence": "artifacts/grant-demo/full-lifecycle-report.json",
+      "note": "Full lifecycle replay demo status."
+    },
+    {
+      "id": "pc-replay-verify-bundle",
+      "status": "evidence-ready",
+      "evidence": "packages/replay/package.json",
+      "note": "CLI entrypoint exists for external bundle replay."
+    },
+    {
+      "id": "tampered-bundle-fails",
+      "status": "evidence-ready",
+      "evidence": "artifacts/grant-demo/full-lifecycle-report.json",
+      "note": "Tampered replay must fail with Mismatch."
+    },
+    {
+      "id": "grant-packet",
+      "status": "evidence-ready",
+      "evidence": "artifacts/grant-demo/packet-lint-report.json",
+      "note": "Packet lint proves grant docs are present and scoped."
+    },
+    {
+      "id": "scope-excludes-product-monetization",
+      "status": "evidence-ready",
+      "evidence": "grant/ef-protocol-replay-kit/scope-boundary.md",
+      "note": "Scope excludes product monetization and token launch claims."
+    },
+    {
+      "id": "license-plan",
+      "status": "evidence-ready",
+      "evidence": "LICENSE-BOUNDARY.md",
+      "note": "License plan is scoped to protocol/package/docs/artifact surfaces."
+    },
+    {
+      "id": "office-hours-feedback-incorporated",
+      "status": "human-blocked",
+      "evidence": "grant/ef-protocol-replay-kit/12-external-review-intake.md",
+      "note": "EF Office Hours or equivalent feedback has not been incorporated."
+    }
+  ],
+  "cleanRunRequired": [
+    "typecheck-command: `pnpm typecheck` is declared and must pass from the review checkout before formal submission.",
+    "test-command: `pnpm test` is declared and must pass from the review checkout before formal submission.",
+    "contracts-build-command: `pnpm contracts:build` is declared and must pass from the review checkout before formal submission."
+  ],
+  "humanBlockers": [
+    "office-hours-feedback-incorporated: EF Office Hours or equivalent feedback has not been incorporated."
+  ],
+  "checks": [
+    {
+      "id": "script-typecheck",
+      "ok": true,
+      "detail": "typecheck is declared in package.json",
+      "evidence": "package.json"
+    },
+    {
+      "id": "script-test",
+      "ok": true,
+      "detail": "test is declared in package.json",
+      "evidence": "package.json"
+    },
+    {
+      "id": "script-contracts:build",
+      "ok": true,
+      "detail": "contracts:build is declared in package.json",
+      "evidence": "package.json"
+    },
+    {
+      "id": "script-grant:demo",
+      "ok": true,
+      "detail": "grant:demo is declared in package.json",
+      "evidence": "package.json"
+    },
+    {
+      "id": "script-replay:verify",
+      "ok": true,
+      "detail": "replay:verify is declared in package.json",
+      "evidence": "package.json"
+    },
+    {
+      "id": "demo-verified",
+      "ok": true,
+      "detail": "Full lifecycle demo report is Verified",
+      "evidence": "artifacts/grant-demo/full-lifecycle-report.json"
+    },
+    {
+      "id": "pc-replay-bin",
+      "ok": true,
+      "detail": "Replay package exposes the pc-replay CLI",
+      "evidence": "packages/replay/package.json"
+    },
+    {
+      "id": "verify-bundle-documented",
+      "ok": true,
+      "detail": "Replay README documents pc-replay verify-bundle",
+      "evidence": "packages/replay/README.md"
+    },
+    {
+      "id": "clean-bundle-verified",
+      "ok": true,
+      "detail": "Clean community bundle replay is Verified",
+      "evidence": "artifacts/grant-demo/full-lifecycle-report.json"
+    },
+    {
+      "id": "tampered-bundle-mismatch",
+      "ok": true,
+      "detail": "Tampered replay returns Mismatch",
+      "evidence": "artifacts/grant-demo/full-lifecycle-report.json"
+    },
+    {
+      "id": "packet-ready",
+      "ok": true,
+      "detail": "Grant packet lint is PacketReady",
+      "evidence": "artifacts/grant-demo/packet-lint-report.json"
+    },
+    {
+      "id": "scope-excludes-product-monetization",
+      "ok": true,
+      "detail": "Scope boundary excludes product monetization and token launch claims",
+      "evidence": "grant/ef-protocol-replay-kit/scope-boundary.md"
+    },
+    {
+      "id": "license-plan-scoped",
+      "ok": true,
+      "detail": "Repo has a scoped public-good license plan",
+      "evidence": "LICENSE-BOUNDARY.md"
+    },
+    {
+      "id": "office-hours-brief-exists",
+      "ok": true,
+      "detail": "Office Hours brief exists for alignment feedback",
+      "evidence": "grant/ef-protocol-replay-kit/office-hours-brief.md"
+    }
+  ]
+}

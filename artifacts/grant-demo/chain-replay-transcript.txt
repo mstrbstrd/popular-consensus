@@ -1,0 +1,40 @@
+Popular Consensus Protocol Replay Kit chain replay demo
+
+Command: pnpm grant:chain-replay
+RPC: http://127.0.0.1:18545
+Replay status: Verified
+Replay checks: 31/31
+Decoded logs: 29
+Canonical events: 29
+Duplicate nullifier: rejected
+
+Contracts:
+- credentialRegistry: 0x5fbdb2315678afecb367f032d93f642f64180aa3
+- questionRegistry: 0xe7f1725e7734ce288f8367e1bb143e90bb3f0512
+- pollManager: 0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0
+- tallyManager: 0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9
+- challengeCourt: 0xdc64a140aa3e981100a9beca4e685f962f0cf6c9
+- resultArchive: 0x5fc8d32690cc91d4c39d9d3abcbd16989f875707
+
+Lifecycle:
+- Credential schema registered: 0xffd09d466805ee06bc33921b9da02e7461158ebb6bc05be612d16df5b334be97
+- Credential issuer registered: 0xa026abf61f9701d2c55a20bfcec992d537e277a94c2b0d82e116b585b59e6d50
+- Credential trust policy set: 0x7cd1d47778217341fd8c5dbf9b40481a54c1832f0051082233ce9567a18d24e6
+- Tally committee proposed: 0xc107090bbaf96348cfcdb6437b87475918827a418c5fc0dd8164247637de29be
+- Tally committee activated: 0x4b9788fb76e7a6d603e3101b27468cf314aec67166067ae28e4e36da4b9600e4
+- Tally key setup published: 0x3892974608da2f49f6d041efaf207612ff9ccaa5d587ff9b328eced12d420caa
+- Question submitted: 0xf0666896c130336a12961e23b0d083205bdd8d38bbd3724fc77d5f41aaa0f360
+- Question accepted: 0xa39d540fff6e2ff49c79d573e901a602a4a26980d7a7d3b393cbb9e7085c56ba
+- Poll configured: 0xc0686f5a94164116a8bc710e7b46441f8b57a006769b02c7b00dda153d0716ca
+- Poll opened: 0x3d937b269d5d5c7b1e1b0b5a14c3cab76dd821805a6e625403cdb913b3f3fea1
+- Encrypted ballot accepted: 0x5c7452539f5ffae1379df5517eaa636d94c6f1798e13f1bdf7cd70400b164c48
+- Duplicate nullifier rejected: execution reverted: Poll: duplicate nullifier
+- Poll closed: 0x5622206a05c918f0314271b8f0ce657fe5c69847a4c457a17a0f0a1691a8f84f
+- First decryption share submitted: 0x92d4cd89b04992e279035858006a5043d1a3f65b13d6e6d90a252074f2be322e
+- Second decryption share submitted: 0x024476df889c67060af668a34b83599b67cc6a6651abe4e2e1eb29e2a4584dde
+- Tally proof published: 0x7cddc0963f3d92d41086a4b5abbca3ef51f348f7981519a453f59724db5fce9d
+- Result artifact published: 0xe7160c6a6a7838e2397dfa443887230543f90a5aa3f4a106dda41f0b5d6fc5ca
+- Result challenge opened: 0xf92f783e9c6d4d2866fd97575cb51d7eb2e325ac8d37ff99b739d140e167086e
+- Result challenge resolved: 0xdc3a4e361d6cf40df399f79b8853a88fccfa0496189bbc7ee3979e0ed10b71d4
+- Result finalized: 0x976e84c813f8a162108a2ea3a7823ace62916278e97324ab04771aa3b3acc601
+- Question archived: 0x9ee94084e6a55d20b936666f9968a9d38b0f6c978abc9b18006b62a0f35af916

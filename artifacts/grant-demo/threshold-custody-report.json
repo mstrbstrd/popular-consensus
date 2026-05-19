@@ -1,0 +1,174 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-threshold-custody-report-v1",
+  "generatedAt": "2026-05-19T23:52:58.946Z",
+  "command": "pnpm grant:threshold-custody",
+  "status": "ThresholdCustodyEvidenceReady",
+  "productionDeploymentReady": false,
+  "checksPassed": 10,
+  "checksTotal": 10,
+  "failedChecks": [],
+  "evidenceScope": [
+    "threshold committee metadata is public and private key material is rejected",
+    "committee member ids and public keys must be unique",
+    "member public keys must be valid Ed25519 keys",
+    "accepted shares must meet threshold, come from authorized members, have unique hashes, and bind to the published aggregate"
+  ],
+  "productionNonClaims": [
+    "No distributed key generation implementation is claimed by this report.",
+    "No production key ceremony or custody runbook has been externally reviewed.",
+    "No cryptographic decryption-share proof system has been audited.",
+    "This report verifies replay evidence and custody boundaries, not live production threshold decryption."
+  ],
+  "results": [
+    {
+      "id": "golden-threshold-slice-verifies",
+      "ok": true,
+      "detail": "The baseline protocol slice includes threshold custody metadata, two accepted shares, unique members, and no private key material.",
+      "expectedStatus": "Verified",
+      "actualStatus": "Verified",
+      "expectedFailedChecks": [],
+      "actualFailedChecks": []
+    },
+    {
+      "id": "exported-private-key-material-rejected",
+      "ok": true,
+      "detail": "Tally key setup must remain public metadata only; exported private key material is rejected.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "tally-key-custody-model"
+      ],
+      "actualFailedChecks": [
+        "tally-key-custody-model",
+        "tally-key-ceremony-hash"
+      ]
+    },
+    {
+      "id": "duplicate-member-ids-rejected",
+      "ok": true,
+      "detail": "Threshold membership cannot inflate committee size with duplicate member ids.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "tally-member-ids-unique"
+      ],
+      "actualFailedChecks": [
+        "tally-key-ceremony-hash",
+        "tally-member-ids-unique",
+        "share-decryption-share-tally-member-2-authorized-member",
+        "share-decryption-share-tally-member-2-signature"
+      ]
+    },
+    {
+      "id": "duplicate-member-public-keys-rejected",
+      "ok": true,
+      "detail": "Threshold membership cannot reuse one public key for multiple committee members.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "tally-member-public-keys-unique"
+      ],
+      "actualFailedChecks": [
+        "tally-key-ceremony-hash",
+        "tally-member-public-keys-unique",
+        "share-decryption-share-tally-member-2-signature"
+      ]
+    },
+    {
+      "id": "invalid-member-public-key-rejected",
+      "ok": true,
+      "detail": "Threshold member public keys must parse as Ed25519 public keys.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "tally-member-public-keys-valid"
+      ],
+      "actualFailedChecks": [
+        "tally-key-ceremony-hash",
+        "tally-member-public-keys-valid",
+        "share-decryption-share-tally-member-1-signature"
+      ]
+    },
+    {
+      "id": "threshold-above-member-count-rejected",
+      "ok": true,
+      "detail": "Threshold value cannot exceed the unique committee member count.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "tally-threshold"
+      ],
+      "actualFailedChecks": [
+        "tally-key-ceremony-hash",
+        "tally-threshold",
+        "threshold-share-count",
+        "result-threshold-share-count"
+      ]
+    },
+    {
+      "id": "insufficient-accepted-shares-rejected",
+      "ok": true,
+      "detail": "A result cannot pass replay if accepted shares fall below the configured threshold.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "threshold-share-count",
+        "result-threshold-share-count"
+      ],
+      "actualFailedChecks": [
+        "threshold-share-count",
+        "result-decryption-share-set",
+        "result-threshold-share-count",
+        "result-tally-proof-hash"
+      ]
+    },
+    {
+      "id": "unauthorized-accepted-share-rejected",
+      "ok": true,
+      "detail": "Accepted decryption shares must come from members in the active tally key setup.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "share-decryption-share-tally-member-1-authorized-member"
+      ],
+      "actualFailedChecks": [
+        "share-decryption-share-tally-member-1-authorized-member",
+        "share-decryption-share-tally-member-1-hash",
+        "share-decryption-share-tally-member-1-signature"
+      ]
+    },
+    {
+      "id": "duplicate-accepted-share-hashes-rejected",
+      "ok": true,
+      "detail": "Accepted decryption shares must have unique share hashes.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "threshold-share-unique-hashes"
+      ],
+      "actualFailedChecks": [
+        "threshold-share-unique-hashes",
+        "share-decryption-share-tally-member-2-hash",
+        "share-decryption-share-tally-member-2-signature",
+        "result-decryption-share-set",
+        "result-tally-proof-hash"
+      ]
+    },
+    {
+      "id": "tampered-share-aggregate-rejected",
+      "ok": true,
+      "detail": "A decryption share must bind to the published aggregate counts hash.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "share-decryption-share-tally-member-1-aggregate"
+      ],
+      "actualFailedChecks": [
+        "share-decryption-share-tally-member-1-hash",
+        "share-decryption-share-tally-member-1-aggregate",
+        "share-decryption-share-tally-member-1-signature"
+      ]
+    }
+  ]
+}

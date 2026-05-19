@@ -50,7 +50,7 @@ This is intentionally stricter than the current database model. It gives the nex
 
 The shared boundary now represents question flow, stakes, flags, voting, counting, next-step rules, archives, voting passes, rewards, social features, and reputation.
 
-The Solidity suite still implements the original core modules in `packages/contracts/src/PopularConsensus.sol`. Rewards-report records are currently implemented through local protocol transaction results, stored records, and public API/indexer state.
+The Solidity suite now splits the core protocol modules into separate files under `packages/contracts/src`, with `PopularConsensus.sol` kept as an aggregate import entrypoint for compatibility. Rewards-report records are currently implemented through local protocol transaction results, stored records, and public API/indexer state.
 
 Registry events are backed by local protocol transaction results exposed at `GET /registry/protocol-transactions`. Independent clients can replay those records through `GET /registry/protocol-transactions/replay`, verify hashes, and rebuild public state without reading private database tables.
 

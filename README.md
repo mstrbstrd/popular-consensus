@@ -2,6 +2,124 @@
 
 Popular Consensus is a working local demo of a simple idea: give communities a trusted place to ask clear questions, collect private votes, publish answers everyone can check, and share value with the people who helped create those answers.
 
+## Protocol Replay Kit
+
+The EF grant-facing protocol surface lives in `grant/ef-protocol-replay-kit`. It is intentionally narrower than the social platform: event and artifact schemas, replay verification, tamper detection, archive/export evidence, and protocol/platform dependency boundaries.
+
+For a backend-only review path, run:
+
+```bash
+pnpm grant:check
+```
+
+This generates `artifacts/grant-demo/full-lifecycle-report.json`, verifies the clean replay path, confirms a tampered result produces `Mismatch`, checks that protocol packages do not depend on platform packages, and runs the replay package tests.
+
+For a DB-backed API replay run against the public civic-record endpoints, start local Postgres and run:
+
+```bash
+pnpm grant:api-replay
+```
+
+For a local-chain replay proof, run:
+
+```bash
+pnpm grant:chain-replay
+```
+
+This starts an ephemeral Anvil RPC, deploys the protocol modules, drives the credential/question/ballot/tally/challenge/finalize/archive lifecycle, and verifies the emitted contract logs through `pc-replay verify-chain`. The current evidence mode is local, not a public-chain deployment or externally reviewed production cryptography implementation.
+
+For the local cryptography evidence inventory, run:
+
+```bash
+pnpm grant:crypto-review
+```
+
+This writes current privacy/integrity checks plus explicit production non-claims to `artifacts/grant-demo/crypto-review-report.json`.
+
+For threshold custody hardening evidence, run:
+
+```bash
+pnpm grant:threshold-custody
+```
+
+This writes `artifacts/grant-demo/threshold-custody-report.json` and checks malformed committee/share cases without claiming production distributed key generation.
+
+For checked replay test vectors, run:
+
+```bash
+pnpm grant:replay-test-vectors
+```
+
+This writes clean and tampered fixtures under `packages/replay/test/fixtures/` and verifies their expected `Verified` or `Mismatch` status.
+
+For contract access-control assumption evidence, run:
+
+```bash
+pnpm grant:contract-hardening
+```
+
+This checks grant-critical mutating contract methods for split-module coverage, steward guards, open-participant method assumptions, unauthorized-call tests, and production custody non-claims.
+
+For reviewer handoff evidence, run:
+
+```bash
+pnpm grant:reviewer-handoff
+```
+
+This writes `artifacts/grant-demo/reviewer-handoff-report.json` and records which reviewer commands require no services, Postgres, an ephemeral local chain, or both.
+
+For the machine-readable external review packet check, run:
+
+```bash
+pnpm grant:review-readiness
+```
+
+This writes `artifacts/grant-demo/review-readiness-report.json` and keeps `formalSubmissionReady` false until EF feedback and external cryptography review are incorporated.
+
+For the repo strategy audit, run:
+
+```bash
+pnpm grant:repo-strategy-audit
+```
+
+This writes `artifacts/grant-demo/repo-strategy-audit-report.json` and maps the monorepo/protocol-boundary strategy to concrete evidence paths.
+
+For the external review index, run:
+
+```bash
+pnpm grant:external-review-index
+```
+
+This writes `artifacts/grant-demo/external-review-index.json` and `artifacts/grant-demo/external-review-index.md` as the reviewer-facing table of contents for commands, statuses, hashes, source snapshot metadata, and blockers.
+
+For grant packet linting, run:
+
+```bash
+pnpm grant:packet-lint
+```
+
+This checks packet length, reusable-builder sections, abstract scope hygiene, and quick/full reviewer command docs.
+
+For a reviewer hash manifest, run:
+
+```bash
+pnpm grant:evidence-manifest
+```
+
+This writes `artifacts/grant-demo/evidence-manifest.json` with SHA-256 hashes for the grant docs, reports, transcripts, exports, replay source, and grant scripts.
+
+For the broadest local evidence gate, start Postgres and run:
+
+```bash
+docker compose up -d postgres
+pnpm db:migrate
+pnpm grant:full-check
+```
+
+This runs typecheck, repo tests, contract build, DB-backed API replay, local-chain replay, and then the quick grant checks so the final evidence manifest covers the latest generated reports.
+
+Licensing is scoped, not monorepo-wide. See `LICENSE-BOUNDARY.md` for the protocol, grant packet, artifact, and platform boundaries.
+
 The mission lives in `docs/popular_consensus_mission.md`. Start there for the human purpose behind the product. `docs/mission-to-mvp-traceability.md` connects that mission to the features in this repo and calls out the gaps that still need real-world proof.
 
 ## Local Run

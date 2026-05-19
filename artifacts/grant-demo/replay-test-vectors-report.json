@@ -1,0 +1,83 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-test-vector-report-v1",
+  "generatedAt": "2026-05-19T23:52:59.485Z",
+  "command": "pnpm grant:replay-test-vectors",
+  "status": "ReplayTestVectorsReady",
+  "fixtureDirectory": "packages/replay/test/fixtures",
+  "checksPassed": 5,
+  "checksTotal": 5,
+  "failedChecks": [],
+  "vectors": [
+    {
+      "id": "clean-production-slice-export",
+      "path": "packages/replay/test/fixtures/clean-production-slice-export.json",
+      "mode": "production-slice",
+      "expectedStatus": "Verified",
+      "actualStatus": "Verified",
+      "checksPassed": 105,
+      "checksTotal": 105,
+      "failedChecks": []
+    },
+    {
+      "id": "clean-community-export",
+      "path": "packages/replay/test/fixtures/clean-community-export.json",
+      "mode": "artifact-bundle",
+      "expectedStatus": "Verified",
+      "actualStatus": "Verified",
+      "checksPassed": 6,
+      "checksTotal": 6,
+      "failedChecks": []
+    },
+    {
+      "id": "tampered-result-hash",
+      "path": "packages/replay/test/fixtures/tampered-result-hash.json",
+      "mode": "production-slice",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "checksPassed": 90,
+      "checksTotal": 105,
+      "failedChecks": [
+        "crypto-mode-v1",
+        "result-artifact-present",
+        "result-artifact-hash",
+        "result-artifact-schema",
+        "result-record-artifact-hash",
+        "result-turnout",
+        "result-invalid-ballots",
+        "result-aggregate-counts-hash",
+        "result-ballot-commitment-set",
+        "result-ballot-commitment-set-hash",
+        "result-tally-key-setup",
+        "result-decryption-share-set",
+        "result-threshold-share-count",
+        "result-tally-proof-hash",
+        "result-privacy-report-reference"
+      ]
+    },
+    {
+      "id": "missing-archive-artifact",
+      "path": "packages/replay/test/fixtures/missing-archive-artifact.json",
+      "mode": "artifact-bundle",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "checksPassed": 5,
+      "checksTotal": 6,
+      "failedChecks": [
+        "root-present"
+      ]
+    },
+    {
+      "id": "reordered-events",
+      "path": "packages/replay/test/fixtures/reordered-events.json",
+      "mode": "production-slice",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "checksPassed": 104,
+      "checksTotal": 105,
+      "failedChecks": [
+        "event-previous-hash-continuity"
+      ]
+    }
+  ]
+}

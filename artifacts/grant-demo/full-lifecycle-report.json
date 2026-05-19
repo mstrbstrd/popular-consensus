@@ -1,0 +1,85 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-demo-report-v1",
+  "generatedAt": "2026-05-19T12:00:00.000Z",
+  "command": "pnpm grant:demo",
+  "status": "Verified",
+  "scope": "Popular Consensus Protocol Replay Kit backend replay slice",
+  "ids": {
+    "communityId": "community-vancouver-transit",
+    "questionId": "question-transit-priority",
+    "pollId": "poll-transit-priority",
+    "resultId": "result-transit-priority",
+    "archiveId": "archive-transit-priority"
+  },
+  "hashes": {
+    "resultArtifactHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+    "archiveHash": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
+    "artifactManifestHash": "sha256:eaa3e1232e80eaaa0e4d3139faebf1b16d7ac7d2ba3e16f8fd3b5e8f0bb842c3",
+    "transactionStreamHash": "sha256:ccdd3f0db6316e74fe9e63f8396c8dda875e5ccec71089411d851d2492bc16bf",
+    "eventStreamHash": "sha256:65c7d04d248a85a70acbb6f53dbfafefb08cfba0cbbebbad247b18c81e55dc9d",
+    "communityExportHash": "sha256:4e5807d1bea4a42981dcb7a0675dac55be711c4efb0a1c71b72fabf97378eeb2"
+  },
+  "replay": {
+    "status": "Verified",
+    "mode": "production-slice",
+    "checksPassed": 105,
+    "checksTotal": 105
+  },
+  "bundleReplay": {
+    "status": "Verified",
+    "checksPassed": 6,
+    "checksTotal": 6
+  },
+  "duplicateNullifier": {
+    "expectedStatus": "Mismatch",
+    "actualStatus": "Mismatch",
+    "failedChecks": [
+      "duplicate-nullifiers",
+      "ballot-ballot-2-proof-nullifier",
+      "ballot-ballot-2-commitment"
+    ]
+  },
+  "tamper": {
+    "field": "resultArtifactHash",
+    "expectedStatus": "Mismatch",
+    "actualStatus": "Mismatch",
+    "failedChecks": [
+      "crypto-mode-v1",
+      "result-artifact-present",
+      "result-artifact-hash",
+      "result-artifact-schema",
+      "result-record-artifact-hash",
+      "result-turnout",
+      "result-invalid-ballots",
+      "result-aggregate-counts-hash",
+      "result-ballot-commitment-set",
+      "result-ballot-commitment-set-hash",
+      "result-tally-key-setup",
+      "result-decryption-share-set",
+      "result-threshold-share-count",
+      "result-tally-proof-hash",
+      "result-privacy-report-reference"
+    ]
+  },
+  "counts": {
+    "ballots": 3,
+    "uniqueNullifiers": 3,
+    "challenges": 1,
+    "threshold": 2,
+    "acceptedDecryptionShares": 2,
+    "checks": 105,
+    "failedChecks": 0
+  },
+  "files": {
+    "productionSliceExport": "artifacts/grant-demo/production-slice-export.json",
+    "communityExport": "artifacts/grant-demo/community-export.json",
+    "tamperedProductionSliceExport": "artifacts/grant-demo/tampered-production-slice-export.json",
+    "report": "artifacts/grant-demo/full-lifecycle-report.json"
+  },
+  "contractDeploymentAddresses": null,
+  "notes": [
+    "This is the grant-facing replay fixture path, not a full public-chain deployment.",
+    "The demo proves export verification, duplicate-nullifier detection, threshold-share evidence, archive manifest checks, and tamper mismatch detection."
+  ]
+}

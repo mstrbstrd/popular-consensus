@@ -1,0 +1,84 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-crypto-review-report-v1",
+  "generatedAt": "2026-05-19T23:52:58.526Z",
+  "command": "pnpm grant:crypto-review",
+  "status": "EvidenceReady",
+  "checksPassed": 12,
+  "checksTotal": 12,
+  "failedChecks": [],
+  "primitives": [
+    "X25519 key agreement for demo coordinator ballot encryption",
+    "AES-256-GCM authenticated encryption for ballot payloads",
+    "SHA-256 content-addressed commitments and nullifiers",
+    "Semaphore V4 verification path for anonymous ballot proofs"
+  ],
+  "productionNonClaims": [
+    "No external cryptography audit has been completed.",
+    "No production threshold key ceremony or key custody process is implemented.",
+    "No production threshold decryption engine is claimed by this report.",
+    "Demo credential membership proofs are not a production zero-knowledge credential system."
+  ],
+  "checks": [
+    {
+      "id": "credential-secret-hash-verifies",
+      "ok": true,
+      "detail": "Demo credential secret hash verifies before nullifier derivation"
+    },
+    {
+      "id": "nullifier-deterministic",
+      "ok": true,
+      "detail": "Nullifier is deterministic for one credential, poll, and schema"
+    },
+    {
+      "id": "nullifier-poll-scoped",
+      "ok": true,
+      "detail": "Nullifier changes across polls"
+    },
+    {
+      "id": "nullifier-schema-scoped",
+      "ok": true,
+      "detail": "Nullifier changes across credential schemas"
+    },
+    {
+      "id": "ballot-encryption-randomized",
+      "ok": true,
+      "detail": "Same response encrypts to different ciphertext and IV"
+    },
+    {
+      "id": "ballot-decrypts-with-coordinator-key",
+      "ok": true,
+      "detail": "Coordinator private key decrypts the ballot"
+    },
+    {
+      "id": "wrong-key-rejected",
+      "ok": true,
+      "detail": "Wrong coordinator private key cannot decrypt ballot payload"
+    },
+    {
+      "id": "ciphertext-tamper-rejected",
+      "ok": true,
+      "detail": "AES-GCM rejects ciphertext tampering"
+    },
+    {
+      "id": "auth-tag-tamper-rejected",
+      "ok": true,
+      "detail": "AES-GCM rejects authentication tag tampering"
+    },
+    {
+      "id": "aggregate-tally-no-raw-ballot",
+      "ok": true,
+      "detail": "Tally publishes aggregate counts without holder alias"
+    },
+    {
+      "id": "anonymous-proof-hash-formed",
+      "ok": true,
+      "detail": "Anonymous proof hash is content-addressed"
+    },
+    {
+      "id": "malformed-semaphore-proof-rejected",
+      "ok": true,
+      "detail": "Malformed Semaphore proof is rejected, not accepted as a hash-only claim"
+    }
+  ]
+}

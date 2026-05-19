@@ -1,0 +1,18 @@
+Popular Consensus Protocol Replay Kit submission gate
+
+Command: pnpm grant:submission-gate
+Status: SubmissionGateEvidenceReady
+Formal submission ready: false
+Production deployment ready: false
+Checks: 14/14
+
+Clean-run required before formal submission:
+- typecheck-command: `pnpm typecheck` is declared and must pass from the review checkout before formal submission.
+- test-command: `pnpm test` is declared and must pass from the review checkout before formal submission.
+- contracts-build-command: `pnpm contracts:build` is declared and must pass from the review checkout before formal submission.
+
+Blocked criteria:
+- office-hours-feedback-incorporated: EF Office Hours or equivalent feedback has not been incorporated.
+
+Failed checks:
+- none

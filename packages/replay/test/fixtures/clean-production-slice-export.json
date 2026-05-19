@@ -1,0 +1,2121 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "production-slice-export-v1",
+  "generatedAt": 1779234779471,
+  "status": "Verified",
+  "input": {
+    "protocol": "popular-consensus",
+    "schemaVersion": "production-slice-input-v1",
+    "generatedAt": 1779192000000,
+    "credentialSchema": {
+      "id": "credential-vancouver-resident",
+      "status": "Active",
+      "revocationRoot": "sha256:60ba5c1c52bbd8adce35c4ff78d57bc9dfb99a9de24ba8f2527de87b5beda5f7"
+    },
+    "credentialIssuer": {
+      "id": "issuer-civic-residency",
+      "status": "Active",
+      "schemaIds": [
+        "credential-vancouver-resident"
+      ],
+      "metadataHash": "sha256:0c754c49d0ce080e70c016e7258599b0eb3e53b7783a8bcbc0ba3b7bd71794ac"
+    },
+    "trustPolicy": {
+      "id": "trust-policy-vancouver-resident",
+      "communityId": "community-vancouver-transit",
+      "credentialSchemaId": "credential-vancouver-resident",
+      "trustedIssuerIds": [
+        "issuer-civic-residency"
+      ],
+      "mode": "AllowList",
+      "status": "Active",
+      "policyHash": "sha256:a2c59f057901a0d071be232c85140821d2f60bf9223f3d4e3d835195bfcf3392"
+    },
+    "question": {
+      "id": "question-transit-priority",
+      "communityId": "community-vancouver-transit",
+      "version": 1,
+      "title": "Should the city prioritize bus frequency this year?",
+      "bodyHash": "sha256:d6e9ba94e97d53152624e106ae4c5ddd834457ffa0792dadad7e5365cac96a13",
+      "sponsorDisclosureHash": "sha256:e27878e22660863f58f0cb00e7880909332423d375bc248c7c1e991395c5390e",
+      "answerSchemaId": "answer-binary-support-oppose",
+      "credentialSchemaId": "credential-vancouver-resident",
+      "methodologyLabel": "Verified resident response, deterministic production-slice fixture.",
+      "authorityLevel": "Advisory",
+      "status": "Archived",
+      "versionHash": "sha256:bc1fae283b23e33865c6febc4af704a8ee57664dacf6ef520b9b9850780a4d25"
+    },
+    "poll": {
+      "id": "poll-transit-priority",
+      "questionId": "question-transit-priority",
+      "credentialSchemaId": "credential-vancouver-resident",
+      "tallyPublicKeyId": "tally-key-threshold-v1",
+      "status": "ResultPublished",
+      "openedAt": 1779192001000,
+      "closedAt": 1779195600000
+    },
+    "tallyKeySetup": {
+      "id": "tally-key-setup-threshold-v1",
+      "committeeId": "tally-committee-vancouver-v1",
+      "pollId": "poll-transit-priority",
+      "publicKeyId": "tally-key-threshold-v1",
+      "custodyModel": "threshold-ed25519-attested-decryption-v1",
+      "privateKeyMaterial": "not-exported",
+      "threshold": 2,
+      "members": [
+        {
+          "memberId": "tally-member-1",
+          "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAC4RdLSglPwKFDE84h6BGGJ874IdkvQ+7PRXKN1do6Z4=\n-----END PUBLIC KEY-----\n"
+        },
+        {
+          "memberId": "tally-member-2",
+          "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAe9gAm9Mrf8OP4ZPiYyDNi57NN4SX/fnGKGumuVjMuUc=\n-----END PUBLIC KEY-----\n"
+        },
+        {
+          "memberId": "tally-member-3",
+          "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHdQpo93Uu+xqfZAfSjJPVlgaLCXejReg43/8iMl/Mpw=\n-----END PUBLIC KEY-----\n"
+        }
+      ],
+      "ceremonyHash": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9"
+    },
+    "ballots": [
+      {
+        "id": "ballot-1",
+        "pollId": "poll-transit-priority",
+        "questionId": "question-transit-priority",
+        "credentialSchemaId": "credential-vancouver-resident",
+        "issuerId": "issuer-civic-residency",
+        "nullifier": "sha256:a860fe8d6a472122637331a0669a1bd0273c49c8c0109c6aabc01057902cfc56",
+        "encryptedPayload": {
+          "version": "pc-encrypted-ballot-v1",
+          "ephemeralPublicKeyPem": "fixture-ephemeral-public-key-0",
+          "iv": "714ecd89f88b17e717af0778",
+          "authTag": "1900c3d9f59bf6e2521b86dfd9fc84d9",
+          "ciphertext": "sha256:126a5bc2dde8115c7dea378090ba3d71ada7b04a470a93b9735c9cf1c53a485e"
+        },
+        "encryptedPayloadHash": "sha256:b8c536a790c14c17862acf0dde14c7ab03121295ebd63a97338581c92728f317",
+        "ballotCommitment": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+        "proofHash": "sha256:69729d51d2ba2aa9c28aeb964822426d904c72739f9b0c994f0b47789a8dd343",
+        "proofSystem": "SemaphoreV4",
+        "eligibilityProofArtifactHash": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751",
+        "eligibilityProof": {
+          "protocol": "popular-consensus",
+          "schemaVersion": "production-slice-eligibility-proof-v1",
+          "proofSystem": "SemaphoreV4",
+          "groupId": "semaphore-group-vancouver-residents",
+          "groupRoot": "sha256:e18fbc2f68d5da61574ed01896bdd94f399935e8f48fbea68fc1884139d74877",
+          "signal": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+          "scope": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+          "nullifier": "sha256:a860fe8d6a472122637331a0669a1bd0273c49c8c0109c6aabc01057902cfc56",
+          "publicInputsHash": "sha256:945d6c83869f400520fac57e51d4efff172c9f14f033a13f1a4e9b39467f706d",
+          "verifier": "@semaphore-protocol/core.verifyProof",
+          "verifierPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEALoJOTIwKZdhWq+XKV5/QuJmXingEH8sRUaXh0AOyydo=\n-----END PUBLIC KEY-----\n",
+          "verificationStatus": "Verified",
+          "proofHash": "sha256:69729d51d2ba2aa9c28aeb964822426d904c72739f9b0c994f0b47789a8dd343",
+          "verifierSignature": "QWL3dN3M3R4/t0zUYUfd5/lrWtcNHpGHaIttVPBLHaKjAml/KyDO4bioU/MOcUg7VbB3LDJS5VkUiC9Ya+3VAA=="
+        },
+        "submittedAt": 1779192001001
+      },
+      {
+        "id": "ballot-2",
+        "pollId": "poll-transit-priority",
+        "questionId": "question-transit-priority",
+        "credentialSchemaId": "credential-vancouver-resident",
+        "issuerId": "issuer-civic-residency",
+        "nullifier": "sha256:ba1194e0be05f6f5f093137b5cea70d4b432071815954758eb1b9df2eb616c6c",
+        "encryptedPayload": {
+          "version": "pc-encrypted-ballot-v1",
+          "ephemeralPublicKeyPem": "fixture-ephemeral-public-key-1",
+          "iv": "f8b8045e66d5483e6491c357",
+          "authTag": "14cabd2ca1c59433405b529d8b7f445c",
+          "ciphertext": "sha256:995f6f9dbfc7806777684e336cbc528c8398ad39f81378da63078d862d51c348"
+        },
+        "encryptedPayloadHash": "sha256:0812b13ed07206a1723fef318583f6c79aee1aee5c057d1bff475e5d327d8364",
+        "ballotCommitment": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+        "proofHash": "sha256:732d39b49428b95693fcd6960298ab637ae4078f9ae6a2db1bb25ac495df7a7d",
+        "proofSystem": "SemaphoreV4",
+        "eligibilityProofArtifactHash": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51",
+        "eligibilityProof": {
+          "protocol": "popular-consensus",
+          "schemaVersion": "production-slice-eligibility-proof-v1",
+          "proofSystem": "SemaphoreV4",
+          "groupId": "semaphore-group-vancouver-residents",
+          "groupRoot": "sha256:e18fbc2f68d5da61574ed01896bdd94f399935e8f48fbea68fc1884139d74877",
+          "signal": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+          "scope": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+          "nullifier": "sha256:ba1194e0be05f6f5f093137b5cea70d4b432071815954758eb1b9df2eb616c6c",
+          "publicInputsHash": "sha256:a1a39cf9c438b7f080b6b423d31583fb83a0498e1159de420acd58f58932bc95",
+          "verifier": "@semaphore-protocol/core.verifyProof",
+          "verifierPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEALoJOTIwKZdhWq+XKV5/QuJmXingEH8sRUaXh0AOyydo=\n-----END PUBLIC KEY-----\n",
+          "verificationStatus": "Verified",
+          "proofHash": "sha256:732d39b49428b95693fcd6960298ab637ae4078f9ae6a2db1bb25ac495df7a7d",
+          "verifierSignature": "2dBDFgn3GtbCuE/Lm2di/+0ShRWVY9dvKNYd8asPI3nEDtKSjuMpJDI8YSdGMcF/OZTR+SzWhBD7DPxp9yZhBw=="
+        },
+        "submittedAt": 1779192001002
+      },
+      {
+        "id": "ballot-3",
+        "pollId": "poll-transit-priority",
+        "questionId": "question-transit-priority",
+        "credentialSchemaId": "credential-vancouver-resident",
+        "issuerId": "issuer-civic-residency",
+        "nullifier": "sha256:5780fe1d99ba4aa2c3c0f3f7933565aa31bb363b9c0072203f711b735be9f81b",
+        "encryptedPayload": {
+          "version": "pc-encrypted-ballot-v1",
+          "ephemeralPublicKeyPem": "fixture-ephemeral-public-key-2",
+          "iv": "fee2e2f84d6d6c40a5800ae0",
+          "authTag": "8af37ae40b61d1169d6625764fd02e10",
+          "ciphertext": "sha256:126a5bc2dde8115c7dea378090ba3d71ada7b04a470a93b9735c9cf1c53a485e"
+        },
+        "encryptedPayloadHash": "sha256:385626ee70b50e63414cf772417dee819ac1d3b089f499e093fcb3de508c5910",
+        "ballotCommitment": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56",
+        "proofHash": "sha256:2cfc73749d5878520c985619ecff6c7da1ac9e21366666ddab1f5d3e0076249e",
+        "proofSystem": "SemaphoreV4",
+        "eligibilityProofArtifactHash": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878",
+        "eligibilityProof": {
+          "protocol": "popular-consensus",
+          "schemaVersion": "production-slice-eligibility-proof-v1",
+          "proofSystem": "SemaphoreV4",
+          "groupId": "semaphore-group-vancouver-residents",
+          "groupRoot": "sha256:e18fbc2f68d5da61574ed01896bdd94f399935e8f48fbea68fc1884139d74877",
+          "signal": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56",
+          "scope": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+          "nullifier": "sha256:5780fe1d99ba4aa2c3c0f3f7933565aa31bb363b9c0072203f711b735be9f81b",
+          "publicInputsHash": "sha256:b69bd79b286438063cf76244039d16ab03895abc29ea485182f262e7e70ebb02",
+          "verifier": "@semaphore-protocol/core.verifyProof",
+          "verifierPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEALoJOTIwKZdhWq+XKV5/QuJmXingEH8sRUaXh0AOyydo=\n-----END PUBLIC KEY-----\n",
+          "verificationStatus": "Verified",
+          "proofHash": "sha256:2cfc73749d5878520c985619ecff6c7da1ac9e21366666ddab1f5d3e0076249e",
+          "verifierSignature": "FYSgaWZ4kAXwbM05rRE8untB7nCmvWYhKGfd8Lw0bh3+cSKmXgC/VOXpbyGSEbLZEUhpPjpOchx7+W+p2wIrBw=="
+        },
+        "submittedAt": 1779192001003
+      }
+    ],
+    "decryptionShares": [
+      {
+        "id": "decryption-share-tally-member-1",
+        "pollId": "poll-transit-priority",
+        "tallyKeySetupId": "tally-key-setup-threshold-v1",
+        "memberId": "tally-member-1",
+        "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+        "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+        "proofHash": "sha256:5911be19c3ad07489aa74129ace34f424426f0d6897c7882477856deced4d6c0",
+        "status": "Accepted",
+        "shareHash": "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e",
+        "signature": "bg4sChj0t0SAntMapoFJ/7ncLMWuEpEGqIVvulQPkIx1h004o5EVRZ/0A8EspO5+/i8s2dsC9iCAm3PNlby7BQ==",
+        "submittedAt": 1779195600001
+      },
+      {
+        "id": "decryption-share-tally-member-2",
+        "pollId": "poll-transit-priority",
+        "tallyKeySetupId": "tally-key-setup-threshold-v1",
+        "memberId": "tally-member-2",
+        "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+        "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+        "proofHash": "sha256:e5623cbd5d335347328ea8d6f32f06d066369508e8842964322f261720804e25",
+        "status": "Accepted",
+        "shareHash": "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+        "signature": "i4bvIjA+bil22RRZmsD8pUOzQxF4/LSPhv/b0K4+rISjhT/rU/VsLAazvMGmMBUfAhBh9g0cQwTVUKxjln1ZBw==",
+        "submittedAt": 1779195600002
+      }
+    ],
+    "result": {
+      "id": "result-transit-priority",
+      "pollId": "poll-transit-priority",
+      "questionId": "question-transit-priority",
+      "resultArtifactHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+      "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+      "tallyProofHash": "sha256:fdec4946f42c39b6a26a7822cceadf7c5f1829e406c33587b787cb6f41e04cf1",
+      "privacyReportHash": "sha256:3855ae59c75fe4004a9c0b0370ff33ce2be03b291fa77d1cb710e2d2dd53d538",
+      "turnout": 3,
+      "invalidBallots": 0,
+      "finalStatus": "Finalized",
+      "publishedAt": 1779195900000,
+      "challengeWindowEndsAt": 1779282300000,
+      "finalizedAt": 1779282300001
+    },
+    "challenges": [
+      {
+        "id": "result-challenge-1",
+        "pollId": "poll-transit-priority",
+        "resultId": "result-transit-priority",
+        "reasonCode": "TallyProofFailure",
+        "evidenceHash": "sha256:631cea28636afa2d428674b1ddba56ac4cc0927a3e1dba57baa76f535e5de51f",
+        "ruling": "Rejected",
+        "resolutionHash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf"
+      }
+    ],
+    "archive": {
+      "id": "archive-transit-priority",
+      "questionId": "question-transit-priority",
+      "archiveHash": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
+      "artifactManifestHash": "sha256:eaa3e1232e80eaaa0e4d3139faebf1b16d7ac7d2ba3e16f8fd3b5e8f0bb842c3",
+      "archivedAt": 1779282300001
+    },
+    "events": [
+      {
+        "eventType": "CredentialIssuerRegistered",
+        "subjectId": "credential-vancouver-resident",
+        "actor": "issuer-admin",
+        "previousHash": null,
+        "newHash": "credential-vancouver-resident",
+        "emittedAt": 1779192000000
+      },
+      {
+        "eventType": "CommunityCredentialTrustPolicySet",
+        "subjectId": "community-vancouver-transit",
+        "actor": "demo-curator",
+        "previousHash": "credential-vancouver-resident",
+        "newHash": "sha256:a2c59f057901a0d071be232c85140821d2f60bf9223f3d4e3d835195bfcf3392",
+        "emittedAt": 1779192000001
+      },
+      {
+        "eventType": "QuestionSubmitted",
+        "subjectId": "question-transit-priority",
+        "actor": "demo-proposer",
+        "previousHash": "sha256:a2c59f057901a0d071be232c85140821d2f60bf9223f3d4e3d835195bfcf3392",
+        "newHash": "sha256:bc1fae283b23e33865c6febc4af704a8ee57664dacf6ef520b9b9850780a4d25",
+        "emittedAt": 1779192000002
+      },
+      {
+        "eventType": "PollOpened",
+        "subjectId": "poll-transit-priority",
+        "actor": "demo-curator",
+        "previousHash": "sha256:bc1fae283b23e33865c6febc4af704a8ee57664dacf6ef520b9b9850780a4d25",
+        "newHash": "sha256:e96e36e39b79c318da18a18f8ec827a4679a71430f1242166355b50596e241a4",
+        "emittedAt": 1779192001000
+      },
+      {
+        "eventType": "BallotAccepted",
+        "subjectId": "poll-transit-priority",
+        "actor": "anonymous-voter",
+        "previousHash": "sha256:e96e36e39b79c318da18a18f8ec827a4679a71430f1242166355b50596e241a4",
+        "newHash": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+        "emittedAt": 1779192001001
+      },
+      {
+        "eventType": "BallotAccepted",
+        "subjectId": "poll-transit-priority",
+        "actor": "anonymous-voter",
+        "previousHash": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+        "newHash": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+        "emittedAt": 1779192001002
+      },
+      {
+        "eventType": "BallotAccepted",
+        "subjectId": "poll-transit-priority",
+        "actor": "anonymous-voter",
+        "previousHash": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+        "newHash": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56",
+        "emittedAt": 1779192001003
+      },
+      {
+        "eventType": "PollClosed",
+        "subjectId": "poll-transit-priority",
+        "actor": "demo-curator",
+        "previousHash": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56",
+        "newHash": "sha256:5098d563987c11590a7a12e2ccd430c83dc57e6aaf98447c6c8493a486336f42",
+        "emittedAt": 1779195600000
+      },
+      {
+        "eventType": "TallyDecryptionShareSubmitted",
+        "subjectId": "poll-transit-priority",
+        "actor": "tally-member-1",
+        "previousHash": "sha256:5098d563987c11590a7a12e2ccd430c83dc57e6aaf98447c6c8493a486336f42",
+        "newHash": "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e",
+        "emittedAt": 1779195600001
+      },
+      {
+        "eventType": "TallyDecryptionShareSubmitted",
+        "subjectId": "poll-transit-priority",
+        "actor": "tally-member-2",
+        "previousHash": "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e",
+        "newHash": "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+        "emittedAt": 1779195600002
+      },
+      {
+        "eventType": "ResultPublished",
+        "subjectId": "poll-transit-priority",
+        "actor": "demo-curator",
+        "previousHash": "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+        "newHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+        "emittedAt": 1779195900000
+      },
+      {
+        "eventType": "ResultChallengeResolved",
+        "subjectId": "result-challenge-1",
+        "actor": "demo-juror",
+        "previousHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+        "newHash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+        "emittedAt": 1779195901000
+      },
+      {
+        "eventType": "ResultFinalized",
+        "subjectId": "poll-transit-priority",
+        "actor": "demo-curator",
+        "previousHash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+        "newHash": "sha256:a3e4d5aeb381b1e19eca34d7c0e496e6b8b68f5cbbe206876abe4e8fc5483131",
+        "emittedAt": 1779282300001
+      },
+      {
+        "eventType": "QuestionArchived",
+        "subjectId": "question-transit-priority",
+        "actor": "demo-curator",
+        "previousHash": "sha256:a3e4d5aeb381b1e19eca34d7c0e496e6b8b68f5cbbe206876abe4e8fc5483131",
+        "newHash": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
+        "emittedAt": 1779282300001
+      }
+    ],
+    "bundle": {
+      "protocol": "popular-consensus",
+      "schemaVersion": "artifact-export-bundle-v1",
+      "root": {
+        "kind": "question-archive",
+        "hash": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
+        "role": "archive",
+        "computedHash": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
+        "value": {
+          "question": {
+            "id": "question-transit-priority",
+            "communityId": "community-vancouver-transit",
+            "version": 1,
+            "title": "Should the city prioritize bus frequency this year?",
+            "bodyHash": "sha256:d6e9ba94e97d53152624e106ae4c5ddd834457ffa0792dadad7e5365cac96a13",
+            "sponsorDisclosureHash": "sha256:e27878e22660863f58f0cb00e7880909332423d375bc248c7c1e991395c5390e",
+            "answerSchemaId": "answer-binary-support-oppose",
+            "credentialSchemaId": "credential-vancouver-resident",
+            "methodologyLabel": "Verified resident response, deterministic production-slice fixture.",
+            "authorityLevel": "Advisory",
+            "status": "Archived",
+            "versionHash": "sha256:bc1fae283b23e33865c6febc4af704a8ee57664dacf6ef520b9b9850780a4d25"
+          },
+          "poll": {
+            "id": "poll-transit-priority",
+            "questionId": "question-transit-priority",
+            "credentialSchemaId": "credential-vancouver-resident",
+            "tallyPublicKeyId": "tally-key-threshold-v1",
+            "status": "ResultPublished",
+            "openedAt": 1779192001000,
+            "closedAt": 1779195600000
+          },
+          "tallyKeySetup": {
+            "id": "tally-key-setup-threshold-v1",
+            "committeeId": "tally-committee-vancouver-v1",
+            "pollId": "poll-transit-priority",
+            "publicKeyId": "tally-key-threshold-v1",
+            "custodyModel": "threshold-ed25519-attested-decryption-v1",
+            "privateKeyMaterial": "not-exported",
+            "threshold": 2,
+            "members": [
+              {
+                "memberId": "tally-member-1",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAC4RdLSglPwKFDE84h6BGGJ874IdkvQ+7PRXKN1do6Z4=\n-----END PUBLIC KEY-----\n"
+              },
+              {
+                "memberId": "tally-member-2",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAe9gAm9Mrf8OP4ZPiYyDNi57NN4SX/fnGKGumuVjMuUc=\n-----END PUBLIC KEY-----\n"
+              },
+              {
+                "memberId": "tally-member-3",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHdQpo93Uu+xqfZAfSjJPVlgaLCXejReg43/8iMl/Mpw=\n-----END PUBLIC KEY-----\n"
+              }
+            ],
+            "ceremonyHash": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9"
+          },
+          "result": {
+            "id": "result-transit-priority",
+            "pollId": "poll-transit-priority",
+            "questionId": "question-transit-priority",
+            "resultArtifactHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+            "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+            "tallyProofHash": "sha256:fdec4946f42c39b6a26a7822cceadf7c5f1829e406c33587b787cb6f41e04cf1",
+            "privacyReportHash": "sha256:3855ae59c75fe4004a9c0b0370ff33ce2be03b291fa77d1cb710e2d2dd53d538",
+            "turnout": 3,
+            "invalidBallots": 0,
+            "finalStatus": "Finalized",
+            "publishedAt": 1779195900000,
+            "challengeWindowEndsAt": 1779282300000,
+            "finalizedAt": 1779282300001
+          },
+          "challenges": [
+            {
+              "id": "result-challenge-1",
+              "pollId": "poll-transit-priority",
+              "resultId": "result-transit-priority",
+              "reasonCode": "TallyProofFailure",
+              "evidenceHash": "sha256:631cea28636afa2d428674b1ddba56ac4cc0927a3e1dba57baa76f535e5de51f",
+              "ruling": "Rejected",
+              "resolutionHash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf"
+            }
+          ],
+          "events": [
+            {
+              "eventType": "CredentialIssuerRegistered",
+              "subjectId": "credential-vancouver-resident",
+              "actor": "issuer-admin",
+              "previousHash": null,
+              "newHash": "credential-vancouver-resident",
+              "emittedAt": 1779192000000
+            },
+            {
+              "eventType": "CommunityCredentialTrustPolicySet",
+              "subjectId": "community-vancouver-transit",
+              "actor": "demo-curator",
+              "previousHash": "credential-vancouver-resident",
+              "newHash": "sha256:a2c59f057901a0d071be232c85140821d2f60bf9223f3d4e3d835195bfcf3392",
+              "emittedAt": 1779192000001
+            },
+            {
+              "eventType": "QuestionSubmitted",
+              "subjectId": "question-transit-priority",
+              "actor": "demo-proposer",
+              "previousHash": "sha256:a2c59f057901a0d071be232c85140821d2f60bf9223f3d4e3d835195bfcf3392",
+              "newHash": "sha256:bc1fae283b23e33865c6febc4af704a8ee57664dacf6ef520b9b9850780a4d25",
+              "emittedAt": 1779192000002
+            },
+            {
+              "eventType": "PollOpened",
+              "subjectId": "poll-transit-priority",
+              "actor": "demo-curator",
+              "previousHash": "sha256:bc1fae283b23e33865c6febc4af704a8ee57664dacf6ef520b9b9850780a4d25",
+              "newHash": "sha256:e96e36e39b79c318da18a18f8ec827a4679a71430f1242166355b50596e241a4",
+              "emittedAt": 1779192001000
+            },
+            {
+              "eventType": "BallotAccepted",
+              "subjectId": "poll-transit-priority",
+              "actor": "anonymous-voter",
+              "previousHash": "sha256:e96e36e39b79c318da18a18f8ec827a4679a71430f1242166355b50596e241a4",
+              "newHash": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+              "emittedAt": 1779192001001
+            },
+            {
+              "eventType": "BallotAccepted",
+              "subjectId": "poll-transit-priority",
+              "actor": "anonymous-voter",
+              "previousHash": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+              "newHash": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+              "emittedAt": 1779192001002
+            },
+            {
+              "eventType": "BallotAccepted",
+              "subjectId": "poll-transit-priority",
+              "actor": "anonymous-voter",
+              "previousHash": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+              "newHash": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56",
+              "emittedAt": 1779192001003
+            },
+            {
+              "eventType": "PollClosed",
+              "subjectId": "poll-transit-priority",
+              "actor": "demo-curator",
+              "previousHash": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56",
+              "newHash": "sha256:5098d563987c11590a7a12e2ccd430c83dc57e6aaf98447c6c8493a486336f42",
+              "emittedAt": 1779195600000
+            },
+            {
+              "eventType": "TallyDecryptionShareSubmitted",
+              "subjectId": "poll-transit-priority",
+              "actor": "tally-member-1",
+              "previousHash": "sha256:5098d563987c11590a7a12e2ccd430c83dc57e6aaf98447c6c8493a486336f42",
+              "newHash": "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e",
+              "emittedAt": 1779195600001
+            },
+            {
+              "eventType": "TallyDecryptionShareSubmitted",
+              "subjectId": "poll-transit-priority",
+              "actor": "tally-member-2",
+              "previousHash": "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e",
+              "newHash": "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+              "emittedAt": 1779195600002
+            },
+            {
+              "eventType": "ResultPublished",
+              "subjectId": "poll-transit-priority",
+              "actor": "demo-curator",
+              "previousHash": "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+              "newHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+              "emittedAt": 1779195900000
+            },
+            {
+              "eventType": "ResultChallengeResolved",
+              "subjectId": "result-challenge-1",
+              "actor": "demo-juror",
+              "previousHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+              "newHash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+              "emittedAt": 1779195901000
+            },
+            {
+              "eventType": "ResultFinalized",
+              "subjectId": "poll-transit-priority",
+              "actor": "demo-curator",
+              "previousHash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+              "newHash": "sha256:a3e4d5aeb381b1e19eca34d7c0e496e6b8b68f5cbbe206876abe4e8fc5483131",
+              "emittedAt": 1779282300001
+            }
+          ],
+          "resultArtifact": {
+            "pollId": "poll-transit-priority",
+            "questionId": "question-transit-priority",
+            "questionVersionHash": "sha256:bc1fae283b23e33865c6febc4af704a8ee57664dacf6ef520b9b9850780a4d25",
+            "aggregate": {
+              "answerSchemaId": "answer-binary-support-oppose",
+              "kind": "Binary",
+              "responseShape": "SingleChoice",
+              "tallyMethod": "PluralityCounts",
+              "counts": {
+                "support": 2,
+                "oppose": 1,
+                "abstain": 0
+              },
+              "turnout": 3
+            },
+            "counts": {
+              "support": 2,
+              "oppose": 1,
+              "abstain": 0
+            },
+            "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+            "acceptedBallotCommitments": [
+              "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+              "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+              "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56"
+            ],
+            "acceptedBallotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+            "tallyKeySetupHash": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9",
+            "decryptionShareHashes": [
+              "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+              "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e"
+            ],
+            "decryptionShareSetHash": "sha256:cdcd7cd521ea39c066b61190c7df8f47ee052f5f0bae5a941c3fe8ed6d0c2d86",
+            "acceptedDecryptionShareCount": 2,
+            "tallyProofHash": "sha256:fdec4946f42c39b6a26a7822cceadf7c5f1829e406c33587b787cb6f41e04cf1",
+            "privacyReportHash": "sha256:3855ae59c75fe4004a9c0b0370ff33ce2be03b291fa77d1cb710e2d2dd53d538",
+            "turnout": 3,
+            "invalidBallots": 0,
+            "publishedAt": 1779195900000,
+            "cryptoMode": "production-boundary-v1",
+            "artifactKind": "result-artifact",
+            "schemaVersion": "pc-result-artifact-v1"
+          },
+          "decryptionShares": [
+            {
+              "id": "decryption-share-tally-member-1",
+              "pollId": "poll-transit-priority",
+              "tallyKeySetupId": "tally-key-setup-threshold-v1",
+              "memberId": "tally-member-1",
+              "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+              "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+              "proofHash": "sha256:5911be19c3ad07489aa74129ace34f424426f0d6897c7882477856deced4d6c0",
+              "status": "Accepted",
+              "shareHash": "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e",
+              "signature": "bg4sChj0t0SAntMapoFJ/7ncLMWuEpEGqIVvulQPkIx1h004o5EVRZ/0A8EspO5+/i8s2dsC9iCAm3PNlby7BQ==",
+              "submittedAt": 1779195600001
+            },
+            {
+              "id": "decryption-share-tally-member-2",
+              "pollId": "poll-transit-priority",
+              "tallyKeySetupId": "tally-key-setup-threshold-v1",
+              "memberId": "tally-member-2",
+              "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+              "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+              "proofHash": "sha256:e5623cbd5d335347328ea8d6f32f06d066369508e8842964322f261720804e25",
+              "status": "Accepted",
+              "shareHash": "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+              "signature": "i4bvIjA+bil22RRZmsD8pUOzQxF4/LSPhv/b0K4+rISjhT/rU/VsLAazvMGmMBUfAhBh9g0cQwTVUKxjln1ZBw==",
+              "submittedAt": 1779195600002
+            }
+          ],
+          "bodyArtifact": {
+            "title": "Should the city prioritize bus frequency this year?",
+            "body": "A narrow production-slice question for one replayable binary poll.",
+            "artifactKind": "question-body",
+            "schemaVersion": "pc-question-body-v1"
+          },
+          "sponsorArtifact": {
+            "sponsor": "Popular Consensus production slice fixture",
+            "disclosure": "No paid sponsor. Fixture data is for protocol verification.",
+            "artifactKind": "sponsor-disclosure",
+            "schemaVersion": "pc-sponsor-disclosure-v1"
+          },
+          "tallyKeySetupArtifact": {
+            "id": "tally-key-setup-threshold-v1",
+            "committeeId": "tally-committee-vancouver-v1",
+            "pollId": "poll-transit-priority",
+            "publicKeyId": "tally-key-threshold-v1",
+            "custodyModel": "threshold-ed25519-attested-decryption-v1",
+            "privateKeyMaterial": "not-exported",
+            "threshold": 2,
+            "members": [
+              {
+                "memberId": "tally-member-1",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAC4RdLSglPwKFDE84h6BGGJ874IdkvQ+7PRXKN1do6Z4=\n-----END PUBLIC KEY-----\n"
+              },
+              {
+                "memberId": "tally-member-2",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAe9gAm9Mrf8OP4ZPiYyDNi57NN4SX/fnGKGumuVjMuUc=\n-----END PUBLIC KEY-----\n"
+              },
+              {
+                "memberId": "tally-member-3",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHdQpo93Uu+xqfZAfSjJPVlgaLCXejReg43/8iMl/Mpw=\n-----END PUBLIC KEY-----\n"
+              }
+            ],
+            "ceremonyHash": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9",
+            "memberPublicKeys": [
+              {
+                "memberId": "tally-member-1",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAC4RdLSglPwKFDE84h6BGGJ874IdkvQ+7PRXKN1do6Z4=\n-----END PUBLIC KEY-----\n"
+              },
+              {
+                "memberId": "tally-member-2",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAe9gAm9Mrf8OP4ZPiYyDNi57NN4SX/fnGKGumuVjMuUc=\n-----END PUBLIC KEY-----\n"
+              },
+              {
+                "memberId": "tally-member-3",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHdQpo93Uu+xqfZAfSjJPVlgaLCXejReg43/8iMl/Mpw=\n-----END PUBLIC KEY-----\n"
+              }
+            ],
+            "artifactKind": "tally-key-setup",
+            "schemaVersion": "pc-tally-key-setup-v1"
+          },
+          "eligibilityProofArtifacts": [
+            {
+              "protocol": "popular-consensus",
+              "schemaVersion": "production-slice-eligibility-proof-v1",
+              "proofSystem": "SemaphoreV4",
+              "groupId": "semaphore-group-vancouver-residents",
+              "groupRoot": "sha256:e18fbc2f68d5da61574ed01896bdd94f399935e8f48fbea68fc1884139d74877",
+              "signal": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+              "scope": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+              "nullifier": "sha256:a860fe8d6a472122637331a0669a1bd0273c49c8c0109c6aabc01057902cfc56",
+              "publicInputsHash": "sha256:945d6c83869f400520fac57e51d4efff172c9f14f033a13f1a4e9b39467f706d",
+              "verifier": "@semaphore-protocol/core.verifyProof",
+              "verifierPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEALoJOTIwKZdhWq+XKV5/QuJmXingEH8sRUaXh0AOyydo=\n-----END PUBLIC KEY-----\n",
+              "verificationStatus": "Verified",
+              "proofHash": "sha256:69729d51d2ba2aa9c28aeb964822426d904c72739f9b0c994f0b47789a8dd343",
+              "verifierSignature": "QWL3dN3M3R4/t0zUYUfd5/lrWtcNHpGHaIttVPBLHaKjAml/KyDO4bioU/MOcUg7VbB3LDJS5VkUiC9Ya+3VAA==",
+              "artifactKind": "production-slice-eligibility-proof"
+            },
+            {
+              "protocol": "popular-consensus",
+              "schemaVersion": "production-slice-eligibility-proof-v1",
+              "proofSystem": "SemaphoreV4",
+              "groupId": "semaphore-group-vancouver-residents",
+              "groupRoot": "sha256:e18fbc2f68d5da61574ed01896bdd94f399935e8f48fbea68fc1884139d74877",
+              "signal": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+              "scope": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+              "nullifier": "sha256:ba1194e0be05f6f5f093137b5cea70d4b432071815954758eb1b9df2eb616c6c",
+              "publicInputsHash": "sha256:a1a39cf9c438b7f080b6b423d31583fb83a0498e1159de420acd58f58932bc95",
+              "verifier": "@semaphore-protocol/core.verifyProof",
+              "verifierPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEALoJOTIwKZdhWq+XKV5/QuJmXingEH8sRUaXh0AOyydo=\n-----END PUBLIC KEY-----\n",
+              "verificationStatus": "Verified",
+              "proofHash": "sha256:732d39b49428b95693fcd6960298ab637ae4078f9ae6a2db1bb25ac495df7a7d",
+              "verifierSignature": "2dBDFgn3GtbCuE/Lm2di/+0ShRWVY9dvKNYd8asPI3nEDtKSjuMpJDI8YSdGMcF/OZTR+SzWhBD7DPxp9yZhBw==",
+              "artifactKind": "production-slice-eligibility-proof"
+            },
+            {
+              "protocol": "popular-consensus",
+              "schemaVersion": "production-slice-eligibility-proof-v1",
+              "proofSystem": "SemaphoreV4",
+              "groupId": "semaphore-group-vancouver-residents",
+              "groupRoot": "sha256:e18fbc2f68d5da61574ed01896bdd94f399935e8f48fbea68fc1884139d74877",
+              "signal": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56",
+              "scope": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+              "nullifier": "sha256:5780fe1d99ba4aa2c3c0f3f7933565aa31bb363b9c0072203f711b735be9f81b",
+              "publicInputsHash": "sha256:b69bd79b286438063cf76244039d16ab03895abc29ea485182f262e7e70ebb02",
+              "verifier": "@semaphore-protocol/core.verifyProof",
+              "verifierPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEALoJOTIwKZdhWq+XKV5/QuJmXingEH8sRUaXh0AOyydo=\n-----END PUBLIC KEY-----\n",
+              "verificationStatus": "Verified",
+              "proofHash": "sha256:2cfc73749d5878520c985619ecff6c7da1ac9e21366666ddab1f5d3e0076249e",
+              "verifierSignature": "FYSgaWZ4kAXwbM05rRE8untB7nCmvWYhKGfd8Lw0bh3+cSKmXgC/VOXpbyGSEbLZEUhpPjpOchx7+W+p2wIrBw==",
+              "artifactKind": "production-slice-eligibility-proof"
+            }
+          ],
+          "decryptionShareArtifacts": [
+            {
+              "id": "decryption-share-tally-member-1",
+              "pollId": "poll-transit-priority",
+              "tallyKeySetupId": "tally-key-setup-threshold-v1",
+              "memberId": "tally-member-1",
+              "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+              "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+              "proofHash": "sha256:5911be19c3ad07489aa74129ace34f424426f0d6897c7882477856deced4d6c0",
+              "status": "Accepted",
+              "shareHash": "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e",
+              "signature": "bg4sChj0t0SAntMapoFJ/7ncLMWuEpEGqIVvulQPkIx1h004o5EVRZ/0A8EspO5+/i8s2dsC9iCAm3PNlby7BQ==",
+              "submittedAt": 1779195600001,
+              "productionSlice": {
+                "schemaVersion": "production-slice-decryption-share-v1",
+                "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+                "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+                "signature": "bg4sChj0t0SAntMapoFJ/7ncLMWuEpEGqIVvulQPkIx1h004o5EVRZ/0A8EspO5+/i8s2dsC9iCAm3PNlby7BQ=="
+              },
+              "artifactKind": "tally-decryption-share",
+              "schemaVersion": "pc-tally-decryption-share-v1"
+            },
+            {
+              "id": "decryption-share-tally-member-2",
+              "pollId": "poll-transit-priority",
+              "tallyKeySetupId": "tally-key-setup-threshold-v1",
+              "memberId": "tally-member-2",
+              "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+              "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+              "proofHash": "sha256:e5623cbd5d335347328ea8d6f32f06d066369508e8842964322f261720804e25",
+              "status": "Accepted",
+              "shareHash": "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+              "signature": "i4bvIjA+bil22RRZmsD8pUOzQxF4/LSPhv/b0K4+rISjhT/rU/VsLAazvMGmMBUfAhBh9g0cQwTVUKxjln1ZBw==",
+              "submittedAt": 1779195600002,
+              "productionSlice": {
+                "schemaVersion": "production-slice-decryption-share-v1",
+                "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+                "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+                "signature": "i4bvIjA+bil22RRZmsD8pUOzQxF4/LSPhv/b0K4+rISjhT/rU/VsLAazvMGmMBUfAhBh9g0cQwTVUKxjln1ZBw=="
+              },
+              "artifactKind": "tally-decryption-share",
+              "schemaVersion": "pc-tally-decryption-share-v1"
+            }
+          ],
+          "artifactManifest": {
+            "protocol": "popular-consensus",
+            "schemaVersion": "artifact-manifest-v1",
+            "references": [
+              {
+                "kind": "result-challenge-evidence",
+                "hash": "sha256:631cea28636afa2d428674b1ddba56ac4cc0927a3e1dba57baa76f535e5de51f",
+                "role": "challenge-evidence"
+              },
+              {
+                "kind": "result-challenge-resolution",
+                "hash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+                "role": "challenge-resolution"
+              },
+              {
+                "kind": "production-slice-eligibility-proof",
+                "hash": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751",
+                "role": "eligibility-proof"
+              },
+              {
+                "kind": "production-slice-eligibility-proof",
+                "hash": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878",
+                "role": "eligibility-proof"
+              },
+              {
+                "kind": "production-slice-eligibility-proof",
+                "hash": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51",
+                "role": "eligibility-proof"
+              },
+              {
+                "kind": "question-body",
+                "hash": "sha256:d6e9ba94e97d53152624e106ae4c5ddd834457ffa0792dadad7e5365cac96a13",
+                "role": "question-body"
+              },
+              {
+                "kind": "result-artifact",
+                "hash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+                "role": "result"
+              },
+              {
+                "kind": "sponsor-disclosure",
+                "hash": "sha256:e27878e22660863f58f0cb00e7880909332423d375bc248c7c1e991395c5390e",
+                "role": "sponsor-disclosure"
+              },
+              {
+                "kind": "tally-decryption-share",
+                "hash": "sha256:4e41db2b1ab798ac07039234e6b6ef04f26169ce79953856ea5486ca5c1070b5",
+                "role": "tally-decryption-share"
+              },
+              {
+                "kind": "tally-decryption-share",
+                "hash": "sha256:640b7f4ba7f9fb7ea0720821a54c0b098e39eda2a169d6ad553576e718b2d625",
+                "role": "tally-decryption-share"
+              },
+              {
+                "kind": "tally-key-setup",
+                "hash": "sha256:37058ef862fc59476e129248e28956e322c33ed8d7785e7d195e3562e5073a94",
+                "role": "tally-key-setup"
+              }
+            ]
+          },
+          "artifactManifestHash": "sha256:eaa3e1232e80eaaa0e4d3139faebf1b16d7ac7d2ba3e16f8fd3b5e8f0bb842c3",
+          "archivedAt": 1779282300001,
+          "artifactKind": "question-archive",
+          "schemaVersion": "pc-question-archive-v1"
+        }
+      },
+      "manifest": {
+        "protocol": "popular-consensus",
+        "schemaVersion": "artifact-manifest-v1",
+        "references": [
+          {
+            "kind": "result-challenge-evidence",
+            "hash": "sha256:631cea28636afa2d428674b1ddba56ac4cc0927a3e1dba57baa76f535e5de51f",
+            "role": "challenge-evidence"
+          },
+          {
+            "kind": "result-challenge-resolution",
+            "hash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+            "role": "challenge-resolution"
+          },
+          {
+            "kind": "production-slice-eligibility-proof",
+            "hash": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751",
+            "role": "eligibility-proof"
+          },
+          {
+            "kind": "production-slice-eligibility-proof",
+            "hash": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878",
+            "role": "eligibility-proof"
+          },
+          {
+            "kind": "production-slice-eligibility-proof",
+            "hash": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51",
+            "role": "eligibility-proof"
+          },
+          {
+            "kind": "question-body",
+            "hash": "sha256:d6e9ba94e97d53152624e106ae4c5ddd834457ffa0792dadad7e5365cac96a13",
+            "role": "question-body"
+          },
+          {
+            "kind": "result-artifact",
+            "hash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+            "role": "result"
+          },
+          {
+            "kind": "sponsor-disclosure",
+            "hash": "sha256:e27878e22660863f58f0cb00e7880909332423d375bc248c7c1e991395c5390e",
+            "role": "sponsor-disclosure"
+          },
+          {
+            "kind": "tally-decryption-share",
+            "hash": "sha256:4e41db2b1ab798ac07039234e6b6ef04f26169ce79953856ea5486ca5c1070b5",
+            "role": "tally-decryption-share"
+          },
+          {
+            "kind": "tally-decryption-share",
+            "hash": "sha256:640b7f4ba7f9fb7ea0720821a54c0b098e39eda2a169d6ad553576e718b2d625",
+            "role": "tally-decryption-share"
+          },
+          {
+            "kind": "tally-key-setup",
+            "hash": "sha256:37058ef862fc59476e129248e28956e322c33ed8d7785e7d195e3562e5073a94",
+            "role": "tally-key-setup"
+          }
+        ]
+      },
+      "manifestHash": "sha256:eaa3e1232e80eaaa0e4d3139faebf1b16d7ac7d2ba3e16f8fd3b5e8f0bb842c3",
+      "artifacts": [
+        {
+          "kind": "question-body",
+          "hash": "sha256:d6e9ba94e97d53152624e106ae4c5ddd834457ffa0792dadad7e5365cac96a13",
+          "role": "question-body",
+          "computedHash": "sha256:d6e9ba94e97d53152624e106ae4c5ddd834457ffa0792dadad7e5365cac96a13",
+          "value": {
+            "title": "Should the city prioritize bus frequency this year?",
+            "body": "A narrow production-slice question for one replayable binary poll.",
+            "artifactKind": "question-body",
+            "schemaVersion": "pc-question-body-v1"
+          }
+        },
+        {
+          "kind": "sponsor-disclosure",
+          "hash": "sha256:e27878e22660863f58f0cb00e7880909332423d375bc248c7c1e991395c5390e",
+          "role": "sponsor-disclosure",
+          "computedHash": "sha256:e27878e22660863f58f0cb00e7880909332423d375bc248c7c1e991395c5390e",
+          "value": {
+            "sponsor": "Popular Consensus production slice fixture",
+            "disclosure": "No paid sponsor. Fixture data is for protocol verification.",
+            "artifactKind": "sponsor-disclosure",
+            "schemaVersion": "pc-sponsor-disclosure-v1"
+          }
+        },
+        {
+          "kind": "tally-key-setup",
+          "hash": "sha256:37058ef862fc59476e129248e28956e322c33ed8d7785e7d195e3562e5073a94",
+          "role": "tally-key-setup",
+          "computedHash": "sha256:37058ef862fc59476e129248e28956e322c33ed8d7785e7d195e3562e5073a94",
+          "value": {
+            "id": "tally-key-setup-threshold-v1",
+            "committeeId": "tally-committee-vancouver-v1",
+            "pollId": "poll-transit-priority",
+            "publicKeyId": "tally-key-threshold-v1",
+            "custodyModel": "threshold-ed25519-attested-decryption-v1",
+            "privateKeyMaterial": "not-exported",
+            "threshold": 2,
+            "members": [
+              {
+                "memberId": "tally-member-1",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAC4RdLSglPwKFDE84h6BGGJ874IdkvQ+7PRXKN1do6Z4=\n-----END PUBLIC KEY-----\n"
+              },
+              {
+                "memberId": "tally-member-2",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAe9gAm9Mrf8OP4ZPiYyDNi57NN4SX/fnGKGumuVjMuUc=\n-----END PUBLIC KEY-----\n"
+              },
+              {
+                "memberId": "tally-member-3",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHdQpo93Uu+xqfZAfSjJPVlgaLCXejReg43/8iMl/Mpw=\n-----END PUBLIC KEY-----\n"
+              }
+            ],
+            "ceremonyHash": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9",
+            "memberPublicKeys": [
+              {
+                "memberId": "tally-member-1",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAC4RdLSglPwKFDE84h6BGGJ874IdkvQ+7PRXKN1do6Z4=\n-----END PUBLIC KEY-----\n"
+              },
+              {
+                "memberId": "tally-member-2",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAe9gAm9Mrf8OP4ZPiYyDNi57NN4SX/fnGKGumuVjMuUc=\n-----END PUBLIC KEY-----\n"
+              },
+              {
+                "memberId": "tally-member-3",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHdQpo93Uu+xqfZAfSjJPVlgaLCXejReg43/8iMl/Mpw=\n-----END PUBLIC KEY-----\n"
+              }
+            ],
+            "artifactKind": "tally-key-setup",
+            "schemaVersion": "pc-tally-key-setup-v1"
+          }
+        },
+        {
+          "kind": "production-slice-eligibility-proof",
+          "hash": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751",
+          "role": "eligibility-proof",
+          "computedHash": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751",
+          "value": {
+            "protocol": "popular-consensus",
+            "schemaVersion": "production-slice-eligibility-proof-v1",
+            "proofSystem": "SemaphoreV4",
+            "groupId": "semaphore-group-vancouver-residents",
+            "groupRoot": "sha256:e18fbc2f68d5da61574ed01896bdd94f399935e8f48fbea68fc1884139d74877",
+            "signal": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+            "scope": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+            "nullifier": "sha256:a860fe8d6a472122637331a0669a1bd0273c49c8c0109c6aabc01057902cfc56",
+            "publicInputsHash": "sha256:945d6c83869f400520fac57e51d4efff172c9f14f033a13f1a4e9b39467f706d",
+            "verifier": "@semaphore-protocol/core.verifyProof",
+            "verifierPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEALoJOTIwKZdhWq+XKV5/QuJmXingEH8sRUaXh0AOyydo=\n-----END PUBLIC KEY-----\n",
+            "verificationStatus": "Verified",
+            "proofHash": "sha256:69729d51d2ba2aa9c28aeb964822426d904c72739f9b0c994f0b47789a8dd343",
+            "verifierSignature": "QWL3dN3M3R4/t0zUYUfd5/lrWtcNHpGHaIttVPBLHaKjAml/KyDO4bioU/MOcUg7VbB3LDJS5VkUiC9Ya+3VAA==",
+            "artifactKind": "production-slice-eligibility-proof"
+          }
+        },
+        {
+          "kind": "production-slice-eligibility-proof",
+          "hash": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51",
+          "role": "eligibility-proof",
+          "computedHash": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51",
+          "value": {
+            "protocol": "popular-consensus",
+            "schemaVersion": "production-slice-eligibility-proof-v1",
+            "proofSystem": "SemaphoreV4",
+            "groupId": "semaphore-group-vancouver-residents",
+            "groupRoot": "sha256:e18fbc2f68d5da61574ed01896bdd94f399935e8f48fbea68fc1884139d74877",
+            "signal": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+            "scope": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+            "nullifier": "sha256:ba1194e0be05f6f5f093137b5cea70d4b432071815954758eb1b9df2eb616c6c",
+            "publicInputsHash": "sha256:a1a39cf9c438b7f080b6b423d31583fb83a0498e1159de420acd58f58932bc95",
+            "verifier": "@semaphore-protocol/core.verifyProof",
+            "verifierPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEALoJOTIwKZdhWq+XKV5/QuJmXingEH8sRUaXh0AOyydo=\n-----END PUBLIC KEY-----\n",
+            "verificationStatus": "Verified",
+            "proofHash": "sha256:732d39b49428b95693fcd6960298ab637ae4078f9ae6a2db1bb25ac495df7a7d",
+            "verifierSignature": "2dBDFgn3GtbCuE/Lm2di/+0ShRWVY9dvKNYd8asPI3nEDtKSjuMpJDI8YSdGMcF/OZTR+SzWhBD7DPxp9yZhBw==",
+            "artifactKind": "production-slice-eligibility-proof"
+          }
+        },
+        {
+          "kind": "production-slice-eligibility-proof",
+          "hash": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878",
+          "role": "eligibility-proof",
+          "computedHash": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878",
+          "value": {
+            "protocol": "popular-consensus",
+            "schemaVersion": "production-slice-eligibility-proof-v1",
+            "proofSystem": "SemaphoreV4",
+            "groupId": "semaphore-group-vancouver-residents",
+            "groupRoot": "sha256:e18fbc2f68d5da61574ed01896bdd94f399935e8f48fbea68fc1884139d74877",
+            "signal": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56",
+            "scope": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+            "nullifier": "sha256:5780fe1d99ba4aa2c3c0f3f7933565aa31bb363b9c0072203f711b735be9f81b",
+            "publicInputsHash": "sha256:b69bd79b286438063cf76244039d16ab03895abc29ea485182f262e7e70ebb02",
+            "verifier": "@semaphore-protocol/core.verifyProof",
+            "verifierPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEALoJOTIwKZdhWq+XKV5/QuJmXingEH8sRUaXh0AOyydo=\n-----END PUBLIC KEY-----\n",
+            "verificationStatus": "Verified",
+            "proofHash": "sha256:2cfc73749d5878520c985619ecff6c7da1ac9e21366666ddab1f5d3e0076249e",
+            "verifierSignature": "FYSgaWZ4kAXwbM05rRE8untB7nCmvWYhKGfd8Lw0bh3+cSKmXgC/VOXpbyGSEbLZEUhpPjpOchx7+W+p2wIrBw==",
+            "artifactKind": "production-slice-eligibility-proof"
+          }
+        },
+        {
+          "kind": "tally-decryption-share",
+          "hash": "sha256:4e41db2b1ab798ac07039234e6b6ef04f26169ce79953856ea5486ca5c1070b5",
+          "role": "tally-decryption-share",
+          "computedHash": "sha256:4e41db2b1ab798ac07039234e6b6ef04f26169ce79953856ea5486ca5c1070b5",
+          "value": {
+            "id": "decryption-share-tally-member-1",
+            "pollId": "poll-transit-priority",
+            "tallyKeySetupId": "tally-key-setup-threshold-v1",
+            "memberId": "tally-member-1",
+            "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+            "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+            "proofHash": "sha256:5911be19c3ad07489aa74129ace34f424426f0d6897c7882477856deced4d6c0",
+            "status": "Accepted",
+            "shareHash": "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e",
+            "signature": "bg4sChj0t0SAntMapoFJ/7ncLMWuEpEGqIVvulQPkIx1h004o5EVRZ/0A8EspO5+/i8s2dsC9iCAm3PNlby7BQ==",
+            "submittedAt": 1779195600001,
+            "productionSlice": {
+              "schemaVersion": "production-slice-decryption-share-v1",
+              "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+              "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+              "signature": "bg4sChj0t0SAntMapoFJ/7ncLMWuEpEGqIVvulQPkIx1h004o5EVRZ/0A8EspO5+/i8s2dsC9iCAm3PNlby7BQ=="
+            },
+            "artifactKind": "tally-decryption-share",
+            "schemaVersion": "pc-tally-decryption-share-v1"
+          }
+        },
+        {
+          "kind": "tally-decryption-share",
+          "hash": "sha256:640b7f4ba7f9fb7ea0720821a54c0b098e39eda2a169d6ad553576e718b2d625",
+          "role": "tally-decryption-share",
+          "computedHash": "sha256:640b7f4ba7f9fb7ea0720821a54c0b098e39eda2a169d6ad553576e718b2d625",
+          "value": {
+            "id": "decryption-share-tally-member-2",
+            "pollId": "poll-transit-priority",
+            "tallyKeySetupId": "tally-key-setup-threshold-v1",
+            "memberId": "tally-member-2",
+            "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+            "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+            "proofHash": "sha256:e5623cbd5d335347328ea8d6f32f06d066369508e8842964322f261720804e25",
+            "status": "Accepted",
+            "shareHash": "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+            "signature": "i4bvIjA+bil22RRZmsD8pUOzQxF4/LSPhv/b0K4+rISjhT/rU/VsLAazvMGmMBUfAhBh9g0cQwTVUKxjln1ZBw==",
+            "submittedAt": 1779195600002,
+            "productionSlice": {
+              "schemaVersion": "production-slice-decryption-share-v1",
+              "ballotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+              "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+              "signature": "i4bvIjA+bil22RRZmsD8pUOzQxF4/LSPhv/b0K4+rISjhT/rU/VsLAazvMGmMBUfAhBh9g0cQwTVUKxjln1ZBw=="
+            },
+            "artifactKind": "tally-decryption-share",
+            "schemaVersion": "pc-tally-decryption-share-v1"
+          }
+        },
+        {
+          "kind": "result-artifact",
+          "hash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+          "role": "result",
+          "computedHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+          "value": {
+            "pollId": "poll-transit-priority",
+            "questionId": "question-transit-priority",
+            "questionVersionHash": "sha256:bc1fae283b23e33865c6febc4af704a8ee57664dacf6ef520b9b9850780a4d25",
+            "aggregate": {
+              "answerSchemaId": "answer-binary-support-oppose",
+              "kind": "Binary",
+              "responseShape": "SingleChoice",
+              "tallyMethod": "PluralityCounts",
+              "counts": {
+                "support": 2,
+                "oppose": 1,
+                "abstain": 0
+              },
+              "turnout": 3
+            },
+            "counts": {
+              "support": 2,
+              "oppose": 1,
+              "abstain": 0
+            },
+            "aggregateCountsHash": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+            "acceptedBallotCommitments": [
+              "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+              "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+              "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56"
+            ],
+            "acceptedBallotCommitmentsHash": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+            "tallyKeySetupHash": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9",
+            "decryptionShareHashes": [
+              "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+              "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e"
+            ],
+            "decryptionShareSetHash": "sha256:cdcd7cd521ea39c066b61190c7df8f47ee052f5f0bae5a941c3fe8ed6d0c2d86",
+            "acceptedDecryptionShareCount": 2,
+            "tallyProofHash": "sha256:fdec4946f42c39b6a26a7822cceadf7c5f1829e406c33587b787cb6f41e04cf1",
+            "privacyReportHash": "sha256:3855ae59c75fe4004a9c0b0370ff33ce2be03b291fa77d1cb710e2d2dd53d538",
+            "turnout": 3,
+            "invalidBallots": 0,
+            "publishedAt": 1779195900000,
+            "cryptoMode": "production-boundary-v1",
+            "artifactKind": "result-artifact",
+            "schemaVersion": "pc-result-artifact-v1"
+          }
+        },
+        {
+          "kind": "result-challenge-evidence",
+          "hash": "sha256:631cea28636afa2d428674b1ddba56ac4cc0927a3e1dba57baa76f535e5de51f",
+          "role": "challenge-evidence",
+          "computedHash": "sha256:631cea28636afa2d428674b1ddba56ac4cc0927a3e1dba57baa76f535e5de51f",
+          "value": {
+            "pollId": "poll-transit-priority",
+            "resultId": "result-transit-priority",
+            "reasonCode": "TallyProofFailure",
+            "evidence": "Fixture challenge verifies the finalized path rejects pending result disputes.",
+            "artifactKind": "result-challenge-evidence",
+            "schemaVersion": "pc-result-challenge-evidence-v1"
+          }
+        },
+        {
+          "kind": "result-challenge-resolution",
+          "hash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+          "role": "challenge-resolution",
+          "computedHash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+          "value": {
+            "challengeId": "result-challenge-1",
+            "ruling": "Rejected",
+            "resolution": "Fixture tally proof reference, threshold shares, and ballot commitment set are internally consistent.",
+            "artifactKind": "result-challenge-resolution",
+            "schemaVersion": "pc-result-challenge-resolution-v1"
+          }
+        }
+      ]
+    }
+  },
+  "report": {
+    "protocol": "popular-consensus",
+    "schemaVersion": "production-slice-verification-v1",
+    "status": "Verified",
+    "cryptoMode": "production-boundary-v1",
+    "generatedAt": 1779192000000,
+    "hashes": {
+      "eventStreamHash": "sha256:65c7d04d248a85a70acbb6f53dbfafefb08cfba0cbbebbad247b18c81e55dc9d",
+      "transactionStreamHash": "sha256:ccdd3f0db6316e74fe9e63f8396c8dda875e5ccec71089411d851d2492bc16bf",
+      "resultArtifactHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+      "archiveHash": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
+      "archiveManifestHash": "sha256:eaa3e1232e80eaaa0e4d3139faebf1b16d7ac7d2ba3e16f8fd3b5e8f0bb842c3",
+      "tallyKeySetupHash": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9",
+      "decryptionShareSetHash": "sha256:cdcd7cd521ea39c066b61190c7df8f47ee052f5f0bae5a941c3fe8ed6d0c2d86"
+    },
+    "counts": {
+      "ballots": 3,
+      "uniqueNullifiers": 3,
+      "challenges": 1,
+      "threshold": 2,
+      "acceptedDecryptionShares": 2,
+      "checks": 105,
+      "failedChecks": 0
+    },
+    "checks": [
+      {
+        "id": "input-protocol",
+        "ok": true,
+        "expected": "production-slice-input-v1",
+        "actual": "production-slice-input-v1"
+      },
+      {
+        "id": "crypto-mode-v1",
+        "ok": true,
+        "expected": "production-boundary-v1",
+        "actual": "production-boundary-v1"
+      },
+      {
+        "id": "credential-schema-active",
+        "ok": true,
+        "expected": "Active",
+        "actual": "Active"
+      },
+      {
+        "id": "credential-issuer-active",
+        "ok": true,
+        "expected": "Active",
+        "actual": "Active"
+      },
+      {
+        "id": "issuer-approved-for-schema",
+        "ok": true,
+        "expected": "credential-vancouver-resident",
+        "actual": [
+          "credential-vancouver-resident"
+        ]
+      },
+      {
+        "id": "trust-policy-active",
+        "ok": true,
+        "expected": "Active",
+        "actual": "Active"
+      },
+      {
+        "id": "trust-policy-hash",
+        "ok": true,
+        "expected": "sha256:a2c59f057901a0d071be232c85140821d2f60bf9223f3d4e3d835195bfcf3392",
+        "actual": "sha256:a2c59f057901a0d071be232c85140821d2f60bf9223f3d4e3d835195bfcf3392"
+      },
+      {
+        "id": "trust-policy-community",
+        "ok": true,
+        "expected": "community-vancouver-transit",
+        "actual": "community-vancouver-transit"
+      },
+      {
+        "id": "trust-policy-schema",
+        "ok": true,
+        "expected": "credential-vancouver-resident",
+        "actual": "credential-vancouver-resident"
+      },
+      {
+        "id": "trust-policy-allows-issuer",
+        "ok": true,
+        "expected": "issuer-civic-residency",
+        "actual": [
+          "issuer-civic-residency"
+        ]
+      },
+      {
+        "id": "question-answer-schema",
+        "ok": true,
+        "expected": "answer-binary-support-oppose",
+        "actual": "answer-binary-support-oppose"
+      },
+      {
+        "id": "question-credential-schema",
+        "ok": true,
+        "expected": "credential-vancouver-resident",
+        "actual": "credential-vancouver-resident"
+      },
+      {
+        "id": "question-version-hash",
+        "ok": true,
+        "expected": "sha256:bc1fae283b23e33865c6febc4af704a8ee57664dacf6ef520b9b9850780a4d25",
+        "actual": "sha256:bc1fae283b23e33865c6febc4af704a8ee57664dacf6ef520b9b9850780a4d25"
+      },
+      {
+        "id": "poll-question",
+        "ok": true,
+        "expected": "question-transit-priority",
+        "actual": "question-transit-priority"
+      },
+      {
+        "id": "poll-credential-schema",
+        "ok": true,
+        "expected": "credential-vancouver-resident",
+        "actual": "credential-vancouver-resident"
+      },
+      {
+        "id": "poll-tally-key",
+        "ok": true,
+        "expected": {
+          "pollId": "poll-transit-priority",
+          "publicKeyId": "tally-key-threshold-v1"
+        },
+        "actual": {
+          "pollId": "poll-transit-priority",
+          "publicKeyId": "tally-key-threshold-v1"
+        }
+      },
+      {
+        "id": "tally-key-custody-model",
+        "ok": true,
+        "expected": "threshold custody without private key export",
+        "actual": {
+          "custodyModel": "threshold-ed25519-attested-decryption-v1",
+          "privateKeyMaterial": "not-exported"
+        }
+      },
+      {
+        "id": "tally-key-ceremony-hash",
+        "ok": true,
+        "expected": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9",
+        "actual": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9"
+      },
+      {
+        "id": "tally-members-present",
+        "ok": true,
+        "expected": "at least one member",
+        "actual": 3
+      },
+      {
+        "id": "tally-member-ids-unique",
+        "ok": true,
+        "expected": 3,
+        "actual": 3
+      },
+      {
+        "id": "tally-member-public-keys-unique",
+        "ok": true,
+        "expected": 3,
+        "actual": 3
+      },
+      {
+        "id": "tally-member-public-keys-valid",
+        "ok": true,
+        "expected": true,
+        "actual": [
+          {
+            "memberId": "tally-member-1",
+            "valid": true
+          },
+          {
+            "memberId": "tally-member-2",
+            "valid": true
+          },
+          {
+            "memberId": "tally-member-3",
+            "valid": true
+          }
+        ]
+      },
+      {
+        "id": "tally-threshold",
+        "ok": true,
+        "expected": "2..unique member count",
+        "actual": 2
+      },
+      {
+        "id": "no-private-key-material",
+        "ok": true,
+        "expected": "no exported private keys",
+        "actual": "input scanned"
+      },
+      {
+        "id": "ballots-present",
+        "ok": true,
+        "expected": "at least one ballot",
+        "actual": 3
+      },
+      {
+        "id": "duplicate-nullifiers",
+        "ok": true,
+        "expected": 3,
+        "actual": 3
+      },
+      {
+        "id": "ballot-ballot-1-poll",
+        "ok": true,
+        "expected": {
+          "pollId": "poll-transit-priority",
+          "questionId": "question-transit-priority"
+        },
+        "actual": {
+          "pollId": "poll-transit-priority",
+          "questionId": "question-transit-priority"
+        }
+      },
+      {
+        "id": "ballot-ballot-1-trusted-issuer",
+        "ok": true,
+        "expected": {
+          "schemaId": "credential-vancouver-resident",
+          "issuerId": "issuer-civic-residency"
+        },
+        "actual": {
+          "schemaId": "credential-vancouver-resident",
+          "issuerId": "issuer-civic-residency"
+        }
+      },
+      {
+        "id": "ballot-ballot-1-proof-system",
+        "ok": true,
+        "expected": "SemaphoreV4",
+        "actual": {
+          "proofSystem": "SemaphoreV4",
+          "proofHash": "sha256:69729d51d2ba2aa9c28aeb964822426d904c72739f9b0c994f0b47789a8dd343",
+          "eligibilityProofHash": "sha256:69729d51d2ba2aa9c28aeb964822426d904c72739f9b0c994f0b47789a8dd343"
+        }
+      },
+      {
+        "id": "ballot-ballot-1-proof-artifact",
+        "ok": true,
+        "expected": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751",
+        "actual": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751"
+      },
+      {
+        "id": "ballot-ballot-1-proof-artifact-value",
+        "ok": true,
+        "expected": "sha256:69729d51d2ba2aa9c28aeb964822426d904c72739f9b0c994f0b47789a8dd343",
+        "actual": "sha256:69729d51d2ba2aa9c28aeb964822426d904c72739f9b0c994f0b47789a8dd343"
+      },
+      {
+        "id": "ballot-ballot-1-encrypted-payload-hash",
+        "ok": true,
+        "expected": "sha256:b8c536a790c14c17862acf0dde14c7ab03121295ebd63a97338581c92728f317",
+        "actual": "sha256:b8c536a790c14c17862acf0dde14c7ab03121295ebd63a97338581c92728f317"
+      },
+      {
+        "id": "ballot-ballot-1-proof-signal",
+        "ok": true,
+        "expected": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+        "actual": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854"
+      },
+      {
+        "id": "ballot-ballot-1-proof-nullifier",
+        "ok": true,
+        "expected": "sha256:a860fe8d6a472122637331a0669a1bd0273c49c8c0109c6aabc01057902cfc56",
+        "actual": "sha256:a860fe8d6a472122637331a0669a1bd0273c49c8c0109c6aabc01057902cfc56"
+      },
+      {
+        "id": "ballot-ballot-1-proof-scope",
+        "ok": true,
+        "expected": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+        "actual": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef"
+      },
+      {
+        "id": "ballot-ballot-1-proof-public-inputs",
+        "ok": true,
+        "expected": "sha256:945d6c83869f400520fac57e51d4efff172c9f14f033a13f1a4e9b39467f706d",
+        "actual": "sha256:945d6c83869f400520fac57e51d4efff172c9f14f033a13f1a4e9b39467f706d"
+      },
+      {
+        "id": "ballot-ballot-1-proof-hash",
+        "ok": true,
+        "expected": "sha256:69729d51d2ba2aa9c28aeb964822426d904c72739f9b0c994f0b47789a8dd343",
+        "actual": "sha256:69729d51d2ba2aa9c28aeb964822426d904c72739f9b0c994f0b47789a8dd343"
+      },
+      {
+        "id": "ballot-ballot-1-proof-verifier-signature",
+        "ok": true,
+        "expected": true,
+        "actual": true
+      },
+      {
+        "id": "ballot-ballot-1-commitment",
+        "ok": true,
+        "expected": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+        "actual": "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854"
+      },
+      {
+        "id": "ballot-ballot-2-poll",
+        "ok": true,
+        "expected": {
+          "pollId": "poll-transit-priority",
+          "questionId": "question-transit-priority"
+        },
+        "actual": {
+          "pollId": "poll-transit-priority",
+          "questionId": "question-transit-priority"
+        }
+      },
+      {
+        "id": "ballot-ballot-2-trusted-issuer",
+        "ok": true,
+        "expected": {
+          "schemaId": "credential-vancouver-resident",
+          "issuerId": "issuer-civic-residency"
+        },
+        "actual": {
+          "schemaId": "credential-vancouver-resident",
+          "issuerId": "issuer-civic-residency"
+        }
+      },
+      {
+        "id": "ballot-ballot-2-proof-system",
+        "ok": true,
+        "expected": "SemaphoreV4",
+        "actual": {
+          "proofSystem": "SemaphoreV4",
+          "proofHash": "sha256:732d39b49428b95693fcd6960298ab637ae4078f9ae6a2db1bb25ac495df7a7d",
+          "eligibilityProofHash": "sha256:732d39b49428b95693fcd6960298ab637ae4078f9ae6a2db1bb25ac495df7a7d"
+        }
+      },
+      {
+        "id": "ballot-ballot-2-proof-artifact",
+        "ok": true,
+        "expected": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51",
+        "actual": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51"
+      },
+      {
+        "id": "ballot-ballot-2-proof-artifact-value",
+        "ok": true,
+        "expected": "sha256:732d39b49428b95693fcd6960298ab637ae4078f9ae6a2db1bb25ac495df7a7d",
+        "actual": "sha256:732d39b49428b95693fcd6960298ab637ae4078f9ae6a2db1bb25ac495df7a7d"
+      },
+      {
+        "id": "ballot-ballot-2-encrypted-payload-hash",
+        "ok": true,
+        "expected": "sha256:0812b13ed07206a1723fef318583f6c79aee1aee5c057d1bff475e5d327d8364",
+        "actual": "sha256:0812b13ed07206a1723fef318583f6c79aee1aee5c057d1bff475e5d327d8364"
+      },
+      {
+        "id": "ballot-ballot-2-proof-signal",
+        "ok": true,
+        "expected": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+        "actual": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35"
+      },
+      {
+        "id": "ballot-ballot-2-proof-nullifier",
+        "ok": true,
+        "expected": "sha256:ba1194e0be05f6f5f093137b5cea70d4b432071815954758eb1b9df2eb616c6c",
+        "actual": "sha256:ba1194e0be05f6f5f093137b5cea70d4b432071815954758eb1b9df2eb616c6c"
+      },
+      {
+        "id": "ballot-ballot-2-proof-scope",
+        "ok": true,
+        "expected": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+        "actual": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef"
+      },
+      {
+        "id": "ballot-ballot-2-proof-public-inputs",
+        "ok": true,
+        "expected": "sha256:a1a39cf9c438b7f080b6b423d31583fb83a0498e1159de420acd58f58932bc95",
+        "actual": "sha256:a1a39cf9c438b7f080b6b423d31583fb83a0498e1159de420acd58f58932bc95"
+      },
+      {
+        "id": "ballot-ballot-2-proof-hash",
+        "ok": true,
+        "expected": "sha256:732d39b49428b95693fcd6960298ab637ae4078f9ae6a2db1bb25ac495df7a7d",
+        "actual": "sha256:732d39b49428b95693fcd6960298ab637ae4078f9ae6a2db1bb25ac495df7a7d"
+      },
+      {
+        "id": "ballot-ballot-2-proof-verifier-signature",
+        "ok": true,
+        "expected": true,
+        "actual": true
+      },
+      {
+        "id": "ballot-ballot-2-commitment",
+        "ok": true,
+        "expected": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+        "actual": "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35"
+      },
+      {
+        "id": "ballot-ballot-3-poll",
+        "ok": true,
+        "expected": {
+          "pollId": "poll-transit-priority",
+          "questionId": "question-transit-priority"
+        },
+        "actual": {
+          "pollId": "poll-transit-priority",
+          "questionId": "question-transit-priority"
+        }
+      },
+      {
+        "id": "ballot-ballot-3-trusted-issuer",
+        "ok": true,
+        "expected": {
+          "schemaId": "credential-vancouver-resident",
+          "issuerId": "issuer-civic-residency"
+        },
+        "actual": {
+          "schemaId": "credential-vancouver-resident",
+          "issuerId": "issuer-civic-residency"
+        }
+      },
+      {
+        "id": "ballot-ballot-3-proof-system",
+        "ok": true,
+        "expected": "SemaphoreV4",
+        "actual": {
+          "proofSystem": "SemaphoreV4",
+          "proofHash": "sha256:2cfc73749d5878520c985619ecff6c7da1ac9e21366666ddab1f5d3e0076249e",
+          "eligibilityProofHash": "sha256:2cfc73749d5878520c985619ecff6c7da1ac9e21366666ddab1f5d3e0076249e"
+        }
+      },
+      {
+        "id": "ballot-ballot-3-proof-artifact",
+        "ok": true,
+        "expected": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878",
+        "actual": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878"
+      },
+      {
+        "id": "ballot-ballot-3-proof-artifact-value",
+        "ok": true,
+        "expected": "sha256:2cfc73749d5878520c985619ecff6c7da1ac9e21366666ddab1f5d3e0076249e",
+        "actual": "sha256:2cfc73749d5878520c985619ecff6c7da1ac9e21366666ddab1f5d3e0076249e"
+      },
+      {
+        "id": "ballot-ballot-3-encrypted-payload-hash",
+        "ok": true,
+        "expected": "sha256:385626ee70b50e63414cf772417dee819ac1d3b089f499e093fcb3de508c5910",
+        "actual": "sha256:385626ee70b50e63414cf772417dee819ac1d3b089f499e093fcb3de508c5910"
+      },
+      {
+        "id": "ballot-ballot-3-proof-signal",
+        "ok": true,
+        "expected": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56",
+        "actual": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56"
+      },
+      {
+        "id": "ballot-ballot-3-proof-nullifier",
+        "ok": true,
+        "expected": "sha256:5780fe1d99ba4aa2c3c0f3f7933565aa31bb363b9c0072203f711b735be9f81b",
+        "actual": "sha256:5780fe1d99ba4aa2c3c0f3f7933565aa31bb363b9c0072203f711b735be9f81b"
+      },
+      {
+        "id": "ballot-ballot-3-proof-scope",
+        "ok": true,
+        "expected": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef",
+        "actual": "sha256:f48b86279b0129b3417f390857986ec3226b2bfdbd4bfb588e20ab9007cf65ef"
+      },
+      {
+        "id": "ballot-ballot-3-proof-public-inputs",
+        "ok": true,
+        "expected": "sha256:b69bd79b286438063cf76244039d16ab03895abc29ea485182f262e7e70ebb02",
+        "actual": "sha256:b69bd79b286438063cf76244039d16ab03895abc29ea485182f262e7e70ebb02"
+      },
+      {
+        "id": "ballot-ballot-3-proof-hash",
+        "ok": true,
+        "expected": "sha256:2cfc73749d5878520c985619ecff6c7da1ac9e21366666ddab1f5d3e0076249e",
+        "actual": "sha256:2cfc73749d5878520c985619ecff6c7da1ac9e21366666ddab1f5d3e0076249e"
+      },
+      {
+        "id": "ballot-ballot-3-proof-verifier-signature",
+        "ok": true,
+        "expected": true,
+        "actual": true
+      },
+      {
+        "id": "ballot-ballot-3-commitment",
+        "ok": true,
+        "expected": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56",
+        "actual": "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56"
+      },
+      {
+        "id": "threshold-share-count",
+        "ok": true,
+        "expected": ">= 2",
+        "actual": 2
+      },
+      {
+        "id": "threshold-share-unique-members",
+        "ok": true,
+        "expected": 2,
+        "actual": 2
+      },
+      {
+        "id": "threshold-share-unique-hashes",
+        "ok": true,
+        "expected": 2,
+        "actual": 2
+      },
+      {
+        "id": "share-decryption-share-tally-member-1-authorized-member",
+        "ok": true,
+        "expected": [
+          "tally-member-1",
+          "tally-member-2",
+          "tally-member-3"
+        ],
+        "actual": "tally-member-1"
+      },
+      {
+        "id": "share-decryption-share-tally-member-1-hash",
+        "ok": true,
+        "expected": "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e",
+        "actual": "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e"
+      },
+      {
+        "id": "share-decryption-share-tally-member-1-ballot-commitments",
+        "ok": true,
+        "expected": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+        "actual": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad"
+      },
+      {
+        "id": "share-decryption-share-tally-member-1-aggregate",
+        "ok": true,
+        "expected": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+        "actual": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463"
+      },
+      {
+        "id": "share-decryption-share-tally-member-1-signature",
+        "ok": true,
+        "expected": true,
+        "actual": true
+      },
+      {
+        "id": "share-decryption-share-tally-member-2-authorized-member",
+        "ok": true,
+        "expected": [
+          "tally-member-1",
+          "tally-member-2",
+          "tally-member-3"
+        ],
+        "actual": "tally-member-2"
+      },
+      {
+        "id": "share-decryption-share-tally-member-2-hash",
+        "ok": true,
+        "expected": "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+        "actual": "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4"
+      },
+      {
+        "id": "share-decryption-share-tally-member-2-ballot-commitments",
+        "ok": true,
+        "expected": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+        "actual": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad"
+      },
+      {
+        "id": "share-decryption-share-tally-member-2-aggregate",
+        "ok": true,
+        "expected": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+        "actual": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463"
+      },
+      {
+        "id": "share-decryption-share-tally-member-2-signature",
+        "ok": true,
+        "expected": true,
+        "actual": true
+      },
+      {
+        "id": "result-artifact-present",
+        "ok": true,
+        "expected": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+        "actual": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642"
+      },
+      {
+        "id": "result-artifact-hash",
+        "ok": true,
+        "expected": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+        "actual": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642"
+      },
+      {
+        "id": "result-artifact-schema",
+        "ok": true,
+        "expected": {
+          "artifactKind": "result-artifact",
+          "schemaVersion": "pc-result-artifact-v1"
+        },
+        "actual": {
+          "artifactKind": "result-artifact",
+          "schemaVersion": "pc-result-artifact-v1"
+        }
+      },
+      {
+        "id": "result-record-artifact-hash",
+        "ok": true,
+        "expected": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+        "actual": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642"
+      },
+      {
+        "id": "result-turnout",
+        "ok": true,
+        "expected": 3,
+        "actual": {
+          "result": 3,
+          "artifact": 3
+        }
+      },
+      {
+        "id": "result-invalid-ballots",
+        "ok": true,
+        "expected": 0,
+        "actual": {
+          "result": 0,
+          "artifact": 0
+        }
+      },
+      {
+        "id": "result-aggregate-counts-hash",
+        "ok": true,
+        "expected": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463",
+        "actual": "sha256:58987af156ac2669c593c06572b02d58513c1bae4612638487637585ac411463"
+      },
+      {
+        "id": "result-ballot-commitment-set",
+        "ok": true,
+        "expected": [
+          "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+          "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+          "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56"
+        ],
+        "actual": [
+          "sha256:13edf64b5f471b969b718cc0886f0689d545ae42b25cfae784c4cc8a92ffe854",
+          "sha256:5d11d0afb3b5a4006a5923656720f96479057dba2d81d3f20f99d21e37e31c35",
+          "sha256:86c5377ad9de5e59b5fa3c258b36483939b60240591bd3b7bcee240268452f56"
+        ]
+      },
+      {
+        "id": "result-ballot-commitment-set-hash",
+        "ok": true,
+        "expected": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad",
+        "actual": "sha256:643333cbd73ec77302e1c413f701ae556253742982ca76e3f4259e693aacacad"
+      },
+      {
+        "id": "result-tally-key-setup",
+        "ok": true,
+        "expected": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9",
+        "actual": "sha256:496e44379b1d13f11967b1089cb20747f8cbc574ff2e033cd680e792033b04b9"
+      },
+      {
+        "id": "result-decryption-share-set",
+        "ok": true,
+        "expected": {
+          "decryptionShareHashes": [
+            "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+            "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e"
+          ],
+          "decryptionShareSetHash": "sha256:cdcd7cd521ea39c066b61190c7df8f47ee052f5f0bae5a941c3fe8ed6d0c2d86"
+        },
+        "actual": {
+          "decryptionShareHashes": [
+            "sha256:588e9eb1d8cf379cd3723ef7bbd7a6ec88f1a6c44063f2d1effe4935f61d6df4",
+            "sha256:b92a23fb690b3c5a6275851e00d85085a674ee727eef13dd6deb9a334230e66e"
+          ],
+          "decryptionShareSetHash": "sha256:cdcd7cd521ea39c066b61190c7df8f47ee052f5f0bae5a941c3fe8ed6d0c2d86"
+        }
+      },
+      {
+        "id": "result-threshold-share-count",
+        "ok": true,
+        "expected": {
+          "accepted": 2,
+          "threshold": 2
+        },
+        "actual": 2
+      },
+      {
+        "id": "result-tally-proof-hash",
+        "ok": true,
+        "expected": "sha256:fdec4946f42c39b6a26a7822cceadf7c5f1829e406c33587b787cb6f41e04cf1",
+        "actual": "sha256:fdec4946f42c39b6a26a7822cceadf7c5f1829e406c33587b787cb6f41e04cf1"
+      },
+      {
+        "id": "result-privacy-report-reference",
+        "ok": true,
+        "expected": "sha256:3855ae59c75fe4004a9c0b0370ff33ce2be03b291fa77d1cb710e2d2dd53d538",
+        "actual": "sha256:3855ae59c75fe4004a9c0b0370ff33ce2be03b291fa77d1cb710e2d2dd53d538"
+      },
+      {
+        "id": "no-pending-challenges-before-finalization",
+        "ok": true,
+        "expected": [],
+        "actual": []
+      },
+      {
+        "id": "finalization-after-publication",
+        "ok": true,
+        "expected": ">= 1779195900000",
+        "actual": 1779282300001
+      },
+      {
+        "id": "resolved-challenges-have-resolution",
+        "ok": true,
+        "expected": true,
+        "actual": [
+          {
+            "id": "result-challenge-1",
+            "ruling": "Rejected",
+            "resolutionHash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf"
+          }
+        ]
+      },
+      {
+        "id": "archive-root-present",
+        "ok": true,
+        "expected": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
+        "actual": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34"
+      },
+      {
+        "id": "archive-root-hash",
+        "ok": true,
+        "expected": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
+        "actual": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34"
+      },
+      {
+        "id": "archive-record-manifest-hash",
+        "ok": true,
+        "expected": "sha256:eaa3e1232e80eaaa0e4d3139faebf1b16d7ac7d2ba3e16f8fd3b5e8f0bb842c3",
+        "actual": "sha256:eaa3e1232e80eaaa0e4d3139faebf1b16d7ac7d2ba3e16f8fd3b5e8f0bb842c3"
+      },
+      {
+        "id": "archive-root-manifest-hash",
+        "ok": true,
+        "expected": "sha256:eaa3e1232e80eaaa0e4d3139faebf1b16d7ac7d2ba3e16f8fd3b5e8f0bb842c3",
+        "actual": "sha256:eaa3e1232e80eaaa0e4d3139faebf1b16d7ac7d2ba3e16f8fd3b5e8f0bb842c3"
+      },
+      {
+        "id": "bundle-schema",
+        "ok": true,
+        "expected": "artifact-export-bundle-v1",
+        "actual": "artifact-export-bundle-v1"
+      },
+      {
+        "id": "bundle-artifact-hashes",
+        "ok": true,
+        "expected": true,
+        "actual": [
+          {
+            "hash": "sha256:d6e9ba94e97d53152624e106ae4c5ddd834457ffa0792dadad7e5365cac96a13",
+            "computedHash": "sha256:d6e9ba94e97d53152624e106ae4c5ddd834457ffa0792dadad7e5365cac96a13",
+            "actual": "sha256:d6e9ba94e97d53152624e106ae4c5ddd834457ffa0792dadad7e5365cac96a13"
+          },
+          {
+            "hash": "sha256:e27878e22660863f58f0cb00e7880909332423d375bc248c7c1e991395c5390e",
+            "computedHash": "sha256:e27878e22660863f58f0cb00e7880909332423d375bc248c7c1e991395c5390e",
+            "actual": "sha256:e27878e22660863f58f0cb00e7880909332423d375bc248c7c1e991395c5390e"
+          },
+          {
+            "hash": "sha256:37058ef862fc59476e129248e28956e322c33ed8d7785e7d195e3562e5073a94",
+            "computedHash": "sha256:37058ef862fc59476e129248e28956e322c33ed8d7785e7d195e3562e5073a94",
+            "actual": "sha256:37058ef862fc59476e129248e28956e322c33ed8d7785e7d195e3562e5073a94"
+          },
+          {
+            "hash": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751",
+            "computedHash": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751",
+            "actual": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751"
+          },
+          {
+            "hash": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51",
+            "computedHash": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51",
+            "actual": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51"
+          },
+          {
+            "hash": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878",
+            "computedHash": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878",
+            "actual": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878"
+          },
+          {
+            "hash": "sha256:4e41db2b1ab798ac07039234e6b6ef04f26169ce79953856ea5486ca5c1070b5",
+            "computedHash": "sha256:4e41db2b1ab798ac07039234e6b6ef04f26169ce79953856ea5486ca5c1070b5",
+            "actual": "sha256:4e41db2b1ab798ac07039234e6b6ef04f26169ce79953856ea5486ca5c1070b5"
+          },
+          {
+            "hash": "sha256:640b7f4ba7f9fb7ea0720821a54c0b098e39eda2a169d6ad553576e718b2d625",
+            "computedHash": "sha256:640b7f4ba7f9fb7ea0720821a54c0b098e39eda2a169d6ad553576e718b2d625",
+            "actual": "sha256:640b7f4ba7f9fb7ea0720821a54c0b098e39eda2a169d6ad553576e718b2d625"
+          },
+          {
+            "hash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+            "computedHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+            "actual": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642"
+          },
+          {
+            "hash": "sha256:631cea28636afa2d428674b1ddba56ac4cc0927a3e1dba57baa76f535e5de51f",
+            "computedHash": "sha256:631cea28636afa2d428674b1ddba56ac4cc0927a3e1dba57baa76f535e5de51f",
+            "actual": "sha256:631cea28636afa2d428674b1ddba56ac4cc0927a3e1dba57baa76f535e5de51f"
+          },
+          {
+            "hash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+            "computedHash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+            "actual": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf"
+          }
+        ]
+      },
+      {
+        "id": "manifest-references-present",
+        "ok": true,
+        "expected": true,
+        "actual": [
+          {
+            "kind": "result-challenge-evidence",
+            "hash": "sha256:631cea28636afa2d428674b1ddba56ac4cc0927a3e1dba57baa76f535e5de51f",
+            "present": true
+          },
+          {
+            "kind": "result-challenge-resolution",
+            "hash": "sha256:4e134050d9948edba7500f7ac1d324e4f57dd4877434ae717b3edc6e77c5fbcf",
+            "present": true
+          },
+          {
+            "kind": "production-slice-eligibility-proof",
+            "hash": "sha256:521e7bced174c6ed4016242ec5873d7ab133ec87cb325cb1d3c458c37c9a5751",
+            "present": true
+          },
+          {
+            "kind": "production-slice-eligibility-proof",
+            "hash": "sha256:bc8a873a734543c34f705295e8174b6520172ae7bcb3f9f03344ac6cde827878",
+            "present": true
+          },
+          {
+            "kind": "production-slice-eligibility-proof",
+            "hash": "sha256:f658a19dcf7815df2c7fb81c78dd494b1dc07ddde3d5a6752487a0469d866f51",
+            "present": true
+          },
+          {
+            "kind": "question-body",
+            "hash": "sha256:d6e9ba94e97d53152624e106ae4c5ddd834457ffa0792dadad7e5365cac96a13",
+            "present": true
+          },
+          {
+            "kind": "result-artifact",
+            "hash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+            "present": true
+          },
+          {
+            "kind": "sponsor-disclosure",
+            "hash": "sha256:e27878e22660863f58f0cb00e7880909332423d375bc248c7c1e991395c5390e",
+            "present": true
+          },
+          {
+            "kind": "tally-decryption-share",
+            "hash": "sha256:4e41db2b1ab798ac07039234e6b6ef04f26169ce79953856ea5486ca5c1070b5",
+            "present": true
+          },
+          {
+            "kind": "tally-decryption-share",
+            "hash": "sha256:640b7f4ba7f9fb7ea0720821a54c0b098e39eda2a169d6ad553576e718b2d625",
+            "present": true
+          },
+          {
+            "kind": "tally-key-setup",
+            "hash": "sha256:37058ef862fc59476e129248e28956e322c33ed8d7785e7d195e3562e5073a94",
+            "present": true
+          }
+        ]
+      },
+      {
+        "id": "manifest-required-references",
+        "ok": true,
+        "expected": [
+          "question-body",
+          "sponsor-disclosure",
+          "production-slice-eligibility-proof",
+          "tally-key-setup",
+          "tally-decryption-share",
+          "result-artifact",
+          "result-challenge-evidence",
+          "result-challenge-resolution"
+        ],
+        "actual": [
+          "result-challenge-evidence",
+          "result-challenge-resolution",
+          "production-slice-eligibility-proof",
+          "production-slice-eligibility-proof",
+          "production-slice-eligibility-proof",
+          "question-body",
+          "result-artifact",
+          "sponsor-disclosure",
+          "tally-decryption-share",
+          "tally-decryption-share",
+          "tally-key-setup"
+        ]
+      },
+      {
+        "id": "event-previous-hash-continuity",
+        "ok": true,
+        "expected": true,
+        "actual": true
+      },
+      {
+        "id": "event-stream-required-types",
+        "ok": true,
+        "expected": [
+          "CredentialIssuerRegistered",
+          "CommunityCredentialTrustPolicySet",
+          "QuestionSubmitted",
+          "PollOpened",
+          "BallotAccepted",
+          "PollClosed",
+          "TallyDecryptionShareSubmitted",
+          "ResultPublished",
+          "ResultFinalized",
+          "QuestionArchived",
+          "ResultChallengeResolved"
+        ],
+        "actual": [
+          "CredentialIssuerRegistered",
+          "CommunityCredentialTrustPolicySet",
+          "QuestionSubmitted",
+          "PollOpened",
+          "BallotAccepted",
+          "BallotAccepted",
+          "BallotAccepted",
+          "PollClosed",
+          "TallyDecryptionShareSubmitted",
+          "TallyDecryptionShareSubmitted",
+          "ResultPublished",
+          "ResultChallengeResolved",
+          "ResultFinalized",
+          "QuestionArchived"
+        ]
+      }
+    ]
+  }
+}

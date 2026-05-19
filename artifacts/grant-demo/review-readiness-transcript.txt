@@ -1,0 +1,13 @@
+Popular Consensus Protocol Replay Kit review readiness
+
+Command: pnpm grant:review-readiness
+Status: MachineEvidenceReady
+Formal submission ready: false
+Checks: 130/130
+
+Human blockers:
+- External cryptography review and production threshold ceremony evidence are not complete.
+- EF Office Hours or equivalent grant reviewer feedback has not been incorporated.
+
+Failed checks:
+- none

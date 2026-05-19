@@ -1,0 +1,35 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-api-replay-report-v1",
+  "generatedAt": "2026-05-19T23:49:09.026Z",
+  "command": "pnpm grant:api-replay",
+  "status": "Verified",
+  "mode": "api",
+  "baseUrl": "http://127.0.0.1:52420",
+  "questionId": "question-HO_vvpJvU3",
+  "pollId": "poll-A3PDOI8rUn",
+  "resultArtifactHash": "sha256:7a4c5baa29d5e6cc18132e71c6122fcab651b7dff4a6871a83a2f72912e2cc13",
+  "archiveHash": "sha256:070c49b464b89931b796b79f293f0f1ffd89ccbe0af72b57a0b444bc32c500b3",
+  "eventStreamHash": "sha256:b0292761c06c0eb287f651c720117c3d0f68e0597b18b82ec1e558087f52a98b",
+  "checksPassed": 10,
+  "checksTotal": 10,
+  "failedChecks": [],
+  "api": {
+    "baseUrl": "http://127.0.0.1:52420",
+    "questionId": "question-HO_vvpJvU3",
+    "civicRecordUrl": "http://127.0.0.1:52420/public/questions/question-HO_vvpJvU3/civic-record",
+    "replayCheckUrl": "http://127.0.0.1:52420/public/questions/question-HO_vvpJvU3/replay-check"
+  },
+  "lifecycle": [
+    "question-created",
+    "question-accepted-and-poll-opened",
+    "credential-issued",
+    "credential-proof-generated",
+    "encrypted-ballot-submitted",
+    "duplicate-nullifier-rejected",
+    "poll-closed",
+    "result-tallied",
+    "result-finalized",
+    "question-archived"
+  ]
+}

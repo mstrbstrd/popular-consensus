@@ -1,0 +1,16 @@
+Popular Consensus Protocol Replay Kit replay test vectors
+
+Command: pnpm grant:replay-test-vectors
+Status: ReplayTestVectorsReady
+Fixture directory: packages/replay/test/fixtures
+Checks: 5/5
+
+Vectors:
+- clean-production-slice-export: Verified (packages/replay/test/fixtures/clean-production-slice-export.json)
+- clean-community-export: Verified (packages/replay/test/fixtures/clean-community-export.json)
+- tampered-result-hash: Mismatch (packages/replay/test/fixtures/tampered-result-hash.json)
+- missing-archive-artifact: Mismatch (packages/replay/test/fixtures/missing-archive-artifact.json)
+- reordered-events: Mismatch (packages/replay/test/fixtures/reordered-events.json)
+
+Failed vectors:
+- none

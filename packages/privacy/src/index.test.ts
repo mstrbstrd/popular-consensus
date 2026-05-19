@@ -148,6 +148,25 @@ describe("MACI-derived privacy helpers", () => {
     expect(tally.aggregate).toMatchObject({ counts: { support: 0, oppose: 0, abstain: 0 } });
   });
 
+  it("rejects encrypted ballot tampering and wrong coordinator keys", () => {
+    const coordinator = createCoordinatorKeypair();
+    const wrongCoordinator = createCoordinatorKeypair();
+    const payload = encryptBallot("support", coordinator.publicKeyPem);
+    const tamperedCiphertext = `${payload.ciphertext.slice(0, -4)}AAAA`;
+
+    expect(() => decryptBallot(payload, wrongCoordinator.privateKeyPem)).toThrow();
+    expect(() => decryptBallot({ ...payload, ciphertext: tamperedCiphertext }, coordinator.privateKeyPem)).toThrow();
+    expect(() => decryptBallot({ ...payload, authTag: Buffer.alloc(16).toString("base64") }, coordinator.privateKeyPem)).toThrow();
+  });
+
+  it("keeps nullifiers poll-scoped and schema-scoped", () => {
+    const credential = issueDemoCredential("demo-resident", "resident-vancouver", "issuer-demo");
+
+    expect(deriveNullifier(credential.secret, "poll-1", credential.schemaId)).toBe(deriveNullifier(credential.secret, "poll-1", credential.schemaId));
+    expect(deriveNullifier(credential.secret, "poll-1", credential.schemaId)).not.toBe(deriveNullifier(credential.secret, "poll-2", credential.schemaId));
+    expect(deriveNullifier(credential.secret, "poll-1", credential.schemaId)).not.toBe(deriveNullifier(credential.secret, "poll-1", "resident-burnaby"));
+  });
+
   it("creates poll-scoped anonymous proof hashes without embedding identity", () => {
     const scope = anonymousPollScope("poll-1", "credential-vancouver-resident");
     const proofHash = anonymousBallotProofHash({

@@ -1,0 +1,312 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-protocol-publication-v1",
+  "generatedAt": "2026-05-19T23:53:01.694Z",
+  "command": "pnpm grant:protocol-publication",
+  "status": "ProtocolPackagePublicationEvidenceReady",
+  "sourceReuseReady": true,
+  "npmPublicationReady": false,
+  "noPublishGuardActive": true,
+  "checksPassed": 36,
+  "checksTotal": 36,
+  "failedChecks": [],
+  "packages": [
+    {
+      "path": "packages/shared/package.json",
+      "name": "@pc/shared",
+      "license": "MIT",
+      "private": true,
+      "sourceEntrypoint": "src/index.ts",
+      "verificationScripts": [
+        "test",
+        "typecheck"
+      ],
+      "forbiddenPlatformDependencies": []
+    },
+    {
+      "path": "packages/artifacts/package.json",
+      "name": "@pc/artifacts",
+      "license": "MIT",
+      "private": true,
+      "sourceEntrypoint": "src/index.ts",
+      "verificationScripts": [
+        "test",
+        "typecheck"
+      ],
+      "forbiddenPlatformDependencies": []
+    },
+    {
+      "path": "packages/privacy/package.json",
+      "name": "@pc/privacy",
+      "license": "MIT",
+      "private": true,
+      "sourceEntrypoint": "src/index.ts",
+      "verificationScripts": [
+        "test",
+        "typecheck"
+      ],
+      "forbiddenPlatformDependencies": []
+    },
+    {
+      "path": "packages/protocol-slice/package.json",
+      "name": "@pc/protocol-slice",
+      "license": "MIT",
+      "private": true,
+      "sourceEntrypoint": "src/index.ts",
+      "verificationScripts": [
+        "test",
+        "typecheck",
+        "verify"
+      ],
+      "forbiddenPlatformDependencies": []
+    },
+    {
+      "path": "packages/replay/package.json",
+      "name": "@pc/replay",
+      "license": "MIT",
+      "private": true,
+      "sourceEntrypoint": "src/index.ts",
+      "verificationScripts": [
+        "test",
+        "typecheck",
+        "verify"
+      ],
+      "forbiddenPlatformDependencies": []
+    },
+    {
+      "path": "packages/contracts/package.json",
+      "name": "@pc/contracts",
+      "license": "MIT",
+      "private": true,
+      "sourceEntrypoint": "contracts-build",
+      "verificationScripts": [
+        "build",
+        "test"
+      ],
+      "forbiddenPlatformDependencies": []
+    }
+  ],
+  "nonClaims": [
+    "The protocol packages are not claimed to be npm-publication-ready.",
+    "The private package flag is treated as an accidental-publication guard, not as a proprietary license claim.",
+    "Registry package names, build outputs, and publish access still need maintainer review before publication."
+  ],
+  "checks": [
+    {
+      "id": "shared-name",
+      "ok": true,
+      "detail": "packages/shared/package.json has a scoped package name",
+      "evidence": "packages/shared/package.json"
+    },
+    {
+      "id": "shared-mit-license",
+      "ok": true,
+      "detail": "packages/shared/package.json declares MIT",
+      "evidence": "packages/shared/package.json"
+    },
+    {
+      "id": "shared-private-guard",
+      "ok": true,
+      "detail": "packages/shared/package.json keeps accidental npm publish disabled",
+      "evidence": "packages/shared/package.json"
+    },
+    {
+      "id": "shared-source-entrypoint",
+      "ok": true,
+      "detail": "packages/shared/package.json exposes source or contract build entrypoint",
+      "evidence": "packages/shared/package.json"
+    },
+    {
+      "id": "shared-verification-script",
+      "ok": true,
+      "detail": "packages/shared/package.json exposes a local verification script",
+      "evidence": "packages/shared/package.json"
+    },
+    {
+      "id": "shared-no-platform-deps",
+      "ok": true,
+      "detail": "packages/shared/package.json has no platform package dependencies",
+      "evidence": "packages/shared/package.json"
+    },
+    {
+      "id": "artifacts-name",
+      "ok": true,
+      "detail": "packages/artifacts/package.json has a scoped package name",
+      "evidence": "packages/artifacts/package.json"
+    },
+    {
+      "id": "artifacts-mit-license",
+      "ok": true,
+      "detail": "packages/artifacts/package.json declares MIT",
+      "evidence": "packages/artifacts/package.json"
+    },
+    {
+      "id": "artifacts-private-guard",
+      "ok": true,
+      "detail": "packages/artifacts/package.json keeps accidental npm publish disabled",
+      "evidence": "packages/artifacts/package.json"
+    },
+    {
+      "id": "artifacts-source-entrypoint",
+      "ok": true,
+      "detail": "packages/artifacts/package.json exposes source or contract build entrypoint",
+      "evidence": "packages/artifacts/package.json"
+    },
+    {
+      "id": "artifacts-verification-script",
+      "ok": true,
+      "detail": "packages/artifacts/package.json exposes a local verification script",
+      "evidence": "packages/artifacts/package.json"
+    },
+    {
+      "id": "artifacts-no-platform-deps",
+      "ok": true,
+      "detail": "packages/artifacts/package.json has no platform package dependencies",
+      "evidence": "packages/artifacts/package.json"
+    },
+    {
+      "id": "privacy-name",
+      "ok": true,
+      "detail": "packages/privacy/package.json has a scoped package name",
+      "evidence": "packages/privacy/package.json"
+    },
+    {
+      "id": "privacy-mit-license",
+      "ok": true,
+      "detail": "packages/privacy/package.json declares MIT",
+      "evidence": "packages/privacy/package.json"
+    },
+    {
+      "id": "privacy-private-guard",
+      "ok": true,
+      "detail": "packages/privacy/package.json keeps accidental npm publish disabled",
+      "evidence": "packages/privacy/package.json"
+    },
+    {
+      "id": "privacy-source-entrypoint",
+      "ok": true,
+      "detail": "packages/privacy/package.json exposes source or contract build entrypoint",
+      "evidence": "packages/privacy/package.json"
+    },
+    {
+      "id": "privacy-verification-script",
+      "ok": true,
+      "detail": "packages/privacy/package.json exposes a local verification script",
+      "evidence": "packages/privacy/package.json"
+    },
+    {
+      "id": "privacy-no-platform-deps",
+      "ok": true,
+      "detail": "packages/privacy/package.json has no platform package dependencies",
+      "evidence": "packages/privacy/package.json"
+    },
+    {
+      "id": "protocol-slice-name",
+      "ok": true,
+      "detail": "packages/protocol-slice/package.json has a scoped package name",
+      "evidence": "packages/protocol-slice/package.json"
+    },
+    {
+      "id": "protocol-slice-mit-license",
+      "ok": true,
+      "detail": "packages/protocol-slice/package.json declares MIT",
+      "evidence": "packages/protocol-slice/package.json"
+    },
+    {
+      "id": "protocol-slice-private-guard",
+      "ok": true,
+      "detail": "packages/protocol-slice/package.json keeps accidental npm publish disabled",
+      "evidence": "packages/protocol-slice/package.json"
+    },
+    {
+      "id": "protocol-slice-source-entrypoint",
+      "ok": true,
+      "detail": "packages/protocol-slice/package.json exposes source or contract build entrypoint",
+      "evidence": "packages/protocol-slice/package.json"
+    },
+    {
+      "id": "protocol-slice-verification-script",
+      "ok": true,
+      "detail": "packages/protocol-slice/package.json exposes a local verification script",
+      "evidence": "packages/protocol-slice/package.json"
+    },
+    {
+      "id": "protocol-slice-no-platform-deps",
+      "ok": true,
+      "detail": "packages/protocol-slice/package.json has no platform package dependencies",
+      "evidence": "packages/protocol-slice/package.json"
+    },
+    {
+      "id": "replay-name",
+      "ok": true,
+      "detail": "packages/replay/package.json has a scoped package name",
+      "evidence": "packages/replay/package.json"
+    },
+    {
+      "id": "replay-mit-license",
+      "ok": true,
+      "detail": "packages/replay/package.json declares MIT",
+      "evidence": "packages/replay/package.json"
+    },
+    {
+      "id": "replay-private-guard",
+      "ok": true,
+      "detail": "packages/replay/package.json keeps accidental npm publish disabled",
+      "evidence": "packages/replay/package.json"
+    },
+    {
+      "id": "replay-source-entrypoint",
+      "ok": true,
+      "detail": "packages/replay/package.json exposes source or contract build entrypoint",
+      "evidence": "packages/replay/package.json"
+    },
+    {
+      "id": "replay-verification-script",
+      "ok": true,
+      "detail": "packages/replay/package.json exposes a local verification script",
+      "evidence": "packages/replay/package.json"
+    },
+    {
+      "id": "replay-no-platform-deps",
+      "ok": true,
+      "detail": "packages/replay/package.json has no platform package dependencies",
+      "evidence": "packages/replay/package.json"
+    },
+    {
+      "id": "contracts-name",
+      "ok": true,
+      "detail": "packages/contracts/package.json has a scoped package name",
+      "evidence": "packages/contracts/package.json"
+    },
+    {
+      "id": "contracts-mit-license",
+      "ok": true,
+      "detail": "packages/contracts/package.json declares MIT",
+      "evidence": "packages/contracts/package.json"
+    },
+    {
+      "id": "contracts-private-guard",
+      "ok": true,
+      "detail": "packages/contracts/package.json keeps accidental npm publish disabled",
+      "evidence": "packages/contracts/package.json"
+    },
+    {
+      "id": "contracts-source-entrypoint",
+      "ok": true,
+      "detail": "packages/contracts/package.json exposes source or contract build entrypoint",
+      "evidence": "packages/contracts/package.json"
+    },
+    {
+      "id": "contracts-verification-script",
+      "ok": true,
+      "detail": "packages/contracts/package.json exposes a local verification script",
+      "evidence": "packages/contracts/package.json"
+    },
+    {
+      "id": "contracts-no-platform-deps",
+      "ok": true,
+      "detail": "packages/contracts/package.json has no platform package dependencies",
+      "evidence": "packages/contracts/package.json"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+Popular Consensus Protocol Replay Kit repo strategy audit
+
+Command: pnpm grant:repo-strategy-audit
+Status: RepoStrategyEvidenceReady
+Formal submission ready: false
+Production deployment ready: false
+Checks: 15/15
+
+Remaining human blockers:
+- External cryptography review has not been completed.
+- Production threshold ceremony/custody evidence has not been completed.
+- EF Office Hours or equivalent reviewer feedback has not been incorporated.
+
+Failed checks:
+- none

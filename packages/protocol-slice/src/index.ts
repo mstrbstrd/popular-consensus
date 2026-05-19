@@ -625,6 +625,10 @@ export function verifyProductionSlice(input: ProductionSliceVerificationInput): 
   const acceptedShares = input.decryptionShares.filter((share) => share.status === "Accepted");
   const acceptedShareHashes = sortedStrings(acceptedShares.map((share) => share.shareHash));
   const expectedShareSetHash = hashJson(acceptedShareHashes);
+  const tallyMemberIds = input.tallyKeySetup.members.map((member) => member.memberId);
+  const tallyMemberPublicKeys = input.tallyKeySetup.members.map((member) => normalizePem(member.publicKeyPem));
+  const uniqueTallyMemberIds = new Set(tallyMemberIds);
+  const uniqueTallyMemberPublicKeys = new Set(tallyMemberPublicKeys);
   const finalized = input.result.finalStatus === "Finalized";
   const pendingChallenges = input.challenges.filter((challenge) => challenge.ruling === "Pending");
   const manifest = input.bundle.manifest;
@@ -648,7 +652,11 @@ export function verifyProductionSlice(input: ProductionSliceVerificationInput): 
   addCheck("poll-tally-key", input.poll.tallyPublicKeyId === input.tallyKeySetup.publicKeyId && input.tallyKeySetup.pollId === input.poll.id, { pollId: input.poll.id, publicKeyId: input.poll.tallyPublicKeyId }, { pollId: input.tallyKeySetup.pollId, publicKeyId: input.tallyKeySetup.publicKeyId });
   addCheck("tally-key-custody-model", input.tallyKeySetup.custodyModel === "threshold-ed25519-attested-decryption-v1" && input.tallyKeySetup.privateKeyMaterial === "not-exported", "threshold custody without private key export", { custodyModel: input.tallyKeySetup.custodyModel, privateKeyMaterial: input.tallyKeySetup.privateKeyMaterial });
   addCheck("tally-key-ceremony-hash", input.tallyKeySetup.ceremonyHash === expectedTallyKeySetupHash, expectedTallyKeySetupHash, input.tallyKeySetup.ceremonyHash);
-  addCheck("tally-threshold", input.tallyKeySetup.threshold > 1 && input.tallyKeySetup.threshold <= input.tallyKeySetup.members.length, "2..member count", input.tallyKeySetup.threshold);
+  addCheck("tally-members-present", input.tallyKeySetup.members.length > 0, "at least one member", input.tallyKeySetup.members.length);
+  addCheck("tally-member-ids-unique", uniqueTallyMemberIds.size === tallyMemberIds.length, tallyMemberIds.length, uniqueTallyMemberIds.size);
+  addCheck("tally-member-public-keys-unique", uniqueTallyMemberPublicKeys.size === tallyMemberPublicKeys.length, tallyMemberPublicKeys.length, uniqueTallyMemberPublicKeys.size);
+  addCheck("tally-member-public-keys-valid", input.tallyKeySetup.members.every((member) => validEd25519PublicKey(member.publicKeyPem)), true, input.tallyKeySetup.members.map((member) => ({ memberId: member.memberId, valid: validEd25519PublicKey(member.publicKeyPem) })));
+  addCheck("tally-threshold", input.tallyKeySetup.threshold > 1 && input.tallyKeySetup.threshold <= uniqueTallyMemberIds.size, "2..unique member count", input.tallyKeySetup.threshold);
   addCheck("no-private-key-material", !JSON.stringify(input).includes("PRIVATE KEY"), "no exported private keys", "input scanned");
   addCheck("ballots-present", input.ballots.length > 0, "at least one ballot", input.ballots.length);
   addCheck("duplicate-nullifiers", uniqueNullifiers.size === ballotNullifiers.length, ballotNullifiers.length, uniqueNullifiers.size);
@@ -679,6 +687,7 @@ export function verifyProductionSlice(input: ProductionSliceVerificationInput): 
   const authorizedMemberIds = new Set(input.tallyKeySetup.members.map((member) => member.memberId));
   addCheck("threshold-share-count", acceptedShares.length >= input.tallyKeySetup.threshold, `>= ${input.tallyKeySetup.threshold}`, acceptedShares.length);
   addCheck("threshold-share-unique-members", new Set(acceptedShareMemberIds).size === acceptedShareMemberIds.length, acceptedShareMemberIds.length, new Set(acceptedShareMemberIds).size);
+  addCheck("threshold-share-unique-hashes", new Set(acceptedShareHashes).size === acceptedShareHashes.length, acceptedShareHashes.length, new Set(acceptedShareHashes).size);
   for (const share of input.decryptionShares) {
     const member = input.tallyKeySetup.members.find((candidate) => candidate.memberId === share.memberId);
     addCheck(`share-${share.id}-authorized-member`, Boolean(member && authorizedMemberIds.has(share.memberId)), Array.from(authorizedMemberIds), share.memberId);
@@ -1141,6 +1150,14 @@ export function signEd25519(privateKeyPem: string, payload: string): string {
 export function verifyEd25519(publicKeyPem: string, payload: string, signature: string): boolean {
   try {
     return verify(null, Buffer.from(payload, "utf8"), createPublicKey(publicKeyPem), Buffer.from(signature, "base64"));
+  } catch {
+    return false;
+  }
+}
+
+function validEd25519PublicKey(publicKeyPem: string): boolean {
+  try {
+    return createPublicKey(publicKeyPem).asymmetricKeyType === "ed25519";
   } catch {
     return false;
   }

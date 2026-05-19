@@ -1,0 +1,402 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-packet-lint-report-v1",
+  "generatedAt": "2026-05-19T23:53:00.176Z",
+  "command": "pnpm grant:packet-lint",
+  "status": "PacketReady",
+  "checksPassed": 65,
+  "checksTotal": 65,
+  "failedChecks": [],
+  "checks": [
+    {
+      "id": "packet-doc-short-readme-md",
+      "ok": true,
+      "detail": "README.md has 1223 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-readme-md",
+      "ok": true,
+      "detail": "README.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "packet-doc-short-00-abstract-md",
+      "ok": true,
+      "detail": "00-abstract.md has 145 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/00-abstract.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-00-abstract-md",
+      "ok": true,
+      "detail": "00-abstract.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/00-abstract.md"
+    },
+    {
+      "id": "packet-doc-short-01-protocol-boundary-md",
+      "ok": true,
+      "detail": "01-protocol-boundary.md has 193 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/01-protocol-boundary.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-01-protocol-boundary-md",
+      "ok": true,
+      "detail": "01-protocol-boundary.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/01-protocol-boundary.md"
+    },
+    {
+      "id": "packet-doc-short-02-event-schema-md",
+      "ok": true,
+      "detail": "02-event-schema.md has 648 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/02-event-schema.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-02-event-schema-md",
+      "ok": true,
+      "detail": "02-event-schema.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/02-event-schema.md"
+    },
+    {
+      "id": "packet-doc-short-03-artifact-schema-md",
+      "ok": true,
+      "detail": "03-artifact-schema.md has 94 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/03-artifact-schema.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-03-artifact-schema-md",
+      "ok": true,
+      "detail": "03-artifact-schema.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/03-artifact-schema.md"
+    },
+    {
+      "id": "packet-doc-short-04-replay-rules-md",
+      "ok": true,
+      "detail": "04-replay-rules.md has 673 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/04-replay-rules.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-04-replay-rules-md",
+      "ok": true,
+      "detail": "04-replay-rules.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/04-replay-rules.md"
+    },
+    {
+      "id": "packet-doc-short-05-threat-model-md",
+      "ok": true,
+      "detail": "05-threat-model.md has 218 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/05-threat-model.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-05-threat-model-md",
+      "ok": true,
+      "detail": "05-threat-model.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/05-threat-model.md"
+    },
+    {
+      "id": "packet-doc-short-06-demo-transcript-md",
+      "ok": true,
+      "detail": "06-demo-transcript.md has 253 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/06-demo-transcript.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-06-demo-transcript-md",
+      "ok": true,
+      "detail": "06-demo-transcript.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/06-demo-transcript.md"
+    },
+    {
+      "id": "packet-doc-short-07-budget-and-milestones-md",
+      "ok": true,
+      "detail": "07-budget-and-milestones.md has 217 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/07-budget-and-milestones.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-07-budget-and-milestones-md",
+      "ok": true,
+      "detail": "07-budget-and-milestones.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/07-budget-and-milestones.md"
+    },
+    {
+      "id": "packet-doc-short-08-review-readiness-md",
+      "ok": true,
+      "detail": "08-review-readiness.md has 813 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/08-review-readiness.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-08-review-readiness-md",
+      "ok": true,
+      "detail": "08-review-readiness.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/08-review-readiness.md"
+    },
+    {
+      "id": "packet-doc-short-09-license-plan-md",
+      "ok": true,
+      "detail": "09-license-plan.md has 259 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/09-license-plan.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-09-license-plan-md",
+      "ok": true,
+      "detail": "09-license-plan.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/09-license-plan.md"
+    },
+    {
+      "id": "packet-doc-short-10-api-replay-transcript-md",
+      "ok": true,
+      "detail": "10-api-replay-transcript.md has 173 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/10-api-replay-transcript.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-10-api-replay-transcript-md",
+      "ok": true,
+      "detail": "10-api-replay-transcript.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/10-api-replay-transcript.md"
+    },
+    {
+      "id": "packet-doc-short-11-cryptography-review-md",
+      "ok": true,
+      "detail": "11-cryptography-review.md has 299 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/11-cryptography-review.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-11-cryptography-review-md",
+      "ok": true,
+      "detail": "11-cryptography-review.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/11-cryptography-review.md"
+    },
+    {
+      "id": "packet-doc-short-12-external-review-intake-md",
+      "ok": true,
+      "detail": "12-external-review-intake.md has 440 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/12-external-review-intake.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-12-external-review-intake-md",
+      "ok": true,
+      "detail": "12-external-review-intake.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/12-external-review-intake.md"
+    },
+    {
+      "id": "packet-doc-short-13-contract-hardening-status-md",
+      "ok": true,
+      "detail": "13-contract-hardening-status.md has 295 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/13-contract-hardening-status.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-13-contract-hardening-status-md",
+      "ok": true,
+      "detail": "13-contract-hardening-status.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/13-contract-hardening-status.md"
+    },
+    {
+      "id": "packet-doc-short-14-reviewer-handoff-md",
+      "ok": true,
+      "detail": "14-reviewer-handoff.md has 414 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/14-reviewer-handoff.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-14-reviewer-handoff-md",
+      "ok": true,
+      "detail": "14-reviewer-handoff.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/14-reviewer-handoff.md"
+    },
+    {
+      "id": "packet-doc-short-15-threshold-custody-hardening-md",
+      "ok": true,
+      "detail": "15-threshold-custody-hardening.md has 297 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/15-threshold-custody-hardening.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-15-threshold-custody-hardening-md",
+      "ok": true,
+      "detail": "15-threshold-custody-hardening.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/15-threshold-custody-hardening.md"
+    },
+    {
+      "id": "packet-doc-short-16-replay-test-vectors-md",
+      "ok": true,
+      "detail": "16-replay-test-vectors.md has 215 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/16-replay-test-vectors.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-16-replay-test-vectors-md",
+      "ok": true,
+      "detail": "16-replay-test-vectors.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/16-replay-test-vectors.md"
+    },
+    {
+      "id": "packet-doc-short-17-repo-strategy-audit-md",
+      "ok": true,
+      "detail": "17-repo-strategy-audit.md has 232 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/17-repo-strategy-audit.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-17-repo-strategy-audit-md",
+      "ok": true,
+      "detail": "17-repo-strategy-audit.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/17-repo-strategy-audit.md"
+    },
+    {
+      "id": "packet-doc-short-18-external-review-index-md",
+      "ok": true,
+      "detail": "18-external-review-index.md has 236 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/18-external-review-index.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-18-external-review-index-md",
+      "ok": true,
+      "detail": "18-external-review-index.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/18-external-review-index.md"
+    },
+    {
+      "id": "packet-doc-short-19-grant-track-issue-md",
+      "ok": true,
+      "detail": "19-grant-track-issue.md has 444 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/19-grant-track-issue.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-19-grant-track-issue-md",
+      "ok": true,
+      "detail": "19-grant-track-issue.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/19-grant-track-issue.md"
+    },
+    {
+      "id": "packet-doc-short-20-submission-gate-md",
+      "ok": true,
+      "detail": "20-submission-gate.md has 246 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/20-submission-gate.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-20-submission-gate-md",
+      "ok": true,
+      "detail": "20-submission-gate.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/20-submission-gate.md"
+    },
+    {
+      "id": "packet-doc-short-21-protocol-package-publication-md",
+      "ok": true,
+      "detail": "21-protocol-package-publication.md has 237 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/21-protocol-package-publication.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-21-protocol-package-publication-md",
+      "ok": true,
+      "detail": "21-protocol-package-publication.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/21-protocol-package-publication.md"
+    },
+    {
+      "id": "packet-doc-short-office-hours-brief-md",
+      "ok": true,
+      "detail": "office-hours-brief.md has 358 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/office-hours-brief.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-office-hours-brief-md",
+      "ok": true,
+      "detail": "office-hours-brief.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/office-hours-brief.md"
+    },
+    {
+      "id": "packet-doc-short-scope-boundary-md",
+      "ok": true,
+      "detail": "scope-boundary.md has 216 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/scope-boundary.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-scope-boundary-md",
+      "ok": true,
+      "detail": "scope-boundary.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/scope-boundary.md"
+    },
+    {
+      "id": "abstract-excludes-paid-reports",
+      "ok": true,
+      "detail": "Abstract does not mention paid reports",
+      "evidence": "grant/ef-protocol-replay-kit/00-abstract.md"
+    },
+    {
+      "id": "abstract-excludes-rewards",
+      "ok": true,
+      "detail": "Abstract does not mention rewards",
+      "evidence": "grant/ef-protocol-replay-kit/00-abstract.md"
+    },
+    {
+      "id": "abstract-excludes-customers",
+      "ok": true,
+      "detail": "Abstract does not mention customers",
+      "evidence": "grant/ef-protocol-replay-kit/00-abstract.md"
+    },
+    {
+      "id": "abstract-excludes-data-monetization",
+      "ok": true,
+      "detail": "Abstract does not mention data monetization",
+      "evidence": "grant/ef-protocol-replay-kit/00-abstract.md"
+    },
+    {
+      "id": "boundary-protocol-must-not-import-platform",
+      "ok": true,
+      "detail": "Protocol/platform dependency direction is explicit",
+      "evidence": "grant/ef-protocol-replay-kit/01-protocol-boundary.md"
+    },
+    {
+      "id": "readme-quick-check-command",
+      "ok": true,
+      "detail": "README exposes quick reviewer command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readme-full-check-command",
+      "ok": true,
+      "detail": "README exposes full local evidence command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readme-reviewer-handoff-command",
+      "ok": true,
+      "detail": "README exposes reviewer handoff command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readme-threshold-custody-command",
+      "ok": true,
+      "detail": "README exposes threshold custody evidence command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readme-replay-test-vectors-command",
+      "ok": true,
+      "detail": "README exposes replay test vector command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readme-repo-strategy-audit-command",
+      "ok": true,
+      "detail": "README exposes repo strategy audit command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readme-external-review-index-command",
+      "ok": true,
+      "detail": "README exposes external review index command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readme-submission-gate-command",
+      "ok": true,
+      "detail": "README exposes submission gate command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readme-protocol-publication-command",
+      "ok": true,
+      "detail": "README exposes protocol publication status command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readiness-formal-submission-blocked",
+      "ok": true,
+      "detail": "Readiness doc keeps formal submission blockers explicit",
+      "evidence": "grant/ef-protocol-replay-kit/08-review-readiness.md"
+    }
+  ]
+}

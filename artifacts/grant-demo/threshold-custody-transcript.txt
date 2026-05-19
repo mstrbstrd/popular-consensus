@@ -1,0 +1,24 @@
+Popular Consensus Protocol Replay Kit threshold custody evidence
+
+Command: pnpm grant:threshold-custody
+Status: ThresholdCustodyEvidenceReady
+Production deployment ready: false
+Checks: 10/10
+
+Production non-claims:
+- No distributed key generation implementation is claimed by this report.
+- No production key ceremony or custody runbook has been externally reviewed.
+- No cryptographic decryption-share proof system has been audited.
+- This report verifies replay evidence and custody boundaries, not live production threshold decryption.
+
+Cases:
+- PASS golden-threshold-slice-verifies: Verified
+- PASS exported-private-key-material-rejected: Mismatch
+- PASS duplicate-member-ids-rejected: Mismatch
+- PASS duplicate-member-public-keys-rejected: Mismatch
+- PASS invalid-member-public-key-rejected: Mismatch
+- PASS threshold-above-member-count-rejected: Mismatch
+- PASS insufficient-accepted-shares-rejected: Mismatch
+- PASS unauthorized-accepted-share-rejected: Mismatch
+- PASS duplicate-accepted-share-hashes-rejected: Mismatch
+- PASS tampered-share-aggregate-rejected: Mismatch

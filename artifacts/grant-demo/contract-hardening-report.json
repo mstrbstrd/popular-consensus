@@ -1,0 +1,453 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-contract-hardening-report-v1",
+  "generatedAt": "2026-05-19T23:52:59.806Z",
+  "command": "pnpm grant:contract-hardening",
+  "status": "ContractHardeningEvidenceReady",
+  "productionDeploymentReady": false,
+  "moduleLayoutStatus": "SplitModuleFilesWithAggregateEntrypoint",
+  "productionBlockers": [
+    "Grant-critical mutating methods now have a steward guard, but steward custody is still a single local authority.",
+    "Production deployments must replace local steward custody with multisig, governance, or reviewed coordinator operations before deployment claims."
+  ],
+  "checksPassed": 57,
+  "checksTotal": 57,
+  "failedChecks": [],
+  "checks": [
+    {
+      "id": "contract-module-file-pctoken-sol",
+      "contractName": "PCToken",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/PCToken.sol exists"
+    },
+    {
+      "id": "contract-module-file-protocolaccess-sol",
+      "contractName": "ProtocolAccess",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/ProtocolAccess.sol exists"
+    },
+    {
+      "id": "contract-module-file-stakemanager-sol",
+      "contractName": "StakeManager",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/StakeManager.sol exists"
+    },
+    {
+      "id": "contract-module-file-questionregistry-sol",
+      "contractName": "QuestionRegistry",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/QuestionRegistry.sol exists"
+    },
+    {
+      "id": "contract-module-file-challengecourt-sol",
+      "contractName": "ChallengeCourt",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/ChallengeCourt.sol exists"
+    },
+    {
+      "id": "contract-module-file-credentialregistry-sol",
+      "contractName": "CredentialRegistry",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/CredentialRegistry.sol exists"
+    },
+    {
+      "id": "contract-module-file-pollmanager-sol",
+      "contractName": "PollManager",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/PollManager.sol exists"
+    },
+    {
+      "id": "contract-module-file-tallymanager-sol",
+      "contractName": "TallyManager",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/TallyManager.sol exists"
+    },
+    {
+      "id": "contract-module-file-resultarchive-sol",
+      "contractName": "ResultArchive",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/ResultArchive.sol exists"
+    },
+    {
+      "id": "contract-module-file-adoptionregistry-sol",
+      "contractName": "AdoptionRegistry",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/AdoptionRegistry.sol exists"
+    },
+    {
+      "id": "contract-module-file-popularconsensusdeployment-sol",
+      "contractName": "PopularConsensusDeployment",
+      "methodName": "module-file",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensusDeployment.sol exists"
+    },
+    {
+      "id": "aggregate-imports-pctoken-sol",
+      "contractName": "PopularConsensus",
+      "methodName": "aggregate-import",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol imports PCToken.sol"
+    },
+    {
+      "id": "aggregate-imports-protocolaccess-sol",
+      "contractName": "PopularConsensus",
+      "methodName": "aggregate-import",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol imports ProtocolAccess.sol"
+    },
+    {
+      "id": "aggregate-imports-stakemanager-sol",
+      "contractName": "PopularConsensus",
+      "methodName": "aggregate-import",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol imports StakeManager.sol"
+    },
+    {
+      "id": "aggregate-imports-questionregistry-sol",
+      "contractName": "PopularConsensus",
+      "methodName": "aggregate-import",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol imports QuestionRegistry.sol"
+    },
+    {
+      "id": "aggregate-imports-challengecourt-sol",
+      "contractName": "PopularConsensus",
+      "methodName": "aggregate-import",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol imports ChallengeCourt.sol"
+    },
+    {
+      "id": "aggregate-imports-credentialregistry-sol",
+      "contractName": "PopularConsensus",
+      "methodName": "aggregate-import",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol imports CredentialRegistry.sol"
+    },
+    {
+      "id": "aggregate-imports-pollmanager-sol",
+      "contractName": "PopularConsensus",
+      "methodName": "aggregate-import",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol imports PollManager.sol"
+    },
+    {
+      "id": "aggregate-imports-tallymanager-sol",
+      "contractName": "PopularConsensus",
+      "methodName": "aggregate-import",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol imports TallyManager.sol"
+    },
+    {
+      "id": "aggregate-imports-resultarchive-sol",
+      "contractName": "PopularConsensus",
+      "methodName": "aggregate-import",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol imports ResultArchive.sol"
+    },
+    {
+      "id": "aggregate-imports-adoptionregistry-sol",
+      "contractName": "PopularConsensus",
+      "methodName": "aggregate-import",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol imports AdoptionRegistry.sol"
+    },
+    {
+      "id": "contract-access-stakemanager-slash",
+      "contractName": "StakeManager",
+      "methodName": "slash",
+      "ok": true,
+      "detail": "StakeManager.slash is guarded by onlySteward",
+      "line": 83
+    },
+    {
+      "id": "contract-access-questionregistry-setstatus",
+      "contractName": "QuestionRegistry",
+      "methodName": "setStatus",
+      "ok": true,
+      "detail": "QuestionRegistry.setStatus is guarded by onlySteward",
+      "line": 68
+    },
+    {
+      "id": "contract-access-questionregistry-accept",
+      "contractName": "QuestionRegistry",
+      "methodName": "accept",
+      "ok": true,
+      "detail": "QuestionRegistry.accept is guarded by onlySteward",
+      "line": 74
+    },
+    {
+      "id": "contract-access-questionregistry-reject",
+      "contractName": "QuestionRegistry",
+      "methodName": "reject",
+      "ok": true,
+      "detail": "QuestionRegistry.reject is guarded by onlySteward",
+      "line": 81
+    },
+    {
+      "id": "contract-access-questionregistry-archive",
+      "contractName": "QuestionRegistry",
+      "methodName": "archive",
+      "ok": true,
+      "detail": "QuestionRegistry.archive is guarded by onlySteward",
+      "line": 98
+    },
+    {
+      "id": "contract-access-challengecourt-selectjuror",
+      "contractName": "ChallengeCourt",
+      "methodName": "selectJuror",
+      "ok": true,
+      "detail": "ChallengeCourt.selectJuror is guarded by onlySteward",
+      "line": 103
+    },
+    {
+      "id": "contract-access-challengecourt-rule",
+      "contractName": "ChallengeCourt",
+      "methodName": "rule",
+      "ok": true,
+      "detail": "ChallengeCourt.rule is guarded by onlySteward",
+      "line": 125
+    },
+    {
+      "id": "contract-access-challengecourt-ruleresultchallenge",
+      "contractName": "ChallengeCourt",
+      "methodName": "ruleResultChallenge",
+      "ok": true,
+      "detail": "ChallengeCourt.ruleResultChallenge is guarded by onlySteward",
+      "line": 132
+    },
+    {
+      "id": "contract-access-challengecourt-ruleappeal",
+      "contractName": "ChallengeCourt",
+      "methodName": "ruleAppeal",
+      "ok": true,
+      "detail": "ChallengeCourt.ruleAppeal is guarded by onlySteward",
+      "line": 169
+    },
+    {
+      "id": "contract-access-credentialregistry-registerschema",
+      "contractName": "CredentialRegistry",
+      "methodName": "registerSchema",
+      "ok": true,
+      "detail": "CredentialRegistry.registerSchema is guarded by onlySteward",
+      "line": 22
+    },
+    {
+      "id": "contract-access-credentialregistry-registerissuer",
+      "contractName": "CredentialRegistry",
+      "methodName": "registerIssuer",
+      "ok": true,
+      "detail": "CredentialRegistry.registerIssuer is guarded by onlySteward",
+      "line": 27
+    },
+    {
+      "id": "contract-access-credentialregistry-suspendissuer",
+      "contractName": "CredentialRegistry",
+      "methodName": "suspendIssuer",
+      "ok": true,
+      "detail": "CredentialRegistry.suspendIssuer is guarded by onlySteward",
+      "line": 33
+    },
+    {
+      "id": "contract-access-credentialregistry-updaterevocationroot",
+      "contractName": "CredentialRegistry",
+      "methodName": "updateRevocationRoot",
+      "ok": true,
+      "detail": "CredentialRegistry.updateRevocationRoot is guarded by onlySteward",
+      "line": 39
+    },
+    {
+      "id": "contract-access-credentialregistry-settrustpolicy",
+      "contractName": "CredentialRegistry",
+      "methodName": "setTrustPolicy",
+      "ok": true,
+      "detail": "CredentialRegistry.setTrustPolicy is guarded by onlySteward",
+      "line": 45
+    },
+    {
+      "id": "contract-access-pollmanager-createpoll",
+      "contractName": "PollManager",
+      "methodName": "createPoll",
+      "ok": true,
+      "detail": "PollManager.createPoll is guarded by onlySteward",
+      "line": 53
+    },
+    {
+      "id": "contract-access-pollmanager-configurepoll",
+      "contractName": "PollManager",
+      "methodName": "configurePoll",
+      "ok": true,
+      "detail": "PollManager.configurePoll is guarded by onlySteward",
+      "line": 57
+    },
+    {
+      "id": "contract-access-pollmanager-setstatus",
+      "contractName": "PollManager",
+      "methodName": "setStatus",
+      "ok": true,
+      "detail": "PollManager.setStatus is guarded by onlySteward",
+      "line": 80
+    },
+    {
+      "id": "contract-access-pollmanager-openpoll",
+      "contractName": "PollManager",
+      "methodName": "openPoll",
+      "ok": true,
+      "detail": "PollManager.openPoll is guarded by onlySteward",
+      "line": 86
+    },
+    {
+      "id": "contract-access-pollmanager-closepoll",
+      "contractName": "PollManager",
+      "methodName": "closePoll",
+      "ok": true,
+      "detail": "PollManager.closePoll is guarded by onlySteward",
+      "line": 121
+    },
+    {
+      "id": "contract-access-pollmanager-markresultpublished",
+      "contractName": "PollManager",
+      "methodName": "markResultPublished",
+      "ok": true,
+      "detail": "PollManager.markResultPublished is guarded by onlySteward",
+      "line": 129
+    },
+    {
+      "id": "contract-access-tallymanager-proposecommittee",
+      "contractName": "TallyManager",
+      "methodName": "proposeCommittee",
+      "ok": true,
+      "detail": "TallyManager.proposeCommittee is guarded by onlySteward",
+      "line": 75
+    },
+    {
+      "id": "contract-access-tallymanager-activatecommittee",
+      "contractName": "TallyManager",
+      "methodName": "activateCommittee",
+      "ok": true,
+      "detail": "TallyManager.activateCommittee is guarded by onlySteward",
+      "line": 99
+    },
+    {
+      "id": "contract-access-tallymanager-failcommittee",
+      "contractName": "TallyManager",
+      "methodName": "failCommittee",
+      "ok": true,
+      "detail": "TallyManager.failCommittee is guarded by onlySteward",
+      "line": 108
+    },
+    {
+      "id": "contract-access-tallymanager-publishtallykey",
+      "contractName": "TallyManager",
+      "methodName": "publishTallyKey",
+      "ok": true,
+      "detail": "TallyManager.publishTallyKey is guarded by onlySteward",
+      "line": 117
+    },
+    {
+      "id": "contract-access-tallymanager-publishtallyproof",
+      "contractName": "TallyManager",
+      "methodName": "publishTallyProof",
+      "ok": true,
+      "detail": "TallyManager.publishTallyProof is guarded by onlySteward",
+      "line": 156
+    },
+    {
+      "id": "contract-access-resultarchive-publishresult",
+      "contractName": "ResultArchive",
+      "methodName": "publishResult",
+      "ok": true,
+      "detail": "ResultArchive.publishResult is guarded by onlySteward",
+      "line": 53
+    },
+    {
+      "id": "contract-access-resultarchive-publishresultwithproof",
+      "contractName": "ResultArchive",
+      "methodName": "publishResultWithProof",
+      "ok": true,
+      "detail": "ResultArchive.publishResultWithProof is guarded by onlySteward",
+      "line": 57
+    },
+    {
+      "id": "contract-access-resultarchive-correctresult",
+      "contractName": "ResultArchive",
+      "methodName": "correctResult",
+      "ok": true,
+      "detail": "ResultArchive.correctResult is guarded by onlySteward",
+      "line": 83
+    },
+    {
+      "id": "contract-access-resultarchive-finalizeresult",
+      "contractName": "ResultArchive",
+      "methodName": "finalizeResult",
+      "ok": true,
+      "detail": "ResultArchive.finalizeResult is guarded by onlySteward",
+      "line": 92
+    },
+    {
+      "id": "contract-access-resultarchive-archivequestion",
+      "contractName": "ResultArchive",
+      "methodName": "archiveQuestion",
+      "ok": true,
+      "detail": "ResultArchive.archiveQuestion is guarded by onlySteward",
+      "line": 100
+    },
+    {
+      "id": "contract-access-adoptionregistry-activatepolicy",
+      "contractName": "AdoptionRegistry",
+      "methodName": "activatePolicy",
+      "ok": true,
+      "detail": "AdoptionRegistry.activatePolicy is guarded by onlySteward",
+      "line": 77
+    },
+    {
+      "id": "contract-access-adoptionregistry-suspendpolicy",
+      "contractName": "AdoptionRegistry",
+      "methodName": "suspendPolicy",
+      "ok": true,
+      "detail": "AdoptionRegistry.suspendPolicy is guarded by onlySteward",
+      "line": 91
+    },
+    {
+      "id": "contract-access-adoptionregistry-setpolicy",
+      "contractName": "AdoptionRegistry",
+      "methodName": "setPolicy",
+      "ok": true,
+      "detail": "AdoptionRegistry.setPolicy is guarded by onlySteward",
+      "line": 102
+    },
+    {
+      "id": "contract-access-adoptionregistry-activategovernanceparameters",
+      "contractName": "AdoptionRegistry",
+      "methodName": "activateGovernanceParameters",
+      "ok": true,
+      "detail": "AdoptionRegistry.activateGovernanceParameters is guarded by onlySteward",
+      "line": 123
+    },
+    {
+      "id": "contract-access-adoptionregistry-suspendcommunity",
+      "contractName": "AdoptionRegistry",
+      "methodName": "suspendCommunity",
+      "ok": true,
+      "detail": "AdoptionRegistry.suspendCommunity is guarded by onlySteward",
+      "line": 131
+    },
+    {
+      "id": "contract-access-adoptionregistry-resolvecommunitysuspension",
+      "contractName": "AdoptionRegistry",
+      "methodName": "resolveCommunitySuspension",
+      "ok": true,
+      "detail": "AdoptionRegistry.resolveCommunitySuspension is guarded by onlySteward",
+      "line": 138
+    }
+  ]
+}

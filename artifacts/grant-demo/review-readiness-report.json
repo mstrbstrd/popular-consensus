@@ -1,0 +1,819 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-review-readiness-report-v1",
+  "generatedAt": "2026-05-19T23:55:10.944Z",
+  "command": "pnpm grant:review-readiness",
+  "status": "MachineEvidenceReady",
+  "formalSubmissionReady": false,
+  "checksPassed": 130,
+  "checksTotal": 130,
+  "failedChecks": [],
+  "humanBlockers": [
+    "External cryptography review and production threshold ceremony evidence are not complete.",
+    "EF Office Hours or equivalent grant reviewer feedback has not been incorporated."
+  ],
+  "requiredCommands": [
+    "pnpm install --frozen-lockfile",
+    "pnpm typecheck",
+    "pnpm test",
+    "pnpm contracts:build",
+    "pnpm grant:check",
+    "pnpm grant:api-replay",
+    "pnpm grant:chain-replay",
+    "pnpm grant:crypto-review",
+    "pnpm grant:threshold-custody",
+    "pnpm grant:replay-test-vectors",
+    "pnpm grant:contract-hardening",
+    "pnpm grant:packet-lint",
+    "pnpm grant:reviewer-handoff",
+    "pnpm grant:repo-strategy-audit",
+    "pnpm grant:submission-gate",
+    "pnpm grant:protocol-publication",
+    "pnpm grant:external-review-index",
+    "pnpm grant:evidence-manifest",
+    "pnpm grant:review-readiness",
+    "pnpm grant:full-check"
+  ],
+  "checks": [
+    {
+      "id": "file-license-boundary-md",
+      "ok": true,
+      "detail": "LICENSE-BOUNDARY.md exists and is non-empty",
+      "evidence": "LICENSE-BOUNDARY.md"
+    },
+    {
+      "id": "file-license-protocol-mit",
+      "ok": true,
+      "detail": "LICENSE-PROTOCOL-MIT exists and is non-empty",
+      "evidence": "LICENSE-PROTOCOL-MIT"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-readme-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/README.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-00-abstract-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/00-abstract.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/00-abstract.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-01-protocol-boundary-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/01-protocol-boundary.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/01-protocol-boundary.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-02-event-schema-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/02-event-schema.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/02-event-schema.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-03-artifact-schema-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/03-artifact-schema.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/03-artifact-schema.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-04-replay-rules-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/04-replay-rules.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/04-replay-rules.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-05-threat-model-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/05-threat-model.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/05-threat-model.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-06-demo-transcript-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/06-demo-transcript.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/06-demo-transcript.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-07-budget-and-milestones-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/07-budget-and-milestones.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/07-budget-and-milestones.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-08-review-readiness-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/08-review-readiness.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/08-review-readiness.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-09-license-plan-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/09-license-plan.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/09-license-plan.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-10-api-replay-transcript-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/10-api-replay-transcript.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/10-api-replay-transcript.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-11-cryptography-review-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/11-cryptography-review.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/11-cryptography-review.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-12-external-review-intake-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/12-external-review-intake.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/12-external-review-intake.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-13-contract-hardening-status-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/13-contract-hardening-status.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/13-contract-hardening-status.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-14-reviewer-handoff-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/14-reviewer-handoff.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/14-reviewer-handoff.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-15-threshold-custody-hardening-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/15-threshold-custody-hardening.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/15-threshold-custody-hardening.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-16-replay-test-vectors-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/16-replay-test-vectors.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/16-replay-test-vectors.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-17-repo-strategy-audit-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/17-repo-strategy-audit.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/17-repo-strategy-audit.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-18-external-review-index-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/18-external-review-index.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/18-external-review-index.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-19-grant-track-issue-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/19-grant-track-issue.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/19-grant-track-issue.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-20-submission-gate-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/20-submission-gate.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/20-submission-gate.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-21-protocol-package-publication-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/21-protocol-package-publication.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/21-protocol-package-publication.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-license-cc-by-4-0-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/LICENSE-CC-BY-4.0.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/LICENSE-CC-BY-4.0.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-office-hours-brief-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/office-hours-brief.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/office-hours-brief.md"
+    },
+    {
+      "id": "file-grant-ef-protocol-replay-kit-scope-boundary-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/scope-boundary.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/scope-boundary.md"
+    },
+    {
+      "id": "file-artifacts-grant-demo-license-cc0-md",
+      "ok": true,
+      "detail": "artifacts/grant-demo/LICENSE-CC0.md exists and is non-empty",
+      "evidence": "artifacts/grant-demo/LICENSE-CC0.md"
+    },
+    {
+      "id": "file-artifacts-grant-demo-full-lifecycle-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/full-lifecycle-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/full-lifecycle-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-api-replay-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/api-replay-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/api-replay-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-chain-replay-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/chain-replay-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/chain-replay-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-crypto-review-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/crypto-review-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/crypto-review-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-threshold-custody-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/threshold-custody-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/threshold-custody-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-replay-test-vectors-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/replay-test-vectors-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/replay-test-vectors-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-contract-hardening-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/contract-hardening-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/contract-hardening-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-packet-lint-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/packet-lint-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/packet-lint-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-reviewer-handoff-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/reviewer-handoff-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/reviewer-handoff-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-repo-strategy-audit-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/repo-strategy-audit-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/repo-strategy-audit-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-submission-gate-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/submission-gate-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/submission-gate-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-protocol-publication-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/protocol-publication-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/protocol-publication-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-external-review-index-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/external-review-index.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/external-review-index.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-evidence-manifest-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/evidence-manifest.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/evidence-manifest.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-production-slice-export-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/production-slice-export.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/production-slice-export.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-community-export-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/community-export.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/community-export.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-tampered-production-slice-export-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/tampered-production-slice-export.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/tampered-production-slice-export.json"
+    },
+    {
+      "id": "file-packages-replay-test-fixtures-clean-production-slice-export-json",
+      "ok": true,
+      "detail": "packages/replay/test/fixtures/clean-production-slice-export.json exists and is non-empty",
+      "evidence": "packages/replay/test/fixtures/clean-production-slice-export.json"
+    },
+    {
+      "id": "file-packages-replay-test-fixtures-clean-community-export-json",
+      "ok": true,
+      "detail": "packages/replay/test/fixtures/clean-community-export.json exists and is non-empty",
+      "evidence": "packages/replay/test/fixtures/clean-community-export.json"
+    },
+    {
+      "id": "file-packages-replay-test-fixtures-tampered-result-hash-json",
+      "ok": true,
+      "detail": "packages/replay/test/fixtures/tampered-result-hash.json exists and is non-empty",
+      "evidence": "packages/replay/test/fixtures/tampered-result-hash.json"
+    },
+    {
+      "id": "file-packages-replay-test-fixtures-missing-archive-artifact-json",
+      "ok": true,
+      "detail": "packages/replay/test/fixtures/missing-archive-artifact.json exists and is non-empty",
+      "evidence": "packages/replay/test/fixtures/missing-archive-artifact.json"
+    },
+    {
+      "id": "file-packages-replay-test-fixtures-reordered-events-json",
+      "ok": true,
+      "detail": "packages/replay/test/fixtures/reordered-events.json exists and is non-empty",
+      "evidence": "packages/replay/test/fixtures/reordered-events.json"
+    },
+    {
+      "id": "file-packages-replay-src-cli-ts",
+      "ok": true,
+      "detail": "packages/replay/src/cli.ts exists and is non-empty",
+      "evidence": "packages/replay/src/cli.ts"
+    },
+    {
+      "id": "file-packages-replay-src-verifybundle-ts",
+      "ok": true,
+      "detail": "packages/replay/src/verifyBundle.ts exists and is non-empty",
+      "evidence": "packages/replay/src/verifyBundle.ts"
+    },
+    {
+      "id": "file-packages-replay-src-verifyapi-ts",
+      "ok": true,
+      "detail": "packages/replay/src/verifyApi.ts exists and is non-empty",
+      "evidence": "packages/replay/src/verifyApi.ts"
+    },
+    {
+      "id": "file-packages-replay-src-verifychain-ts",
+      "ok": true,
+      "detail": "packages/replay/src/verifyChain.ts exists and is non-empty",
+      "evidence": "packages/replay/src/verifyChain.ts"
+    },
+    {
+      "id": "file-packages-replay-src-rebuildstate-ts",
+      "ok": true,
+      "detail": "packages/replay/src/rebuildState.ts exists and is non-empty",
+      "evidence": "packages/replay/src/rebuildState.ts"
+    },
+    {
+      "id": "file-packages-replay-src-checks-ts",
+      "ok": true,
+      "detail": "packages/replay/src/checks.ts exists and is non-empty",
+      "evidence": "packages/replay/src/checks.ts"
+    },
+    {
+      "id": "file-packages-replay-src-tamper-ts",
+      "ok": true,
+      "detail": "packages/replay/src/tamper.ts exists and is non-empty",
+      "evidence": "packages/replay/src/tamper.ts"
+    },
+    {
+      "id": "file-packages-contracts-src-pctoken-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/PCToken.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/PCToken.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-protocolaccess-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/ProtocolAccess.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/ProtocolAccess.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-stakemanager-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/StakeManager.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/StakeManager.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-questionregistry-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/QuestionRegistry.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/QuestionRegistry.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-challengecourt-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/ChallengeCourt.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/ChallengeCourt.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-credentialregistry-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/CredentialRegistry.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/CredentialRegistry.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-pollmanager-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/PollManager.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/PollManager.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-tallymanager-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/TallyManager.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/TallyManager.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-resultarchive-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/ResultArchive.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/ResultArchive.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-adoptionregistry-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/AdoptionRegistry.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/AdoptionRegistry.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-popularconsensus-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensus.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/PopularConsensus.sol"
+    },
+    {
+      "id": "file-packages-contracts-src-popularconsensusdeployment-sol",
+      "ok": true,
+      "detail": "packages/contracts/src/PopularConsensusDeployment.sol exists and is non-empty",
+      "evidence": "packages/contracts/src/PopularConsensusDeployment.sol"
+    },
+    {
+      "id": "file-packages-contracts-test-popularconsensus-t-sol",
+      "ok": true,
+      "detail": "packages/contracts/test/PopularConsensus.t.sol exists and is non-empty",
+      "evidence": "packages/contracts/test/PopularConsensus.t.sol"
+    },
+    {
+      "id": "file-scripts-check-protocol-boundaries-ts",
+      "ok": true,
+      "detail": "scripts/check-protocol-boundaries.ts exists and is non-empty",
+      "evidence": "scripts/check-protocol-boundaries.ts"
+    },
+    {
+      "id": "file-scripts-grant-full-lifecycle-demo-ts",
+      "ok": true,
+      "detail": "scripts/grant/full-lifecycle-demo.ts exists and is non-empty",
+      "evidence": "scripts/grant/full-lifecycle-demo.ts"
+    },
+    {
+      "id": "file-scripts-grant-api-replay-demo-ts",
+      "ok": true,
+      "detail": "scripts/grant/api-replay-demo.ts exists and is non-empty",
+      "evidence": "scripts/grant/api-replay-demo.ts"
+    },
+    {
+      "id": "file-scripts-grant-chain-replay-demo-ts",
+      "ok": true,
+      "detail": "scripts/grant/chain-replay-demo.ts exists and is non-empty",
+      "evidence": "scripts/grant/chain-replay-demo.ts"
+    },
+    {
+      "id": "file-scripts-grant-crypto-review-ts",
+      "ok": true,
+      "detail": "scripts/grant/crypto-review.ts exists and is non-empty",
+      "evidence": "scripts/grant/crypto-review.ts"
+    },
+    {
+      "id": "file-scripts-grant-threshold-custody-ts",
+      "ok": true,
+      "detail": "scripts/grant/threshold-custody.ts exists and is non-empty",
+      "evidence": "scripts/grant/threshold-custody.ts"
+    },
+    {
+      "id": "file-scripts-grant-replay-test-vectors-ts",
+      "ok": true,
+      "detail": "scripts/grant/replay-test-vectors.ts exists and is non-empty",
+      "evidence": "scripts/grant/replay-test-vectors.ts"
+    },
+    {
+      "id": "file-scripts-grant-contract-hardening-ts",
+      "ok": true,
+      "detail": "scripts/grant/contract-hardening.ts exists and is non-empty",
+      "evidence": "scripts/grant/contract-hardening.ts"
+    },
+    {
+      "id": "file-scripts-grant-packet-lint-ts",
+      "ok": true,
+      "detail": "scripts/grant/packet-lint.ts exists and is non-empty",
+      "evidence": "scripts/grant/packet-lint.ts"
+    },
+    {
+      "id": "file-scripts-grant-reviewer-handoff-ts",
+      "ok": true,
+      "detail": "scripts/grant/reviewer-handoff.ts exists and is non-empty",
+      "evidence": "scripts/grant/reviewer-handoff.ts"
+    },
+    {
+      "id": "file-scripts-grant-repo-strategy-audit-ts",
+      "ok": true,
+      "detail": "scripts/grant/repo-strategy-audit.ts exists and is non-empty",
+      "evidence": "scripts/grant/repo-strategy-audit.ts"
+    },
+    {
+      "id": "file-scripts-grant-submission-gate-ts",
+      "ok": true,
+      "detail": "scripts/grant/submission-gate.ts exists and is non-empty",
+      "evidence": "scripts/grant/submission-gate.ts"
+    },
+    {
+      "id": "file-scripts-grant-protocol-publication-ts",
+      "ok": true,
+      "detail": "scripts/grant/protocol-publication.ts exists and is non-empty",
+      "evidence": "scripts/grant/protocol-publication.ts"
+    },
+    {
+      "id": "file-scripts-grant-external-review-index-ts",
+      "ok": true,
+      "detail": "scripts/grant/external-review-index.ts exists and is non-empty",
+      "evidence": "scripts/grant/external-review-index.ts"
+    },
+    {
+      "id": "file-scripts-grant-evidence-manifest-ts",
+      "ok": true,
+      "detail": "scripts/grant/evidence-manifest.ts exists and is non-empty",
+      "evidence": "scripts/grant/evidence-manifest.ts"
+    },
+    {
+      "id": "full-lifecycle-verified",
+      "ok": true,
+      "detail": "Backend lifecycle report is Verified",
+      "evidence": "artifacts/grant-demo/full-lifecycle-report.json"
+    },
+    {
+      "id": "full-lifecycle-tamper-mismatch",
+      "ok": true,
+      "detail": "Tampered production slice produces Mismatch",
+      "evidence": "artifacts/grant-demo/full-lifecycle-report.json"
+    },
+    {
+      "id": "full-lifecycle-duplicate-nullifier-mismatch",
+      "ok": true,
+      "detail": "Duplicate nullifier fixture produces Mismatch",
+      "evidence": "artifacts/grant-demo/full-lifecycle-report.json"
+    },
+    {
+      "id": "api-replay-verified",
+      "ok": true,
+      "detail": "Public API replay report is Verified",
+      "evidence": "artifacts/grant-demo/api-replay-report.json"
+    },
+    {
+      "id": "api-replay-checks-pass",
+      "ok": true,
+      "detail": "All public API replay checks pass",
+      "evidence": "artifacts/grant-demo/api-replay-report.json"
+    },
+    {
+      "id": "chain-replay-verified",
+      "ok": true,
+      "detail": "Local chain replay report is Verified",
+      "evidence": "artifacts/grant-demo/chain-replay-report.json"
+    },
+    {
+      "id": "chain-replay-checks-pass",
+      "ok": true,
+      "detail": "All local chain replay checks pass",
+      "evidence": "artifacts/grant-demo/chain-replay-report.json"
+    },
+    {
+      "id": "chain-replay-duplicate-nullifier-rejected",
+      "ok": true,
+      "detail": "Duplicate nullifier is rejected by the local contract lifecycle",
+      "evidence": "artifacts/grant-demo/chain-replay-report.json"
+    },
+    {
+      "id": "crypto-review-evidence-ready",
+      "ok": true,
+      "detail": "Crypto evidence inventory is EvidenceReady",
+      "evidence": "artifacts/grant-demo/crypto-review-report.json"
+    },
+    {
+      "id": "crypto-review-checks-pass",
+      "ok": true,
+      "detail": "All crypto evidence checks pass",
+      "evidence": "artifacts/grant-demo/crypto-review-report.json"
+    },
+    {
+      "id": "crypto-review-nonclaims-present",
+      "ok": true,
+      "detail": "Crypto review report includes external-audit non-claim",
+      "evidence": "artifacts/grant-demo/crypto-review-report.json"
+    },
+    {
+      "id": "threshold-custody-evidence-ready",
+      "ok": true,
+      "detail": "Threshold custody evidence report is ThresholdCustodyEvidenceReady",
+      "evidence": "artifacts/grant-demo/threshold-custody-report.json"
+    },
+    {
+      "id": "threshold-custody-checks-pass",
+      "ok": true,
+      "detail": "All threshold custody hardening cases pass",
+      "evidence": "artifacts/grant-demo/threshold-custody-report.json"
+    },
+    {
+      "id": "threshold-custody-production-nonclaim",
+      "ok": true,
+      "detail": "Threshold custody report does not claim production deployment readiness",
+      "evidence": "artifacts/grant-demo/threshold-custody-report.json"
+    },
+    {
+      "id": "replay-test-vectors-ready",
+      "ok": true,
+      "detail": "Replay test vector report is ReplayTestVectorsReady",
+      "evidence": "artifacts/grant-demo/replay-test-vectors-report.json"
+    },
+    {
+      "id": "replay-test-vectors-checks-pass",
+      "ok": true,
+      "detail": "All replay test vectors have the expected status",
+      "evidence": "artifacts/grant-demo/replay-test-vectors-report.json"
+    },
+    {
+      "id": "replay-test-vectors-cover-clean-and-tampered",
+      "ok": true,
+      "detail": "Replay test vectors cover clean bundle and core tamper fixtures",
+      "evidence": "artifacts/grant-demo/replay-test-vectors-report.json"
+    },
+    {
+      "id": "contract-hardening-evidence-ready",
+      "ok": true,
+      "detail": "Contract hardening evidence report is ContractHardeningEvidenceReady",
+      "evidence": "artifacts/grant-demo/contract-hardening-report.json"
+    },
+    {
+      "id": "contract-hardening-checks-pass",
+      "ok": true,
+      "detail": "All contract access-control assumption checks pass",
+      "evidence": "artifacts/grant-demo/contract-hardening-report.json"
+    },
+    {
+      "id": "contract-hardening-production-nonclaim",
+      "ok": true,
+      "detail": "Contract hardening report does not claim production deployment readiness",
+      "evidence": "artifacts/grant-demo/contract-hardening-report.json"
+    },
+    {
+      "id": "packet-lint-ready",
+      "ok": true,
+      "detail": "Grant packet lint report is PacketReady",
+      "evidence": "artifacts/grant-demo/packet-lint-report.json"
+    },
+    {
+      "id": "packet-lint-checks-pass",
+      "ok": true,
+      "detail": "All packet lint checks pass",
+      "evidence": "artifacts/grant-demo/packet-lint-report.json"
+    },
+    {
+      "id": "reviewer-handoff-ready",
+      "ok": true,
+      "detail": "Reviewer handoff report is ReviewerHandoffReady",
+      "evidence": "artifacts/grant-demo/reviewer-handoff-report.json"
+    },
+    {
+      "id": "reviewer-handoff-keeps-nonclaims",
+      "ok": true,
+      "detail": "Reviewer handoff keeps formal submission and production deployment non-claims explicit",
+      "evidence": "artifacts/grant-demo/reviewer-handoff-report.json"
+    },
+    {
+      "id": "repo-strategy-audit-ready",
+      "ok": true,
+      "detail": "Repo strategy audit report is RepoStrategyEvidenceReady",
+      "evidence": "artifacts/grant-demo/repo-strategy-audit-report.json"
+    },
+    {
+      "id": "repo-strategy-audit-checks-pass",
+      "ok": true,
+      "detail": "All repo strategy audit checks pass",
+      "evidence": "artifacts/grant-demo/repo-strategy-audit-report.json"
+    },
+    {
+      "id": "repo-strategy-audit-keeps-nonclaims",
+      "ok": true,
+      "detail": "Repo strategy audit keeps formal submission and production deployment non-claims explicit",
+      "evidence": "artifacts/grant-demo/repo-strategy-audit-report.json"
+    },
+    {
+      "id": "submission-gate-ready",
+      "ok": true,
+      "detail": "Submission gate report is SubmissionGateEvidenceReady",
+      "evidence": "artifacts/grant-demo/submission-gate-report.json"
+    },
+    {
+      "id": "submission-gate-keeps-nonclaims",
+      "ok": true,
+      "detail": "Submission gate keeps formal submission and production deployment non-claims explicit",
+      "evidence": "artifacts/grant-demo/submission-gate-report.json"
+    },
+    {
+      "id": "protocol-publication-ready",
+      "ok": true,
+      "detail": "Protocol package publication report is ProtocolPackagePublicationEvidenceReady",
+      "evidence": "artifacts/grant-demo/protocol-publication-report.json"
+    },
+    {
+      "id": "protocol-publication-keeps-npm-nonclaim",
+      "ok": true,
+      "detail": "Protocol package publication report claims source reuse but not npm publication readiness",
+      "evidence": "artifacts/grant-demo/protocol-publication-report.json"
+    },
+    {
+      "id": "external-review-index-ready",
+      "ok": true,
+      "detail": "External review index is ExternalReviewIndexReady",
+      "evidence": "artifacts/grant-demo/external-review-index.json"
+    },
+    {
+      "id": "external-review-index-keeps-nonclaims",
+      "ok": true,
+      "detail": "External review index keeps formal submission and production deployment non-claims explicit",
+      "evidence": "artifacts/grant-demo/external-review-index.json"
+    },
+    {
+      "id": "evidence-manifest-ready",
+      "ok": true,
+      "detail": "Evidence manifest is ManifestReady",
+      "evidence": "artifacts/grant-demo/evidence-manifest.json"
+    },
+    {
+      "id": "evidence-manifest-hash-present",
+      "ok": true,
+      "detail": "Evidence manifest has a content hash",
+      "evidence": "artifacts/grant-demo/evidence-manifest.json"
+    },
+    {
+      "id": "evidence-manifest-covers-review-files",
+      "ok": true,
+      "detail": "Evidence manifest covers grant packet, reports, source, and tests",
+      "evidence": "artifacts/grant-demo/evidence-manifest.json"
+    },
+    {
+      "id": "protocol-license-shared",
+      "ok": true,
+      "detail": "packages/shared/package.json declares MIT for protocol slice",
+      "evidence": "packages/shared/package.json"
+    },
+    {
+      "id": "protocol-license-artifacts",
+      "ok": true,
+      "detail": "packages/artifacts/package.json declares MIT for protocol slice",
+      "evidence": "packages/artifacts/package.json"
+    },
+    {
+      "id": "protocol-license-privacy",
+      "ok": true,
+      "detail": "packages/privacy/package.json declares MIT for protocol slice",
+      "evidence": "packages/privacy/package.json"
+    },
+    {
+      "id": "protocol-license-protocol-slice",
+      "ok": true,
+      "detail": "packages/protocol-slice/package.json declares MIT for protocol slice",
+      "evidence": "packages/protocol-slice/package.json"
+    },
+    {
+      "id": "protocol-license-replay",
+      "ok": true,
+      "detail": "packages/replay/package.json declares MIT for protocol slice",
+      "evidence": "packages/replay/package.json"
+    },
+    {
+      "id": "protocol-license-contracts",
+      "ok": true,
+      "detail": "packages/contracts/package.json declares MIT for protocol slice",
+      "evidence": "packages/contracts/package.json"
+    },
+    {
+      "id": "license-boundary-not-monorepo-wide",
+      "ok": true,
+      "detail": "License boundary does not imply whole-monorepo open-source licensing",
+      "evidence": "LICENSE-BOUNDARY.md"
+    },
+    {
+      "id": "known-human-blockers-documented",
+      "ok": true,
+      "detail": "Readiness doc keeps human blockers explicit",
+      "evidence": "grant/ef-protocol-replay-kit/08-review-readiness.md"
+    }
+  ]
+}

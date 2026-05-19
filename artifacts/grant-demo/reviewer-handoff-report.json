@@ -1,0 +1,154 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-reviewer-handoff-v1",
+  "generatedAt": "2026-05-19T23:53:00.647Z",
+  "command": "pnpm grant:reviewer-handoff",
+  "status": "ReviewerHandoffReady",
+  "formalSubmissionReady": false,
+  "productionDeploymentReady": false,
+  "dependencyModes": [
+    "no-local-services",
+    "local-postgres",
+    "ephemeral-anvil",
+    "local-postgres-and-ephemeral-anvil"
+  ],
+  "reviewerCommands": [
+    {
+      "id": "quick-machine-evidence",
+      "command": "pnpm grant:check",
+      "packageScript": "grant:check",
+      "dependencyMode": "no-local-services",
+      "purpose": "Regenerate the backend lifecycle fixture, replay bundle evidence, grant packet lint, crypto inventory, threshold custody hardening, replay test vectors, contract-hardening evidence, repo strategy audit, submission gate, protocol publication status, external review index, manifest, readiness report, and replay tests.",
+      "expectedStatus": "All machine checks pass while formalSubmissionReady remains false.",
+      "outputs": [
+        "artifacts/grant-demo/full-lifecycle-report.json",
+        "artifacts/grant-demo/crypto-review-report.json",
+        "artifacts/grant-demo/threshold-custody-report.json",
+        "artifacts/grant-demo/replay-test-vectors-report.json",
+        "artifacts/grant-demo/contract-hardening-report.json",
+        "artifacts/grant-demo/repo-strategy-audit-report.json",
+        "artifacts/grant-demo/submission-gate-report.json",
+        "artifacts/grant-demo/protocol-publication-report.json",
+        "artifacts/grant-demo/external-review-index.json",
+        "artifacts/grant-demo/packet-lint-report.json",
+        "artifacts/grant-demo/evidence-manifest.json",
+        "artifacts/grant-demo/review-readiness-report.json"
+      ]
+    },
+    {
+      "id": "db-backed-api-replay",
+      "command": "pnpm grant:api-replay",
+      "packageScript": "grant:api-replay",
+      "dependencyMode": "local-postgres",
+      "purpose": "Drive the public civic-record API and verify the exported record through pc-replay verify-api.",
+      "expectedStatus": "Verified",
+      "outputs": [
+        "artifacts/grant-demo/api-replay-report.json",
+        "artifacts/grant-demo/api-replay-transcript.txt"
+      ]
+    },
+    {
+      "id": "local-chain-replay",
+      "command": "pnpm grant:chain-replay",
+      "packageScript": "grant:chain-replay",
+      "dependencyMode": "ephemeral-anvil",
+      "purpose": "Deploy the protocol modules to an ephemeral local chain and replay decoded Solidity logs.",
+      "expectedStatus": "Verified",
+      "outputs": [
+        "artifacts/grant-demo/chain-replay-report.json",
+        "artifacts/grant-demo/chain-replay-transcript.txt"
+      ]
+    },
+    {
+      "id": "full-local-gate",
+      "command": "pnpm grant:full-check",
+      "packageScript": "grant:full-check",
+      "dependencyMode": "local-postgres-and-ephemeral-anvil",
+      "purpose": "Run typecheck, repo tests, contract build, DB-backed API replay, local-chain replay, and quick machine evidence checks.",
+      "expectedStatus": "Machine evidence ready, formal submission still blocked on human review.",
+      "outputs": [
+        "artifacts/grant-demo/api-replay-report.json",
+        "artifacts/grant-demo/chain-replay-report.json",
+        "artifacts/grant-demo/review-readiness-report.json",
+        "artifacts/grant-demo/evidence-manifest.json"
+      ]
+    }
+  ],
+  "checksPassed": 12,
+  "checksTotal": 12,
+  "failedChecks": [],
+  "checks": [
+    {
+      "id": "script-grant:check",
+      "ok": true,
+      "detail": "grant:check is declared in package.json",
+      "evidence": "package.json"
+    },
+    {
+      "id": "script-grant:api-replay",
+      "ok": true,
+      "detail": "grant:api-replay is declared in package.json",
+      "evidence": "package.json"
+    },
+    {
+      "id": "script-grant:chain-replay",
+      "ok": true,
+      "detail": "grant:chain-replay is declared in package.json",
+      "evidence": "package.json"
+    },
+    {
+      "id": "script-grant:full-check",
+      "ok": true,
+      "detail": "grant:full-check is declared in package.json",
+      "evidence": "package.json"
+    },
+    {
+      "id": "quick-command-avoids-local-services",
+      "ok": true,
+      "detail": "pnpm grant:check stays suitable for no-service reviewer reproduction",
+      "evidence": "package.json"
+    },
+    {
+      "id": "full-check-covers-api-replay",
+      "ok": true,
+      "detail": "pnpm grant:full-check covers the broad local evidence gate",
+      "evidence": "package.json"
+    },
+    {
+      "id": "packet-readme-documents-quick-path",
+      "ok": true,
+      "detail": "Packet README documents the quick reviewer path",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "packet-readme-documents-full-path",
+      "ok": true,
+      "detail": "Packet README documents the full local evidence gate",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "handoff-doc-grant:check",
+      "ok": true,
+      "detail": "Reviewer handoff doc includes pnpm grant:check and its dependency mode",
+      "evidence": "grant/ef-protocol-replay-kit/14-reviewer-handoff.md"
+    },
+    {
+      "id": "handoff-doc-grant:api-replay",
+      "ok": true,
+      "detail": "Reviewer handoff doc includes pnpm grant:api-replay and its dependency mode",
+      "evidence": "grant/ef-protocol-replay-kit/14-reviewer-handoff.md"
+    },
+    {
+      "id": "handoff-doc-grant:chain-replay",
+      "ok": true,
+      "detail": "Reviewer handoff doc includes pnpm grant:chain-replay and its dependency mode",
+      "evidence": "grant/ef-protocol-replay-kit/14-reviewer-handoff.md"
+    },
+    {
+      "id": "handoff-doc-grant:full-check",
+      "ok": true,
+      "detail": "Reviewer handoff doc includes pnpm grant:full-check and its dependency mode",
+      "evidence": "grant/ef-protocol-replay-kit/14-reviewer-handoff.md"
+    }
+  ]
+}

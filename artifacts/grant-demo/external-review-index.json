@@ -1,0 +1,174 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-external-review-index-v1",
+  "generatedAt": "2026-05-19T23:55:05.935Z",
+  "command": "pnpm grant:external-review-index",
+  "status": "ExternalReviewIndexReady",
+  "formalSubmissionReady": false,
+  "productionDeploymentReady": false,
+  "sourceSnapshot": {
+    "gitAvailable": true,
+    "headCommit": "de4fbb6e35237bf15d25ee641782192685874dfa",
+    "branch": "codex/north-star-roadmap",
+    "dirty": false,
+    "statusEntryCount": 0,
+    "statusPreview": []
+  },
+  "reviewerStartHere": [
+    {
+      "command": "pnpm grant:check",
+      "dependencyMode": "no-local-services",
+      "purpose": "Regenerate the deterministic protocol slice, machine evidence, reviewer handoff, strategy audit, manifest, and replay tests."
+    },
+    {
+      "command": "pnpm grant:api-replay",
+      "dependencyMode": "local-postgres",
+      "purpose": "Drive the public API lifecycle and verify civic-record/replay-check endpoints through @pc/replay."
+    },
+    {
+      "command": "pnpm grant:chain-replay",
+      "dependencyMode": "ephemeral-anvil",
+      "purpose": "Deploy protocol modules locally and verify decoded Solidity logs through @pc/replay."
+    },
+    {
+      "command": "pnpm grant:full-check",
+      "dependencyMode": "local-postgres-and-ephemeral-anvil",
+      "purpose": "Run typecheck, tests, contract build, API replay, chain replay, and the quick grant gate."
+    }
+  ],
+  "keyHashes": {
+    "fullLifecycle": {
+      "resultArtifactHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
+      "archiveHash": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
+      "eventStreamHash": "sha256:65c7d04d248a85a70acbb6f53dbfafefb08cfba0cbbebbad247b18c81e55dc9d"
+    },
+    "apiReplay": {
+      "questionId": "question-HO_vvpJvU3",
+      "resultArtifactHash": "sha256:7a4c5baa29d5e6cc18132e71c6122fcab651b7dff4a6871a83a2f72912e2cc13",
+      "archiveHash": "sha256:070c49b464b89931b796b79f293f0f1ffd89ccbe0af72b57a0b444bc32c500b3",
+      "eventStreamHash": "sha256:b0292761c06c0eb287f651c720117c3d0f68e0597b18b82ec1e558087f52a98b"
+    },
+    "chainReplay": {
+      "deployment": "artifacts/grant-demo/chain-local-deployment.json",
+      "questionId": null,
+      "eventCount": 29
+    }
+  },
+  "evidence": [
+    {
+      "id": "full-lifecycle",
+      "path": "artifacts/grant-demo/full-lifecycle-report.json",
+      "expectedStatus": "Verified",
+      "actualStatus": "Verified",
+      "ok": true,
+      "checksPassed": 105,
+      "checksTotal": 105
+    },
+    {
+      "id": "api-replay",
+      "path": "artifacts/grant-demo/api-replay-report.json",
+      "expectedStatus": "Verified",
+      "actualStatus": "Verified",
+      "ok": true,
+      "checksPassed": 10,
+      "checksTotal": 10
+    },
+    {
+      "id": "chain-replay",
+      "path": "artifacts/grant-demo/chain-replay-report.json",
+      "expectedStatus": "Verified",
+      "actualStatus": "Verified",
+      "ok": true,
+      "checksPassed": 31,
+      "checksTotal": 31
+    },
+    {
+      "id": "crypto-review",
+      "path": "artifacts/grant-demo/crypto-review-report.json",
+      "expectedStatus": "EvidenceReady",
+      "actualStatus": "EvidenceReady",
+      "ok": true,
+      "checksPassed": 12,
+      "checksTotal": 12
+    },
+    {
+      "id": "threshold-custody",
+      "path": "artifacts/grant-demo/threshold-custody-report.json",
+      "expectedStatus": "ThresholdCustodyEvidenceReady",
+      "actualStatus": "ThresholdCustodyEvidenceReady",
+      "ok": true,
+      "checksPassed": 10,
+      "checksTotal": 10
+    },
+    {
+      "id": "replay-test-vectors",
+      "path": "artifacts/grant-demo/replay-test-vectors-report.json",
+      "expectedStatus": "ReplayTestVectorsReady",
+      "actualStatus": "ReplayTestVectorsReady",
+      "ok": true,
+      "checksPassed": 5,
+      "checksTotal": 5
+    },
+    {
+      "id": "contract-hardening",
+      "path": "artifacts/grant-demo/contract-hardening-report.json",
+      "expectedStatus": "ContractHardeningEvidenceReady",
+      "actualStatus": "ContractHardeningEvidenceReady",
+      "ok": true,
+      "checksPassed": 57,
+      "checksTotal": 57
+    },
+    {
+      "id": "packet-lint",
+      "path": "artifacts/grant-demo/packet-lint-report.json",
+      "expectedStatus": "PacketReady",
+      "actualStatus": "PacketReady",
+      "ok": true,
+      "checksPassed": 65,
+      "checksTotal": 65
+    },
+    {
+      "id": "reviewer-handoff",
+      "path": "artifacts/grant-demo/reviewer-handoff-report.json",
+      "expectedStatus": "ReviewerHandoffReady",
+      "actualStatus": "ReviewerHandoffReady",
+      "ok": true,
+      "checksPassed": 12,
+      "checksTotal": 12
+    },
+    {
+      "id": "repo-strategy-audit",
+      "path": "artifacts/grant-demo/repo-strategy-audit-report.json",
+      "expectedStatus": "RepoStrategyEvidenceReady",
+      "actualStatus": "RepoStrategyEvidenceReady",
+      "ok": true,
+      "checksPassed": 15,
+      "checksTotal": 15
+    },
+    {
+      "id": "submission-gate",
+      "path": "artifacts/grant-demo/submission-gate-report.json",
+      "expectedStatus": "SubmissionGateEvidenceReady",
+      "actualStatus": "SubmissionGateEvidenceReady",
+      "ok": true,
+      "checksPassed": 14,
+      "checksTotal": 14
+    },
+    {
+      "id": "protocol-publication",
+      "path": "artifacts/grant-demo/protocol-publication-report.json",
+      "expectedStatus": "ProtocolPackagePublicationEvidenceReady",
+      "actualStatus": "ProtocolPackagePublicationEvidenceReady",
+      "ok": true,
+      "checksPassed": 36,
+      "checksTotal": 36
+    }
+  ],
+  "failedChecks": [],
+  "humanBlockers": [
+    "External cryptography review has not been completed.",
+    "Production threshold ceremony/custody evidence has not been completed.",
+    "Production decryption-share proof system has not been externally reviewed.",
+    "EF Office Hours or equivalent reviewer feedback has not been incorporated."
+  ]
+}

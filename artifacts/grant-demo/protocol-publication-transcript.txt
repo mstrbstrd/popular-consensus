@@ -1,0 +1,16 @@
+Popular Consensus Protocol Replay Kit protocol package publication status
+
+Command: pnpm grant:protocol-publication
+Status: ProtocolPackagePublicationEvidenceReady
+Source reuse ready: true
+NPM publication ready: false
+No-publish guard active: true
+Checks: 36/36
+
+Non-claims:
+- The protocol packages are not claimed to be npm-publication-ready.
+- The private package flag is treated as an accidental-publication guard, not as a proprietary license claim.
+- Registry package names, build outputs, and publish access still need maintainer review before publication.
+
+Failed checks:
+- none

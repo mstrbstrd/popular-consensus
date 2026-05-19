@@ -1,0 +1,162 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-repo-strategy-audit-v1",
+  "generatedAt": "2026-05-19T23:53:01.079Z",
+  "command": "pnpm grant:repo-strategy-audit",
+  "status": "RepoStrategyEvidenceReady",
+  "formalSubmissionReady": false,
+  "productionDeploymentReady": false,
+  "checksPassed": 15,
+  "checksTotal": 15,
+  "failedChecks": [],
+  "remainingHumanBlockers": [
+    "External cryptography review has not been completed.",
+    "Production threshold ceremony/custody evidence has not been completed.",
+    "EF Office Hours or equivalent reviewer feedback has not been incorporated."
+  ],
+  "checks": [
+    {
+      "id": "monorepo-kept-intact",
+      "ok": true,
+      "requirement": "Keep the current monorepo intact for grant-readiness instead of splitting prematurely.",
+      "evidence": [
+        "pnpm-workspace.yaml",
+        "apps/api",
+        "apps/web",
+        "packages/replay",
+        "grant/ef-protocol-replay-kit"
+      ]
+    },
+    {
+      "id": "protocol-platform-boundary-enforced",
+      "ok": true,
+      "requirement": "Enforce protocol/platform dependency direction so platform may depend on protocol but protocol must not depend on platform.",
+      "evidence": [
+        "scripts/check-protocol-boundaries.ts",
+        "grant/ef-protocol-replay-kit/01-protocol-boundary.md",
+        "pnpm protocol:boundary:check"
+      ]
+    },
+    {
+      "id": "grant-scope-packet-created",
+      "ok": true,
+      "requirement": "Create the EF Protocol Replay Kit grant packet with scope, boundary, schemas, replay rules, threat model, milestones, review readiness, and office-hours brief.",
+      "evidence": [
+        "grant/ef-protocol-replay-kit/*.md",
+        "artifacts/grant-demo/packet-lint-report.json"
+      ]
+    },
+    {
+      "id": "grant-track-issue-draft",
+      "ok": true,
+      "requirement": "Prepare the EF Grant Track coordination issue or project-board handoff without claiming an external public issue exists.",
+      "evidence": [
+        "grant/ef-protocol-replay-kit/19-grant-track-issue.md"
+      ]
+    },
+    {
+      "id": "one-command-backend-lifecycle-demo",
+      "ok": true,
+      "requirement": "Add a one-command backend lifecycle demo that verifies clean replay and intentional tamper mismatch.",
+      "evidence": [
+        "pnpm grant:demo",
+        "artifacts/grant-demo/full-lifecycle-report.json"
+      ]
+    },
+    {
+      "id": "standalone-replay-verifier",
+      "ok": true,
+      "requirement": "Provide an independently usable replay verifier for bundle, API, chain, and tamper paths without the web client.",
+      "evidence": [
+        "packages/replay",
+        "pnpm replay:verify",
+        "pc-replay verify-bundle",
+        "pc-replay verify-api",
+        "pc-replay verify-chain"
+      ]
+    },
+    {
+      "id": "api-and-chain-replay-evidence",
+      "ok": true,
+      "requirement": "Prepare API replay and local-chain replay evidence for external reviewers.",
+      "evidence": [
+        "artifacts/grant-demo/api-replay-report.json",
+        "artifacts/grant-demo/chain-replay-report.json"
+      ]
+    },
+    {
+      "id": "replay-test-vectors",
+      "ok": true,
+      "requirement": "Publish checked clean and tampered replay test vectors.",
+      "evidence": [
+        "packages/replay/test/fixtures/*.json",
+        "artifacts/grant-demo/replay-test-vectors-report.json"
+      ]
+    },
+    {
+      "id": "contract-hardening-evidence",
+      "ok": true,
+      "requirement": "Split and harden grant-critical contracts while keeping production custody non-claims explicit.",
+      "evidence": [
+        "packages/contracts/src/*.sol",
+        "artifacts/grant-demo/contract-hardening-report.json"
+      ]
+    },
+    {
+      "id": "crypto-nonclaims-and-threshold-custody",
+      "ok": true,
+      "requirement": "Strengthen cryptography evidence without overstating production readiness.",
+      "evidence": [
+        "artifacts/grant-demo/crypto-review-report.json",
+        "artifacts/grant-demo/threshold-custody-report.json"
+      ]
+    },
+    {
+      "id": "external-review-handoff",
+      "ok": true,
+      "requirement": "Prepare reviewer handoff and readiness evidence while keeping formal submission blocked on human review.",
+      "evidence": [
+        "artifacts/grant-demo/reviewer-handoff-report.json",
+        "artifacts/grant-demo/review-readiness-report.json"
+      ]
+    },
+    {
+      "id": "submission-gate-evidence",
+      "ok": true,
+      "requirement": "Translate the pre-submit checklist into evidence without treating EF feedback as an automated pass.",
+      "evidence": [
+        "artifacts/grant-demo/submission-gate-report.json",
+        "grant/ef-protocol-replay-kit/20-submission-gate.md"
+      ]
+    },
+    {
+      "id": "platform-not-source-of-truth",
+      "ok": true,
+      "requirement": "Avoid making the platform the source of protocol truth.",
+      "evidence": [
+        "grant/ef-protocol-replay-kit/01-protocol-boundary.md",
+        "artifacts/grant-demo/evidence-manifest.json",
+        "pnpm protocol:boundary:check"
+      ]
+    },
+    {
+      "id": "license-boundary-scoped",
+      "ok": true,
+      "requirement": "Keep public-good protocol licensing scoped instead of accidentally licensing the whole monorepo.",
+      "evidence": [
+        "LICENSE-BOUNDARY.md",
+        "LICENSE-PROTOCOL-MIT",
+        "grant/ef-protocol-replay-kit/09-license-plan.md"
+      ]
+    },
+    {
+      "id": "protocol-package-publication-status",
+      "ok": true,
+      "requirement": "Make protocol package source reuse explicit without claiming npm publication readiness.",
+      "evidence": [
+        "artifacts/grant-demo/protocol-publication-report.json",
+        "grant/ef-protocol-replay-kit/21-protocol-package-publication.md"
+      ]
+    }
+  ]
+}

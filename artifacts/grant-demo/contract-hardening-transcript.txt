@@ -1,0 +1,14 @@
+Popular Consensus Protocol Replay Kit contract hardening evidence
+
+Command: pnpm grant:contract-hardening
+Status: ContractHardeningEvidenceReady
+Production deployment ready: false
+Module layout status: SplitModuleFilesWithAggregateEntrypoint
+Checks: 57/57
+
+Production blockers:
+- Grant-critical mutating methods now have a steward guard, but steward custody is still a single local authority.
+- Production deployments must replace local steward custody with multisig, governance, or reviewed coordinator operations before deployment claims.
+
+Failed checks:
+- none

@@ -1,0 +1,16 @@
+Popular Consensus Protocol Replay Kit reviewer handoff
+
+Command: pnpm grant:reviewer-handoff
+Status: ReviewerHandoffReady
+Formal submission ready: false
+Production deployment ready: false
+Checks: 12/12
+
+Reviewer commands:
+- pnpm grant:check [no-local-services]: All machine checks pass while formalSubmissionReady remains false.
+- pnpm grant:api-replay [local-postgres]: Verified
+- pnpm grant:chain-replay [ephemeral-anvil]: Verified
+- pnpm grant:full-check [local-postgres-and-ephemeral-anvil]: Machine evidence ready, formal submission still blocked on human review.
+
+Failed checks:
+- none

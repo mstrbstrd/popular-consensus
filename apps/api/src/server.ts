@@ -13255,6 +13255,10 @@ function portableProfileId(userId: string) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  void startServer();
+}
+
+async function startServer() {
   await ensureSeedData();
   const app = buildServer();
   await app.listen({ host: config.host, port: config.port });

@@ -1,0 +1,25 @@
+Popular Consensus Protocol Replay Kit crypto review evidence
+
+Command: pnpm grant:crypto-review
+Status: EvidenceReady
+Checks: 12/12
+
+Production non-claims:
+- No external cryptography audit has been completed.
+- No production threshold key ceremony or key custody process is implemented.
+- No production threshold decryption engine is claimed by this report.
+- Demo credential membership proofs are not a production zero-knowledge credential system.
+
+Checks:
+- PASS credential-secret-hash-verifies: Demo credential secret hash verifies before nullifier derivation
+- PASS nullifier-deterministic: Nullifier is deterministic for one credential, poll, and schema
+- PASS nullifier-poll-scoped: Nullifier changes across polls
+- PASS nullifier-schema-scoped: Nullifier changes across credential schemas
+- PASS ballot-encryption-randomized: Same response encrypts to different ciphertext and IV
+- PASS ballot-decrypts-with-coordinator-key: Coordinator private key decrypts the ballot
+- PASS wrong-key-rejected: Wrong coordinator private key cannot decrypt ballot payload
+- PASS ciphertext-tamper-rejected: AES-GCM rejects ciphertext tampering
+- PASS auth-tag-tamper-rejected: AES-GCM rejects authentication tag tampering
+- PASS aggregate-tally-no-raw-ballot: Tally publishes aggregate counts without holder alias
+- PASS anonymous-proof-hash-formed: Anonymous proof hash is content-addressed
+- PASS malformed-semaphore-proof-rejected: Malformed Semaphore proof is rejected, not accepted as a hash-only claim

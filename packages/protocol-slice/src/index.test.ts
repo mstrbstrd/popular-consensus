@@ -122,11 +122,46 @@ describe("production protocol slice verifier", () => {
     expect(failedCheckIds(input)).toContain("poll-tally-key");
   });
 
+  it("rejects tally key setups with duplicate member ids", () => {
+    const input = fixtureInput();
+    input.tallyKeySetup.members[1].memberId = input.tallyKeySetup.members[0].memberId;
+
+    expect(failedCheckIds(input)).toContain("tally-member-ids-unique");
+  });
+
+  it("rejects tally key setups with duplicate public keys", () => {
+    const input = fixtureInput();
+    input.tallyKeySetup.members[1].publicKeyPem = input.tallyKeySetup.members[0].publicKeyPem;
+
+    expect(failedCheckIds(input)).toContain("tally-member-public-keys-unique");
+  });
+
+  it("rejects tally key setups with invalid public keys", () => {
+    const input = fixtureInput();
+    input.tallyKeySetup.members[0].publicKeyPem = "not-a-public-key";
+
+    expect(failedCheckIds(input)).toContain("tally-member-public-keys-valid");
+  });
+
   it("rejects insufficient accepted threshold shares", () => {
     const input = fixtureInput();
     input.decryptionShares = input.decryptionShares.slice(0, 1);
 
     expect(failedCheckIds(input)).toEqual(expect.arrayContaining(["threshold-share-count", "result-decryption-share-set", "result-threshold-share-count"]));
+  });
+
+  it("rejects accepted threshold shares from unauthorized members", () => {
+    const input = fixtureInput();
+    input.decryptionShares[0].memberId = "tally-member-unauthorized";
+
+    expect(failedCheckIds(input)).toContain("share-decryption-share-tally-member-1-authorized-member");
+  });
+
+  it("rejects duplicate accepted threshold share hashes", () => {
+    const input = fixtureInput();
+    input.decryptionShares[1].shareHash = input.decryptionShares[0].shareHash;
+
+    expect(failedCheckIds(input)).toContain("threshold-share-unique-hashes");
   });
 
   it("rejects tampered decryption share signatures", () => {
