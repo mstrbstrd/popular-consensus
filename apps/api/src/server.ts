@@ -132,6 +132,35 @@ import {
   type AnonymousBallotProof,
   type EncryptedBallotPayload
 } from "@pc/privacy";
+import {
+  PRODUCTION_SLICE_CRYPTO_MODE,
+  PRODUCTION_SLICE_PROOF_SYSTEM,
+  createProductionSliceExport,
+  credentialTrustPolicyHash as productionSliceCredentialTrustPolicyHash,
+  decryptionShareHash as productionSliceDecryptionShareHash,
+  decryptionShareSignaturePayload,
+  eligibilityProofHash,
+  eligibilityProofPublicInputsHash,
+  eligibilityProofVerificationPayload,
+  questionVersionHash as productionSliceQuestionVersionHash,
+  signEd25519,
+  tallyKeySetupHash as productionSliceTallyKeySetupHash,
+  tallyPublicationProofHash as productionSliceTallyPublicationProofHash,
+  verifyEd25519,
+  type ProductionSliceBallot,
+  type ProductionSliceChallenge,
+  type ProductionSliceCredentialIssuer,
+  type ProductionSliceCredentialSchema,
+  type ProductionSliceEligibilityProof,
+  type ProductionSlicePoll,
+  type ProductionSliceQuestion,
+  type ProductionSliceResult,
+  type ProductionSliceResultArtifact,
+  type ProductionSliceTallyDecryptionShare,
+  type ProductionSliceTallyKeySetup,
+  type ProductionSliceTrustPolicy,
+  type ProductionSliceVerificationInput
+} from "@pc/protocol-slice";
 import Fastify, { type FastifyReply } from "fastify";
 import { nanoid } from "nanoid";
 import {
@@ -233,6 +262,7 @@ const PUBLIC_ARTIFACT_KINDS = new Set<string>([
   "tally-key-setup",
   "tally-decryption-share",
   "tally-publication-proof",
+  "production-slice-eligibility-proof",
   "user-profile",
   "social-follow",
   "reputation-export",
@@ -3074,7 +3104,12 @@ export function buildServer() {
       if (!proofVerified) return reply.code(403).send({ error: "Anonymous ballot proof rejected" });
 
       const encryptedPayloadHash = hashJson(input.encryptedPayload);
-      const proofHash = anonymousBallotProofHash(input.anonymousProof as AnonymousBallotProof);
+      const productionEligibilityProof = buildProductionSliceEligibilityProof(input.anonymousProof as AnonymousBallotProof, commitment);
+      const eligibilityProofArtifact = productionEligibilityProof
+        ? await artifactStore.write(withArtifactSchema("production-slice-eligibility-proof", productionEligibilityProof))
+        : null;
+      if (eligibilityProofArtifact) await storeArtifact(eligibilityProofArtifact, "production-slice-eligibility-proof");
+      const proofHash = productionEligibilityProof?.proofHash ?? anonymousBallotProofHash(input.anonymousProof as AnonymousBallotProof);
       const ballotAcceptedEvent = prepareProtocolEvent({
         eventType: "BallotAccepted",
         subjectId: poll.questionId,
@@ -3098,6 +3133,7 @@ export function buildServer() {
               tallyPublicKeyId: poll.tallyPublicKeyId,
               proofHash,
               proofSystem: "SemaphoreV4",
+              eligibilityProofArtifactHash: eligibilityProofArtifact?.hash ?? null,
               eligibilityGroupId: group.id,
               eligibilityGroupRoot: group.groupRoot,
               representedCommunityId: representedCommunity?.id ?? null,
@@ -3124,6 +3160,7 @@ export function buildServer() {
             tallyPublicKeyId: ballot.tallyPublicKeyId,
             proofHash: ballot.proofHash,
             proofSystem: ballot.proofSystem,
+            eligibilityProofArtifactHash: ballot.eligibilityProofArtifactHash,
             eligibilityGroupId: ballot.eligibilityGroupId,
             eligibilityGroupRoot: ballot.eligibilityGroupRoot,
             representedCommunityId: ballot.representedCommunityId,
@@ -3350,7 +3387,8 @@ export function buildServer() {
       include: {
         question: true,
         tallyKeySetup: { select: TALLY_KEY_SETUP_PUBLIC_SELECT },
-        decryptionShares: { select: TALLY_DECRYPTION_SHARE_PUBLIC_SELECT }
+        decryptionShares: { select: TALLY_DECRYPTION_SHARE_PUBLIC_SELECT },
+        ballots: true
       }
     });
     if (!poll) return reply.code(404).send({ error: "Poll not found" });
@@ -3361,21 +3399,70 @@ export function buildServer() {
     if (!tallyKeySetup.memberIds.includes(input.memberId)) {
       return reply.code(403).send({ error: "Decryption share member is not part of the poll tally key setup" });
     }
-    const shareHash = hashJson({
-      protocol: "pc-threshold-decryption-share-v0",
-      pollId,
-      keySetupId: tallyKeySetup.id,
-      memberId: input.memberId,
-      share: input.share
-    });
-    const proofHash = hashJson({
-      protocol: "pc-threshold-decryption-share-proof-v0",
-      pollId,
-      keySetupId: tallyKeySetup.id,
-      memberId: input.memberId,
-      shareHash,
-      proof: input.proof
-    });
+    const ballotCommitmentsHash = hashJson(poll.ballots.map((ballot) => ballot.ballotCommitment).sort());
+    if (input.productionAttestation && input.productionAttestation.ballotCommitmentsHash !== ballotCommitmentsHash) {
+      return reply.code(400).send({ error: "Production decryption share ballot commitment set does not match this poll" });
+    }
+    const productionProofHash = input.productionAttestation
+      ? hashJson({
+          protocol: "pc-threshold-decryption-share-proof-v1",
+          pollId,
+          keySetupId: tallyKeySetup.id,
+          memberId: input.memberId,
+          ballotCommitmentsHash: input.productionAttestation.ballotCommitmentsHash,
+          aggregateCountsHash: input.productionAttestation.aggregateCountsHash,
+          proof: input.proof
+        })
+      : null;
+    const productionShareHash = input.productionAttestation
+      ? productionSliceDecryptionShareHash({
+          pollId,
+          tallyKeySetupId: tallyKeySetup.id,
+          memberId: input.memberId,
+          ballotCommitmentsHash: input.productionAttestation.ballotCommitmentsHash,
+          aggregateCountsHash: input.productionAttestation.aggregateCountsHash,
+          proofHash: productionProofHash!,
+          status: "Accepted"
+        })
+      : null;
+    if (input.productionAttestation) {
+      const memberPublicKey = await productionSliceMemberPublicKey(artifactStore, tallyKeySetup, input.memberId);
+      if (!memberPublicKey) return reply.code(409).send({ error: "Tally key setup does not include production member public keys" });
+      const signatureValid = verifyEd25519(
+        memberPublicKey,
+        decryptionShareSignaturePayload({
+          pollId,
+          tallyKeySetupId: tallyKeySetup.id,
+          memberId: input.memberId,
+          ballotCommitmentsHash: input.productionAttestation.ballotCommitmentsHash,
+          aggregateCountsHash: input.productionAttestation.aggregateCountsHash,
+          shareHash: productionShareHash!,
+          proofHash: productionProofHash!,
+          status: "Accepted"
+        }),
+        input.productionAttestation.signature
+      );
+      if (!signatureValid) return reply.code(400).send({ error: "Production decryption share signature is invalid" });
+    }
+    const shareHash =
+      productionShareHash ??
+      hashJson({
+        protocol: "pc-threshold-decryption-share-v0",
+        pollId,
+        keySetupId: tallyKeySetup.id,
+        memberId: input.memberId,
+        share: input.share
+      });
+    const proofHash =
+      productionProofHash ??
+      hashJson({
+        protocol: "pc-threshold-decryption-share-proof-v0",
+        pollId,
+        keySetupId: tallyKeySetup.id,
+        memberId: input.memberId,
+        shareHash,
+        proof: input.proof
+      });
     const shareArtifact = await artifactStore.write(
       withArtifactSchema("tally-decryption-share", {
         pollId,
@@ -3388,6 +3475,14 @@ export function buildServer() {
         shareHash,
         proof: input.proof,
         proofHash,
+        productionSlice: input.productionAttestation
+          ? {
+              schemaVersion: "production-slice-decryption-share-v1",
+              ballotCommitmentsHash: input.productionAttestation.ballotCommitmentsHash,
+              aggregateCountsHash: input.productionAttestation.aggregateCountsHash,
+              signature: input.productionAttestation.signature
+            }
+          : null,
         submittedAt: Date.now()
       })
     );
@@ -3547,10 +3642,23 @@ export function buildServer() {
           : "Coordinator-based encrypted tally for local MVP; threshold committee is a later upgrade."
     };
     const privacyReportHash = hashJson(privacyReport);
+    const productionSlicePublication = await buildProductionSliceResultPublication({
+      artifactStore,
+      poll,
+      aggregate: tally.aggregate as Record<string, unknown>,
+      counts: tally.counts,
+      aggregateCountsHash,
+      acceptedBallotCommitmentsHash: ballotCommitmentRoot,
+      privacyReportHash,
+      turnout: tally.turnout,
+      invalidBallots: tally.invalidBallots,
+      publishedAt: Date.now()
+    });
     const resultArtifact = await artifactStore.write(
       withArtifactSchema("result-artifact", {
         pollId,
         questionId: poll.questionId,
+        ...productionSlicePublication?.artifactFields,
         authorityLevel: poll.question.authorityLevel,
         adoptionPolicyId: poll.question.adoptionPolicyId,
         answerSchema,
@@ -3630,7 +3738,7 @@ export function buildServer() {
           aggregateCountsHash,
           individualResultHash,
           communityBlockResultHash,
-          tallyProofHash: tallyPublicationProofArtifact.hash,
+          tallyProofHash: productionSlicePublication?.tallyProofHash ?? tallyPublicationProofArtifact.hash,
           tallyPublicationProofHash: tallyPublicationProofArtifact.hash,
           turnout: tally.turnout,
           invalidBallots: tally.invalidBallots,
@@ -3644,7 +3752,7 @@ export function buildServer() {
           aggregateCountsHash,
           individualResultHash,
           communityBlockResultHash,
-          tallyProofHash: tallyPublicationProofArtifact.hash,
+          tallyProofHash: productionSlicePublication?.tallyProofHash ?? tallyPublicationProofArtifact.hash,
           tallyPublicationProofHash: tallyPublicationProofArtifact.hash,
           turnout: tally.turnout,
           invalidBallots: tally.invalidBallots,
@@ -4220,7 +4328,7 @@ export function buildServer() {
     const question = await prisma.question.findUnique({
       where: { id: questionId },
       include: {
-        poll: { include: { result: true, ballots: true, resultChallenges: true } },
+        poll: { include: { result: true, ballots: true, decryptionShares: true, tallyKeySetup: true, resultChallenges: true } },
         challenges: true,
         challengeAppeals: { orderBy: { createdAt: "asc" } },
         jurorAssignments: { orderBy: { createdAt: "asc" } },
@@ -4254,6 +4362,13 @@ export function buildServer() {
     const artifactManifestReferences = [
       { kind: "question-body", hash: question.bodyHash, role: "body" },
       ...(question.sponsorDisclosureHash ? [{ kind: "sponsor-disclosure", hash: question.sponsorDisclosureHash, role: "sponsor" }] : []),
+      ...(question.poll.tallyKeySetup?.setupHash ? [{ kind: "tally-key-setup", hash: question.poll.tallyKeySetup.setupHash, role: "tally-key-setup" }] : []),
+      ...question.poll.ballots.flatMap((ballot) =>
+        ballot.eligibilityProofArtifactHash
+          ? [{ kind: "production-slice-eligibility-proof", hash: ballot.eligibilityProofArtifactHash, role: "eligibility-proof" }]
+          : []
+      ),
+      ...question.poll.decryptionShares.map((share) => ({ kind: "tally-decryption-share", hash: share.artifactHash, role: "tally-decryption-share" })),
       { kind: "result-artifact", hash: question.poll.result.resultArtifactHash, role: "result" },
       ...question.challenges.map((challenge) => ({ kind: "challenge-evidence-or-resolution", hash: challenge.evidenceHash, role: "question-challenge" })),
       ...question.challenges.flatMap((challenge) =>
@@ -4378,6 +4493,38 @@ export function buildServer() {
       role: "archive"
     });
     return { protocol: buildArchiveExportProtocol(questionId, question.communityId, archiveRecord, bundle), archiveRecord, bundle };
+  });
+
+  app.get("/questions/:questionId/production-slice/export", async (request, reply) => {
+    const { questionId } = request.params as { questionId: string };
+    const { userId } = request.query as { userId?: string };
+    const question = await prisma.question.findUnique({ where: { id: questionId }, select: { id: true, communityId: true, proposer: true, audience: true } });
+    if (!question) return reply.code(404).send({ error: "Question not found" });
+    if (!(await canReadQuestion(question, userId))) {
+      return reply.code(403).send({ error: "Follow or join this community to export this production slice" });
+    }
+    const built = await buildProductionSliceVerificationInput(questionId, artifactStore);
+    if (!built.ok) {
+      return reply.code(409).send({
+        protocol: "popular-consensus",
+        schemaVersion: "production-slice-export-v1",
+        status: "Unsupported",
+        questionId,
+        reasons: built.reasons
+      });
+    }
+    const exported = createProductionSliceExport(built.input);
+    if (exported.status !== "Verified") {
+      return reply.code(409).send({
+        protocol: exported.protocol,
+        schemaVersion: exported.schemaVersion,
+        status: exported.status,
+        questionId,
+        reasons: exported.report.checks.filter((check) => !check.ok).map((check) => check.id),
+        report: exported.report
+      });
+    }
+    return exported;
   });
 
   app.get("/communities/:communityId/export", async (request, reply) => {
@@ -5106,6 +5253,16 @@ export function buildServer() {
     if (memberKeyCommitmentHashes.length < committee.threshold) {
       return reply.code(400).send({ error: "Tally key setup commitments must meet the committee threshold" });
     }
+    const memberPublicKeys = input.memberPublicKeys ?? [];
+    if (memberPublicKeys.length > 0) {
+      const keyedMemberIds = new Set(memberPublicKeys.map((member) => member.memberId));
+      if (keyedMemberIds.size !== memberPublicKeys.length || memberPublicKeys.length !== committee.memberIds.length) {
+        return reply.code(400).send({ error: "Tally key setup production member public keys must be unique and cover every committee member" });
+      }
+      if (committee.memberIds.some((memberId) => !keyedMemberIds.has(memberId))) {
+        return reply.code(400).send({ error: "Tally key setup production member public keys must match committee members" });
+      }
+    }
     const transcriptHash = hashJson({ ceremonyTranscript: input.ceremonyTranscript });
     const setupArtifact = await artifactStore.write(
       withArtifactSchema("tally-key-setup", {
@@ -5116,6 +5273,7 @@ export function buildServer() {
         publicKeyHash,
         memberIds: committee.memberIds,
         memberKeyCommitmentHashes,
+        memberPublicKeys,
         threshold: committee.threshold,
         transcriptHash,
         ceremonyTranscript: input.ceremonyTranscript,
@@ -11926,6 +12084,513 @@ async function canReadActivityShell(activity: ActivityRecordInput & { audience?:
 function targetNameForQuestion(question: { community?: { slug: string; kind: string } | null }) {
   if (!question.community) return "the public feed";
   return question.community.kind === "Profile" ? `@${question.community.slug.replace(/^user-/, "")}` : `p/${question.community.slug}`;
+}
+
+type ProductionSliceBuildResult =
+  | { ok: true; input: ProductionSliceVerificationInput }
+  | { ok: false; reasons: string[] };
+
+type ProductionSliceResultPublication = {
+  tallyProofHash: string;
+  artifactFields: Pick<
+    ProductionSliceResultArtifact,
+    | "questionVersionHash"
+    | "aggregate"
+    | "counts"
+    | "aggregateCountsHash"
+    | "acceptedBallotCommitments"
+    | "acceptedBallotCommitmentsHash"
+    | "tallyKeySetupHash"
+    | "decryptionShareHashes"
+    | "decryptionShareSetHash"
+    | "acceptedDecryptionShareCount"
+    | "tallyProofHash"
+    | "privacyReportHash"
+    | "turnout"
+    | "invalidBallots"
+    | "publishedAt"
+    | "cryptoMode"
+  >;
+};
+
+function buildProductionSliceEligibilityProof(proof: AnonymousBallotProof, signal: string): ProductionSliceEligibilityProof | null {
+  const privateKeyPem = normalizeConfiguredPem(config.productionSliceProofVerifierPrivateKeyPem);
+  const publicKeyPem = normalizeConfiguredPem(config.productionSliceProofVerifierPublicKeyPem);
+  if (!privateKeyPem || !publicKeyPem) return null;
+  const proofWithoutSignature: Omit<ProductionSliceEligibilityProof, "proofHash" | "verifierSignature"> = {
+    protocol: "popular-consensus",
+    schemaVersion: "production-slice-eligibility-proof-v1",
+    proofSystem: PRODUCTION_SLICE_PROOF_SYSTEM,
+    groupId: proof.groupId,
+    groupRoot: proof.groupRoot,
+    signal,
+    scope: proof.scope,
+    nullifier: proof.nullifier,
+    publicInputsHash: eligibilityProofPublicInputsHash({
+      groupRoot: proof.groupRoot,
+      signal,
+      scope: proof.scope,
+      nullifier: proof.nullifier
+    }),
+    verifier: "@semaphore-protocol/core.verifyProof",
+    verifierPublicKeyPem: publicKeyPem,
+    verificationStatus: "Verified"
+  };
+  const proofHash = eligibilityProofHash(proofWithoutSignature);
+  return {
+    ...proofWithoutSignature,
+    proofHash,
+    verifierSignature: signEd25519(privateKeyPem, eligibilityProofVerificationPayload({ ...proofWithoutSignature, proofHash }))
+  };
+}
+
+async function buildProductionSliceResultPublication(input: {
+  artifactStore: ArtifactStorageAdapter;
+  poll: {
+    id: string;
+    tallyPublicKeyId: string;
+    ballots: Array<{ ballotCommitment: string; eligibilityProofArtifactHash?: string | null }>;
+    question: {
+      id: string;
+      version: number;
+      title: string;
+      bodyHash: string;
+      sponsorDisclosureHash: string | null;
+      answerSchemaId: string;
+      credentialSchemaId: string;
+      communityId: string | null;
+      methodologyLabel: string;
+      authorityLevel: string;
+    };
+    tallyKeySetup: TallyKeySetupView | null;
+    decryptionShares: TallyDecryptionShareView[];
+  };
+  aggregate: Record<string, unknown>;
+  counts: Record<string, number>;
+  aggregateCountsHash: string;
+  acceptedBallotCommitmentsHash: string;
+  privacyReportHash: string;
+  turnout: number;
+  invalidBallots: number;
+  publishedAt: number;
+}): Promise<ProductionSliceResultPublication | null> {
+  if (!input.poll.tallyKeySetup) return null;
+  if (input.poll.ballots.length === 0 || input.poll.ballots.some((ballot) => !ballot.eligibilityProofArtifactHash)) return null;
+  const question = productionSliceQuestionFromRecord(input.poll.question);
+  if (!question) return null;
+  const tallyKeySetup = await productionSliceTallyKeySetupFromRecord(input.artifactStore, input.poll.id, input.poll.tallyKeySetup);
+  if (!tallyKeySetup) return null;
+  const acceptedShares: ProductionSliceTallyDecryptionShare[] = [];
+  for (const share of input.poll.decryptionShares.filter((candidate) => candidate.status === "Accepted")) {
+    const productionShare = await productionSliceDecryptionShareFromRecord(input.artifactStore, share);
+    if (!productionShare) return null;
+    if (productionShare.ballotCommitmentsHash !== input.acceptedBallotCommitmentsHash) return null;
+    if (productionShare.aggregateCountsHash !== input.aggregateCountsHash) return null;
+    acceptedShares.push(productionShare);
+  }
+  if (acceptedShares.length < tallyKeySetup.threshold) return null;
+  const decryptionShareHashes = sortedStrings(acceptedShares.map((share) => share.shareHash));
+  const decryptionShareSetHash = hashJson(decryptionShareHashes);
+  const tallyProofHash = productionSliceTallyPublicationProofHash({
+    pollId: input.poll.id,
+    aggregateCountsHash: input.aggregateCountsHash,
+    acceptedBallotCommitmentsHash: input.acceptedBallotCommitmentsHash,
+    tallyKeySetupHash: tallyKeySetup.ceremonyHash,
+    decryptionShareHashes
+  });
+  return {
+    tallyProofHash,
+    artifactFields: {
+      questionVersionHash: question.versionHash,
+      aggregate: input.aggregate,
+      counts: input.counts,
+      aggregateCountsHash: input.aggregateCountsHash,
+      acceptedBallotCommitments: sortedStrings(input.poll.ballots.map((ballot) => ballot.ballotCommitment)),
+      acceptedBallotCommitmentsHash: input.acceptedBallotCommitmentsHash,
+      tallyKeySetupHash: tallyKeySetup.ceremonyHash,
+      decryptionShareHashes,
+      decryptionShareSetHash,
+      acceptedDecryptionShareCount: acceptedShares.length,
+      tallyProofHash,
+      privacyReportHash: input.privacyReportHash,
+      turnout: input.turnout,
+      invalidBallots: input.invalidBallots,
+      publishedAt: input.publishedAt,
+      cryptoMode: PRODUCTION_SLICE_CRYPTO_MODE
+    }
+  };
+}
+
+async function buildProductionSliceVerificationInput(questionId: string, artifactStore: ArtifactStorageAdapter): Promise<ProductionSliceBuildResult> {
+  const reasons: string[] = [];
+  const question = await prisma.question.findUnique({
+    where: { id: questionId },
+    include: {
+      poll: {
+        include: {
+          result: true,
+          ballots: { orderBy: { submittedAt: "asc" } },
+          decryptionShares: { select: TALLY_DECRYPTION_SHARE_PUBLIC_SELECT, orderBy: { submittedAt: "asc" } },
+          tallyKeySetup: { select: TALLY_KEY_SETUP_PUBLIC_SELECT },
+          resultChallenges: { orderBy: { createdAt: "asc" } }
+        }
+      },
+      archiveRecord: true
+    }
+  });
+  if (!question) return { ok: false, reasons: ["question-not-found"] };
+  if (!question.poll) return { ok: false, reasons: ["poll-missing"] };
+  if (!question.poll.result) reasons.push("result-missing");
+  if (!question.archiveRecord) reasons.push("archive-missing");
+  if (!question.poll.anonymousEligibilityGroupId) reasons.push("anonymous-eligibility-group-missing");
+  if (!question.poll.tallyKeySetup) reasons.push("tally-key-setup-missing");
+  if (reasons.length > 0) return { ok: false, reasons };
+
+  const [credentialSchema, group, archiveArtifact, initialEvents] = await Promise.all([
+    prisma.credentialSchema.findUnique({ where: { id: question.poll.credentialSchemaId } }),
+    prisma.anonymousEligibilityGroup.findUnique({ where: { id: question.poll.anonymousEligibilityGroupId! } }),
+    artifactStore.read<{ artifactManifest?: ArtifactManifest }>(question.archiveRecord!.archiveHash).catch(() => null),
+    prisma.registryEvent.findMany({
+      where: {
+        subjectId: {
+          in: uniqueStrings([question.id, question.poll.id, question.communityId, question.poll.anonymousEligibilityGroupId].filter((value): value is string => Boolean(value)))
+        }
+      },
+      orderBy: REGISTRY_EVENT_ORDER
+    })
+  ]);
+  if (!credentialSchema || credentialSchema.status !== "Active") reasons.push("credential-schema-not-active");
+  if (!group || group.status !== "Active") reasons.push("anonymous-eligibility-group-not-active");
+  if (!archiveArtifact?.artifactManifest) reasons.push("archive-manifest-missing");
+  if (reasons.length > 0) return { ok: false, reasons };
+  const issuerEvents = await prisma.registryEvent.findMany({ where: { subjectId: group!.issuerId }, orderBy: REGISTRY_EVENT_ORDER });
+  const events = [...initialEvents, ...issuerEvents].sort((left, right) => {
+    const emitted = left.emittedAt.getTime() - right.emittedAt.getTime();
+    return emitted !== 0 ? emitted : left.id.localeCompare(right.id);
+  });
+
+  const issuer = await prisma.credentialIssuer.findUnique({ where: { id: group!.issuerId } });
+  if (!issuer || issuer.status !== "Active" || !issuer.schemaIds.includes(credentialSchema!.id)) reasons.push("credential-issuer-not-active-for-schema");
+  const trustPolicies = await prisma.communityCredentialTrustPolicy.findMany({
+    where: {
+      communityId: question.communityId ?? "",
+      status: "Active",
+      credentialSchemaId: { in: [credentialSchema!.id, "*"] }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+  const trustPolicyRecord = trustPolicies.find((policy) => policy.credentialSchemaId === credentialSchema!.id) ?? trustPolicies[0] ?? null;
+  if (!trustPolicyRecord) reasons.push("credential-trust-policy-missing");
+  if (trustPolicyRecord && !productionSliceTrustPolicyAllows(trustPolicyRecord, { schemaId: credentialSchema!.id, issuerId: issuer?.id ?? "" })) {
+    reasons.push("credential-trust-policy-does-not-allow-issuer");
+  }
+  if (reasons.length > 0) return { ok: false, reasons };
+
+  const bundle = await artifactStore.buildExportBundle(archiveArtifact!.artifactManifest!, {
+    kind: "question-archive",
+    hash: question.archiveRecord!.archiveHash,
+    role: "archive"
+  });
+  const resultArtifactEntry = bundle.artifacts.find((artifact) => artifact.kind === "result-artifact" && artifact.hash === question.poll!.result!.resultArtifactHash);
+  const resultArtifact = isRecord(resultArtifactEntry?.value) ? (resultArtifactEntry.value as Partial<ProductionSliceResultArtifact>) : null;
+  if (!resultArtifact || resultArtifact.cryptoMode !== PRODUCTION_SLICE_CRYPTO_MODE) reasons.push("production-result-artifact-missing");
+
+  const productionQuestion = productionSliceQuestionFromRecord(question);
+  if (!productionQuestion) reasons.push("question-shape-unsupported");
+  const productionTallyKeySetup = await productionSliceTallyKeySetupFromRecord(artifactStore, question.poll.id, question.poll.tallyKeySetup!);
+  if (!productionTallyKeySetup) reasons.push("production-tally-key-setup-missing-member-public-keys");
+
+  const ballots: ProductionSliceBallot[] = [];
+  for (const ballot of question.poll.ballots) {
+    const productionBallot = await productionSliceBallotFromRecord(artifactStore, ballot, credentialSchema!.id, issuer!.id);
+    if (!productionBallot) reasons.push(`ballot-production-evidence-missing:${ballot.id}`);
+    else ballots.push(productionBallot);
+  }
+  const decryptionShares: ProductionSliceTallyDecryptionShare[] = [];
+  for (const share of question.poll.decryptionShares) {
+    const productionShare = await productionSliceDecryptionShareFromRecord(artifactStore, share);
+    if (!productionShare) reasons.push(`decryption-share-production-evidence-missing:${share.id}`);
+    else decryptionShares.push(productionShare);
+  }
+  if (reasons.length > 0 || !productionQuestion || !productionTallyKeySetup || !resultArtifact) return { ok: false, reasons };
+
+  const pollOpened = events.find((event) => event.eventType === "PollOpened");
+  const pollClosed = events.find((event) => event.eventType === "PollClosed");
+  const resultFinalized = events.find((event) => event.eventType === "ResultFinalized");
+  const trustPolicyWithoutHash: Omit<ProductionSliceTrustPolicy, "policyHash"> = {
+    id: trustPolicyRecord!.id,
+    communityId: trustPolicyRecord!.communityId,
+    credentialSchemaId: trustPolicyRecord!.credentialSchemaId,
+    trustedIssuerIds: trustPolicyRecord!.trustedIssuerIds,
+    mode: trustPolicyRecord!.mode === "Open" ? "Open" : "AllowList",
+    status: "Active"
+  };
+  const result: ProductionSliceResult = {
+    id: question.poll.result!.id,
+    pollId: question.poll.id,
+    questionId: question.id,
+    resultArtifactHash: question.poll.result!.resultArtifactHash,
+    aggregateCountsHash: stringOrUnsupported(resultArtifact.aggregateCountsHash, reasons, "result-aggregate-counts-hash-missing"),
+    tallyProofHash: stringOrUnsupported(resultArtifact.tallyProofHash, reasons, "result-tally-proof-hash-missing"),
+    privacyReportHash: stringOrUnsupported(resultArtifact.privacyReportHash, reasons, "result-privacy-report-hash-missing"),
+    turnout: numberOrUnsupported(resultArtifact.turnout, reasons, "result-turnout-missing"),
+    invalidBallots: numberOrUnsupported(resultArtifact.invalidBallots, reasons, "result-invalid-ballots-missing"),
+    finalStatus: normalizeProductionResultStatus(question.poll.result!.finalStatus),
+    publishedAt: timeMs(question.poll.result!.publishedAt),
+    challengeWindowEndsAt: timeMs(question.poll.resultChallengeEndsAt),
+    finalizedAt: resultFinalized ? timeMs(resultFinalized.emittedAt) : timeMs(question.archiveRecord!.createdAt)
+  };
+  const input: ProductionSliceVerificationInput = {
+    protocol: "popular-consensus",
+    schemaVersion: "production-slice-input-v1",
+    generatedAt: Date.now(),
+    credentialSchema: {
+      id: credentialSchema!.id,
+      status: credentialSchema!.status as ProductionSliceCredentialSchema["status"],
+      revocationRoot: credentialSchema!.revocationRoot
+    },
+    credentialIssuer: {
+      id: issuer!.id,
+      status: issuer!.status as ProductionSliceCredentialIssuer["status"],
+      schemaIds: issuer!.schemaIds,
+      metadataHash: issuer!.metadataHash
+    },
+    trustPolicy: {
+      ...trustPolicyWithoutHash,
+      policyHash: productionSliceCredentialTrustPolicyHash(trustPolicyWithoutHash)
+    },
+    question: productionQuestion,
+    poll: {
+      id: question.poll.id,
+      questionId: question.id,
+      credentialSchemaId: question.poll.credentialSchemaId,
+      tallyPublicKeyId: question.poll.tallyPublicKeyId,
+      status: question.poll.status === "Closed" ? "Closed" : "ResultPublished",
+      openedAt: pollOpened ? timeMs(pollOpened.emittedAt) : timeMs(question.poll.createdAt),
+      closedAt: pollClosed ? timeMs(pollClosed.emittedAt) : timeMs(question.poll.createdAt)
+    } satisfies ProductionSlicePoll,
+    tallyKeySetup: productionTallyKeySetup,
+    ballots,
+    decryptionShares,
+    result,
+    challenges: question.poll.resultChallenges.map((challenge) => productionSliceChallengeFromRecord(challenge)),
+    archive: {
+      id: question.archiveRecord!.id,
+      questionId: question.id,
+      archiveHash: question.archiveRecord!.archiveHash,
+      artifactManifestHash: bundle.manifestHash,
+      archivedAt: timeMs(question.archiveRecord!.createdAt)
+    },
+    events: events.map((event) => ({
+      eventType: event.eventType,
+      subjectId: event.subjectId,
+      actor: event.actor,
+      previousHash: event.previousHash,
+      newHash: event.newHash,
+      emittedAt: timeMs(event.emittedAt)
+    })),
+    bundle
+  };
+  return reasons.length > 0 ? { ok: false, reasons } : { ok: true, input };
+}
+
+async function productionSliceBallotFromRecord(
+  artifactStore: ArtifactStorageAdapter,
+  ballot: {
+    id: string;
+    pollId: string;
+    questionId: string;
+    nullifier: string;
+    ballotCommitment: string;
+    encryptedPayloadHash: string;
+    encryptedPayloadJson: string;
+    proofHash: string;
+    proofSystem: string;
+    eligibilityProofArtifactHash?: string | null;
+    submittedAt: Date | string | number;
+  },
+  credentialSchemaId: string,
+  issuerId: string
+): Promise<ProductionSliceBallot | null> {
+  if (ballot.proofSystem !== PRODUCTION_SLICE_PROOF_SYSTEM || !ballot.eligibilityProofArtifactHash) return null;
+  const artifact = await artifactStore.read<Record<string, unknown>>(ballot.eligibilityProofArtifactHash).catch(() => null);
+  if (!artifact || artifact.artifactKind !== "production-slice-eligibility-proof") return null;
+  const eligibilityProof = artifact as unknown as ProductionSliceEligibilityProof;
+  if (eligibilityProof.proofHash !== ballot.proofHash) return null;
+  const encryptedPayload = JSON.parse(ballot.encryptedPayloadJson) as EncryptedBallotPayload;
+  return {
+    id: ballot.id,
+    pollId: ballot.pollId,
+    questionId: ballot.questionId,
+    credentialSchemaId,
+    issuerId,
+    nullifier: ballot.nullifier,
+    encryptedPayload,
+    encryptedPayloadHash: ballot.encryptedPayloadHash,
+    ballotCommitment: ballot.ballotCommitment,
+    proofHash: ballot.proofHash,
+    proofSystem: PRODUCTION_SLICE_PROOF_SYSTEM,
+    eligibilityProofArtifactHash: ballot.eligibilityProofArtifactHash,
+    eligibilityProof,
+    submittedAt: timeMs(ballot.submittedAt)
+  };
+}
+
+async function productionSliceDecryptionShareFromRecord(
+  artifactStore: ArtifactStorageAdapter,
+  share: TallyDecryptionShareView
+): Promise<ProductionSliceTallyDecryptionShare | null> {
+  const artifact = await artifactStore.read<Record<string, unknown>>(share.artifactHash).catch(() => null);
+  const productionSlice = isRecord(artifact?.productionSlice) ? artifact.productionSlice : null;
+  if (!productionSlice) return null;
+  const ballotCommitmentsHash = optionalString(productionSlice.ballotCommitmentsHash);
+  const aggregateCountsHash = optionalString(productionSlice.aggregateCountsHash);
+  const signature = optionalString(productionSlice.signature);
+  if (!ballotCommitmentsHash || !aggregateCountsHash || !signature) return null;
+  return {
+    id: share.id,
+    pollId: share.pollId,
+    tallyKeySetupId: share.keySetupId,
+    memberId: share.memberId,
+    ballotCommitmentsHash,
+    aggregateCountsHash,
+    shareHash: share.shareHash,
+    proofHash: share.proofHash,
+    signature,
+    status: share.status === "Rejected" ? "Rejected" : "Accepted",
+    submittedAt: timeMs(share.submittedAt)
+  };
+}
+
+async function productionSliceTallyKeySetupFromRecord(
+  artifactStore: ArtifactStorageAdapter,
+  pollId: string,
+  setup: TallyKeySetupView
+): Promise<ProductionSliceTallyKeySetup | null> {
+  const artifact = await artifactStore.read<Record<string, unknown>>(setup.setupHash).catch(() => null);
+  const memberPublicKeys = productionSliceMemberPublicKeysFromArtifact(artifact);
+  if (!memberPublicKeys || setup.memberIds.some((memberId) => !memberPublicKeys.has(memberId))) return null;
+  const withoutHash: Omit<ProductionSliceTallyKeySetup, "ceremonyHash"> = {
+    id: setup.id,
+    committeeId: setup.committeeId,
+    pollId,
+    publicKeyId: setup.publicKeyId,
+    custodyModel: "threshold-ed25519-attested-decryption-v1",
+    privateKeyMaterial: "not-exported",
+    threshold: setup.threshold,
+    members: setup.memberIds.map((memberId) => ({ memberId, publicKeyPem: memberPublicKeys.get(memberId)! }))
+  };
+  return { ...withoutHash, ceremonyHash: productionSliceTallyKeySetupHash(withoutHash) };
+}
+
+async function productionSliceMemberPublicKey(
+  artifactStore: ArtifactStorageAdapter,
+  setup: TallyKeySetupView,
+  memberId: string
+): Promise<string | null> {
+  const artifact = await artifactStore.read<Record<string, unknown>>(setup.setupHash).catch(() => null);
+  return productionSliceMemberPublicKeysFromArtifact(artifact)?.get(memberId) ?? null;
+}
+
+function productionSliceMemberPublicKeysFromArtifact(artifact: Record<string, unknown> | null): Map<string, string> | null {
+  if (!artifact || !Array.isArray(artifact.memberPublicKeys)) return null;
+  const entries = artifact.memberPublicKeys
+    .filter(isRecord)
+    .map((member) => [optionalString(member.memberId), optionalString(member.publicKeyPem)] as const)
+    .filter((entry): entry is [string, string] => Boolean(entry[0] && entry[1]));
+  return entries.length > 0 ? new Map(entries) : null;
+}
+
+function productionSliceQuestionFromRecord(question: {
+  id: string;
+  version: number;
+  title: string;
+  bodyHash: string;
+  sponsorDisclosureHash: string | null;
+  answerSchemaId: string;
+  credentialSchemaId: string;
+  communityId: string | null;
+  methodologyLabel: string;
+  authorityLevel: string;
+  status?: string;
+}): ProductionSliceQuestion | null {
+  if (!question.communityId || !["Advisory", "Recognized", "Binding"].includes(question.authorityLevel)) return null;
+  const withoutHash: Omit<ProductionSliceQuestion, "versionHash"> = {
+    id: question.id,
+    communityId: question.communityId,
+    version: question.version,
+    title: question.title,
+    bodyHash: question.bodyHash,
+    sponsorDisclosureHash: question.sponsorDisclosureHash ?? "",
+    answerSchemaId: question.answerSchemaId,
+    credentialSchemaId: question.credentialSchemaId,
+    methodologyLabel: question.methodologyLabel,
+    authorityLevel: question.authorityLevel as ProductionSliceQuestion["authorityLevel"],
+    status: normalizeProductionQuestionStatus(question.status ?? "Archived")
+  };
+  return { ...withoutHash, versionHash: productionSliceQuestionVersionHash(withoutHash) };
+}
+
+function productionSliceChallengeFromRecord(challenge: {
+  id: string;
+  pollId: string;
+  resultId: string;
+  reasonCode: string;
+  evidenceHash: string;
+  ruling: string;
+  resolutionHash: string | null;
+}): ProductionSliceChallenge {
+  return {
+    id: challenge.id,
+    pollId: challenge.pollId,
+    resultId: challenge.resultId,
+    reasonCode: challenge.reasonCode,
+    evidenceHash: challenge.evidenceHash,
+    ruling: ["Pending", "Sustained", "Rejected", "Remanded"].includes(challenge.ruling)
+      ? (challenge.ruling as ProductionSliceChallenge["ruling"])
+      : "Pending",
+    resolutionHash: challenge.resolutionHash
+  };
+}
+
+function productionSliceTrustPolicyAllows(policy: { credentialSchemaId: string; trustedIssuerIds: string[] }, credential: { schemaId: string; issuerId: string }) {
+  if (policy.credentialSchemaId !== "*" && policy.credentialSchemaId !== credential.schemaId) return false;
+  return policy.trustedIssuerIds.includes("*") || policy.trustedIssuerIds.includes(credential.issuerId);
+}
+
+function normalizeProductionQuestionStatus(status: string): ProductionSliceQuestion["status"] {
+  if (status === "Finalized") return "Finalized";
+  if (status === "ResultPublished") return "ResultPublished";
+  return "Archived";
+}
+
+function normalizeProductionResultStatus(status: string): ProductionSliceResult["finalStatus"] {
+  if (["Published", "Challenged", "Corrected", "Finalized"].includes(status)) return status as ProductionSliceResult["finalStatus"];
+  return "Published";
+}
+
+function normalizeConfiguredPem(value: string | null): string | null {
+  return value ? value.replace(/\\n/g, "\n") : null;
+}
+
+function stringOrUnsupported(value: unknown, reasons: string[], reason: string): string {
+  if (typeof value === "string") return value;
+  reasons.push(reason);
+  return "";
+}
+
+function numberOrUnsupported(value: unknown, reasons: string[], reason: string): number {
+  if (typeof value === "number") return value;
+  reasons.push(reason);
+  return 0;
+}
+
+function sortedStrings(values: string[]): string[] {
+  return [...values].sort((left, right) => left.localeCompare(right));
+}
+
+function timeMs(value: Date | string | number): number {
+  return value instanceof Date ? value.getTime() : new Date(value).getTime();
 }
 
 function enrichQuestion<T extends { answerSchemaId: string }>(question: T): T & { answerSchema: ReturnType<typeof getAnswerSchema> } {

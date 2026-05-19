@@ -14,6 +14,7 @@
     "@pc/artifacts": "workspace:*",
     "@pc/db": "workspace:*",
     "@pc/privacy": "workspace:*",
+    "@pc/protocol-slice": "workspace:*",
     "@pc/shared": "workspace:*",
     "fastify": "^5.6.2",
     "nanoid": "^5.1.6",

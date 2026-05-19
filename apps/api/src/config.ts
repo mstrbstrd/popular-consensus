@@ -32,6 +32,8 @@ export const config = {
   corsOrigin: devMode ? true : allowedAuthOrigins,
   authSessionTtlHours: Number(process.env.PC_AUTH_SESSION_TTL_HOURS ?? 24),
   secureAuthCookies: process.env.PC_SECURE_AUTH_COOKIES ? process.env.PC_SECURE_AUTH_COOKIES !== "false" : !devMode,
+  productionSliceProofVerifierPrivateKeyPem: process.env.PC_PRODUCTION_SLICE_PROOF_VERIFIER_PRIVATE_KEY_PEM ?? null,
+  productionSliceProofVerifierPublicKeyPem: process.env.PC_PRODUCTION_SLICE_PROOF_VERIFIER_PUBLIC_KEY_PEM ?? null,
   accountAbstraction: {
     chainId: Number(process.env.PC_AA_CHAIN_ID ?? deployment?.chainId ?? 31337),
     rpcUrl: process.env.PC_AA_RPC_URL ?? process.env.RPC_URL ?? "http://127.0.0.1:8545",

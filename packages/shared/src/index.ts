@@ -3065,13 +3065,28 @@ export const SetupTallyPublicKeyRequestSchema = z.object({
   steward: z.string().min(1).default("demo-curator"),
   publicKeyPem: z.string().min(1).optional(),
   ceremonyTranscript: z.string().min(1).default("Local MVP threshold tally public key setup ceremony."),
-  memberKeyCommitmentHashes: z.array(z.string().min(1)).optional()
+  memberKeyCommitmentHashes: z.array(z.string().min(1)).optional(),
+  memberPublicKeys: z
+    .array(
+      z.object({
+        memberId: z.string().min(1),
+        publicKeyPem: z.string().min(1)
+      })
+    )
+    .optional()
 });
 
 export const SubmitTallyDecryptionShareRequestSchema = z.object({
   memberId: z.string().min(1).default("demo-curator"),
   share: z.string().min(1).default("local-demo-threshold-decryption-share"),
-  proof: z.string().min(1).default("local-demo-threshold-decryption-proof")
+  proof: z.string().min(1).default("local-demo-threshold-decryption-proof"),
+  productionAttestation: z
+    .object({
+      ballotCommitmentsHash: z.string().min(1),
+      aggregateCountsHash: z.string().min(1),
+      signature: z.string().min(1)
+    })
+    .optional()
 });
 
 export const CreateQuestionRequestSchema = z.object({

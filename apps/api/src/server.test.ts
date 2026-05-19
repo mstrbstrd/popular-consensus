@@ -828,6 +828,15 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       ])
     );
     expect(archiveExport.json().bundle.root).not.toHaveProperty("path");
+
+    const productionSliceExport = await app.inject({ method: "GET", url: `/questions/${questionId}/production-slice/export` });
+    expect(productionSliceExport.statusCode).toBe(409);
+    expect(productionSliceExport.json()).toMatchObject({
+      schemaVersion: "production-slice-export-v1",
+      status: "Unsupported",
+      questionId
+    });
+    expect(productionSliceExport.json().reasons).toEqual(expect.arrayContaining(["anonymous-eligibility-group-missing"]));
     expect(archiveExport.json().bundle.artifacts[0]).not.toHaveProperty("path");
 
     const communityExport = await app.inject({ method: "GET", url: "/communities/community-vancouver/export" });

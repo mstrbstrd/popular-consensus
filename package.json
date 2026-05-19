@@ -11,6 +11,7 @@
     "contracts:build": "pnpm --filter @pc/contracts build",
     "contracts:deploy:local": "pnpm --filter @pc/contracts deploy:local",
     "privacy:setup": "pnpm --filter @pc/privacy test",
+    "protocol:slice:verify": "pnpm --filter @pc/protocol-slice verify",
     "test": "pnpm --recursive --if-present test && pnpm test:public-testnet-tools && pnpm testnet:operator-issue-drafts:check",
     "test:public-testnet-tools": "node --import tsx scripts/test-public-testnet-tools.ts",
     "test:api:db": "RUN_DB_TESTS=true DATABASE_URL=${DATABASE_URL:-postgresql://pc:pc@localhost:5432/popular_consensus} pnpm --filter @pc/api test",

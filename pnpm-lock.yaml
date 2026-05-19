@@ -41,6 +41,9 @@ importers:
       '@pc/privacy':
         specifier: workspace:*
         version: link:../../packages/privacy
+      '@pc/protocol-slice':
+        specifier: workspace:*
+        version: link:../../packages/protocol-slice
       '@pc/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -159,6 +162,31 @@ importers:
       '@types/node':
         specifier: ^22.10.2
         version: 22.19.17
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.13
+        version: 4.1.5(@types/node@22.19.17)(vite@8.0.10(@types/node@22.19.17)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0))
+
+  packages/protocol-slice:
+    dependencies:
+      '@pc/artifacts':
+        specifier: workspace:*
+        version: link:../artifacts
+      '@pc/privacy':
+        specifier: workspace:*
+        version: link:../privacy
+      '@pc/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.17
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

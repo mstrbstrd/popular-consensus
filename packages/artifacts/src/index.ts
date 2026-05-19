@@ -27,6 +27,7 @@ export const ArtifactSchemaVersions = {
   "tally-key-setup": "pc-tally-key-setup-v1",
   "tally-decryption-share": "pc-tally-decryption-share-v1",
   "tally-publication-proof": "pc-tally-publication-proof-v1",
+  "production-slice-eligibility-proof": "production-slice-eligibility-proof-v1",
   "user-profile": "pc-user-profile-v1",
   "social-follow": "pc-social-follow-v1",
   "reputation-export": "pc-reputation-export-v1",

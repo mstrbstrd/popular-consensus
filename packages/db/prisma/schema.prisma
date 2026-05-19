@@ -584,6 +584,7 @@ model Ballot {
   tallyPublicKeyId     String
   proofHash            String
   proofSystem          String   @default("DemoCredentialProof")
+  eligibilityProofArtifactHash String?
   eligibilityGroupId   String?
   eligibilityGroupRoot String?
   representedCommunityId   String?
