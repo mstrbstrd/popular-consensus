@@ -2,16 +2,16 @@
 
 This roster tracks the real-world operators needed before the final roadmap item, `Run public testnet with independent operators`, can be marked complete.
 
-The roster is for coordination only. The completion gate is still enforced by:
+The roster is for coordination only. A person is not “done” just because their name appears here. The completion gate is still enforced by:
 
-- JSON attestations in `docs/public-testnet-attestations`.
+- JSON evidence files in `docs/public-testnet-attestations`.
 - `docs/public-testnet-launch-summary.md`.
 - `pnpm testnet:verify-attestations` reporting `Ready`.
 - `pnpm mvp:audit` reporting `Ready`.
 
-Run `pnpm testnet:audit-roster` to check slot counts, duplicate contacts, reviewed status, and referenced attestation files while operators are being recruited. Use `pnpm testnet:audit-roster:strict` when every required slot should be reviewed with attestation evidence.
+Run `pnpm testnet:audit-roster` to check slot counts, duplicate contacts, review status, and referenced evidence files while operators are being recruited. Use `pnpm testnet:audit-roster:strict` when every required slot should be reviewed with evidence.
 
-Do not mark a slot complete just because someone is assigned. A slot is complete only after the operator has run the required commands, published a valid attestation, and passed maintainer independence review.
+Do not mark a slot complete just because someone is assigned. A slot is complete only after the operator has run the required commands, published a valid evidence file, and passed maintainer independence review.
 
 Use `docs/public-testnet-operator-invitation.md` when inviting prospective operators.
 
@@ -29,20 +29,20 @@ Generate local per-slot issue drafts with `pnpm testnet:operator-issue-drafts`; 
 
 Record accepted or invited operators with `pnpm testnet:update-roster-slot -- --slot <slot-id> --tracking-issue <issue> --operator-id <id> --contact <contact> --organization <organization> --status invited`, then rerun `pnpm testnet:audit-roster`.
 
-When submitting attestation or launch-summary evidence through GitHub, use `.github/PULL_REQUEST_TEMPLATE/public-testnet-attestation.md`.
+When submitting evidence or launch-summary changes through GitHub, use `.github/PULL_REQUEST_TEMPLATE/public-testnet-attestation.md`.
 
 ## Role Targets
 
-| Role | Required | Current Attestations | Completion Source |
+| Role | Required | Current Evidence Files | Completion Source |
 | --- | ---: | ---: | --- |
 | Protocol deployer | 1 | 0 | `docs/public-testnet-attestations/*.json` |
 | API/indexer operator | 2 | 0 | `docs/public-testnet-attestations/*.json` |
-| Replay verifier | 3 | 0 | `docs/public-testnet-attestations/*.json` |
-| Community steward | 2 | 0 | `docs/public-testnet-attestations/*.json` |
+| Replay checker | 3 | 0 | `docs/public-testnet-attestations/*.json` |
+| Community guide | 2 | 0 | `docs/public-testnet-attestations/*.json` |
 
 ## Operator Slots
 
-| Slot | Tracking Issue | Role | Assigned Operator | Contact | Organization | Independence Review | Attestation File | Status | Notes |
+| Slot | Tracking Issue | Role | Assigned Operator | Contact | Organization | Independence Review | Evidence File | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | deployer-1 | https://github.com/mstrbstrd/popular-consensus/issues/1 | deployer | open | open | open | pending | open | unassigned | Publishes deployment hash and chain details. |
 | indexer-1 | https://github.com/mstrbstrd/popular-consensus/issues/2 | api-indexer | open | open | open | pending | open | unassigned | Runs first public API/indexer endpoint. |
@@ -50,18 +50,18 @@ When submitting attestation or launch-summary evidence through GitHub, use `.git
 | replay-1 | https://github.com/mstrbstrd/popular-consensus/issues/4 | replay-verifier | open | open | open | pending | open | unassigned | Verifies transaction and event stream hashes. |
 | replay-2 | https://github.com/mstrbstrd/popular-consensus/issues/5 | replay-verifier | open | open | open | pending | open | unassigned | Verifies transaction and event stream hashes. |
 | replay-3 | https://github.com/mstrbstrd/popular-consensus/issues/6 | replay-verifier | open | open | open | pending | open | unassigned | Verifies transaction and event stream hashes. |
-| steward-1 | https://github.com/mstrbstrd/popular-consensus/issues/7 | community-steward | open | open | open | pending | open | unassigned | Runs governance and safety drills. |
-| steward-2 | https://github.com/mstrbstrd/popular-consensus/issues/8 | community-steward | open | open | open | pending | open | unassigned | Runs governance and safety drills. |
+| steward-1 | https://github.com/mstrbstrd/popular-consensus/issues/7 | community-steward | open | open | open | pending | open | unassigned | Community guide slot; runs governance and safety drills. |
+| steward-2 | https://github.com/mstrbstrd/popular-consensus/issues/8 | community-steward | open | open | open | pending | open | unassigned | Community guide slot; runs governance and safety drills. |
 
 ## Coordination Checklist
 
 - [ ] Recruit at least one protocol deployer.
 - [ ] Recruit at least two independent API/indexer operators.
-- [ ] Recruit at least three independent replay verifiers.
-- [ ] Recruit at least two independent community stewards.
+- [ ] Recruit at least three independent replay checkers.
+- [ ] Recruit at least two independent community guides.
 - [ ] Confirm every assigned operator has a unique contact and an independence statement.
 - [ ] Share `docs/public-testnet-operator-runbook.md` with every assigned operator.
-- [ ] Collect every attestation into `docs/public-testnet-attestations`.
+- [ ] Collect every evidence file into `docs/public-testnet-attestations`.
 - [ ] Run `pnpm testnet:verify-attestations:pending` and resolve all missing evidence.
 - [ ] Complete maintainer independence review.
 - [ ] Write `docs/public-testnet-launch-summary.md` with `Decision: GO`.
@@ -75,7 +75,7 @@ When submitting attestation or launch-summary evidence through GitHub, use `.git
 - `invited`: operator has been contacted but has not accepted.
 - `accepted`: operator has accepted the role.
 - `running`: operator is running the public testnet process.
-- `attested`: attestation JSON exists and passes schema/content validation.
+- `attested`: evidence JSON exists and passes schema/content validation.
 - `reviewed`: maintainer independence review passed for this operator.
 - `blocked`: operator cannot complete the role or evidence is invalid.
 

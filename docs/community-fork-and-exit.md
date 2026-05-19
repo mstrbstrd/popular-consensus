@@ -1,6 +1,6 @@
 # Community Fork And Exit Expectations
 
-Popular Consensus communities must be able to leave with their civic records, policies, and presentation metadata intact. The MVP supports this with content-addressed community exports, fork metadata, and read-only replay.
+Popular Consensus communities must be able to leave with their records, rules, and display settings intact. In plain terms: if a community no longer trusts the shared app, it should be able to take a checkable snapshot and host its history somewhere else.
 
 ## What Can Be Exported
 
@@ -20,13 +20,13 @@ The export response includes:
 
 - Community metadata and active member records.
 - Community frontend config, when configured.
-- Adoption policies and their proposal, activation, and suspension artifacts.
-- Questions, challenges, result challenges, archive records, and privacy-safe poll roots.
-- Registry events and local devnet commitment records.
-- Bond settlement records.
-- An artifact manifest and export bundle with all referenced content artifacts.
+- Next-step rules and their proposal, activation, and pause records.
+- Questions, flags, result flags, saved records, and privacy-safe vote roots.
+- Public record events and local devnet commitment records.
+- Demo bond settlement records.
+- A manifest and export bundle with all referenced records.
 
-Exports intentionally exclude raw encrypted ballot payloads and tally private keys. Poll data is exported as ballot commitment and nullifier roots so the public record remains auditable without exposing individual votes.
+Exports intentionally exclude raw encrypted vote payloads and private counting keys. Vote data is exported as proof roots so the public record can be checked without exposing individual votes.
 
 ## Read-Only Replay
 
@@ -55,7 +55,7 @@ Replay returns `Verified` only when all checks pass. A tampered bundle returns `
 
 ## Recording A Fork
 
-A community steward can record a fork from a known source export:
+A community guide can record a fork from a known source export:
 
 ```bash
 curl -X POST "http://localhost:4000/communities/<community-id>/forks" \
@@ -69,13 +69,13 @@ curl -X POST "http://localhost:4000/communities/<community-id>/forks" \
   }'
 ```
 
-This creates a `community-fork` metadata artifact and emits `CommunityForked` on the source community. The source export hash and manifest hash are preserved so another client can prove which snapshot the fork used.
+This creates a `community-fork` metadata record and emits `CommunityForked` on the source community. The source export hash and manifest hash are preserved so another client can prove which snapshot the fork used.
 
-Recording a fork does not transfer authority, mutate prior records, or imply that the new frontend is canonical. It is a public exit signal and pointer to a replayable snapshot.
+Recording a fork does not transfer decision power, change prior records, or imply that the new frontend is the official one. It is a public exit signal and pointer to a replayable snapshot.
 
 ## Portable Frontend Config
 
-Community stewards can publish presentation metadata:
+Community guides can publish presentation settings:
 
 ```bash
 curl -X POST "http://localhost:4000/communities/<community-id>/frontend-config" \
@@ -92,15 +92,15 @@ curl -X POST "http://localhost:4000/communities/<community-id>/frontend-config" 
   }'
 ```
 
-Frontend config is stored as a `community-frontend-config` artifact and included in future community exports. Alternate clients may use it to render the community, but must still treat protocol events, artifacts, and replay checks as the audit source.
+Frontend config is stored as a `community-frontend-config` record and included in future community exports. Alternate clients may use it to render the community, but must still treat protocol events, records, and replay checks as the source of truth.
 
-## Authority And Privacy Expectations
+## Decision And Privacy Expectations
 
 - Exports are snapshots, not live synchronization.
 - Imported exports are read-only until a future canonical appchain or explicit import mode is implemented.
-- Private community exports should only be shared by authorized members or stewards.
-- Binding authority is not implied by export, fork, or alternate frontend display.
-- Recognized or binding labels must still come from active adoption policy artifacts.
+- Private community exports should only be shared by authorized members or guides.
+- A committed decision is not implied by export, fork, or alternate frontend display.
+- "Guides a real next step" or "Committed decision" labels must still come from active next-step rule records.
 - A fork should preserve source hashes and make local presentation differences explicit.
 
 ## Current MVP Boundary

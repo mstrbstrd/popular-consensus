@@ -1,8 +1,8 @@
 # Public Testnet Maintainer Checklist
 
-Use this checklist to move the final roadmap item, "Run public testnet with independent operators," from local readiness to real completion evidence.
+Use this checklist to move the final roadmap item, "Run public testnet with independent operators," from local readiness to real completion evidence. In plain terms: this is how maintainers prove that people outside the core workspace ran the system and checked the same public record.
 
-This file is not completion evidence. The gate remains open until independent operators publish valid attestation JSON files, maintainers record independence review, `docs/public-testnet-launch-summary.md` says `Decision: GO`, and `pnpm mvp:audit` reports `Ready`.
+This file is not completion evidence. The gate remains open until independent operators publish valid evidence JSON files, maintainers record independence review, `docs/public-testnet-launch-summary.md` says `Decision: GO`, and `pnpm mvp:audit` reports `Ready`.
 
 If handing this work to another maintainer or back to Codex, use `docs/public-testnet-external-input-request.md` for the exact external inputs needed next.
 
@@ -100,13 +100,13 @@ Run:
 pnpm testnet:audit-roster
 ```
 
-Do not change a slot to `reviewed` until its real attestation exists and maintainer independence review passes.
+Do not change a slot to `reviewed` until its real evidence file exists and maintainer independence review passes.
 
-## 4. Collect Operator Attestations
+## 4. Collect Operator Evidence
 
 Operators should follow `docs/public-testnet-operator-runbook.md` and `docs/public-testnet-role-command-reference.md`.
 
-Attestations must land in:
+Operator evidence files must land in:
 
 ```text
 docs/public-testnet-attestations
@@ -120,10 +120,10 @@ pnpm testnet:verify-attestations:pending
 
 The final evidence set must include:
 
-- 1 deployer attestation.
-- 2 API/indexer attestations.
-- 3 replay-verifier attestations with matching transaction and event stream hashes.
-- 2 community-steward attestations.
+- 1 deployer evidence file.
+- 2 API/indexer evidence files.
+- 3 replay-checker evidence files with matching transaction and event stream hashes.
+- 2 community-guide evidence files.
 
 ## 5. Record Launch Summary And Close The Gate
 

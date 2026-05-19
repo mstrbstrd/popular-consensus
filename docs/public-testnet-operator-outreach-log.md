@@ -39,7 +39,7 @@ Use `pnpm testnet:audit-outreach:strict` only when every required slot should ha
 - `accepted`: candidate accepted a specific slot; requires a public tracking issue and should move into the roster with `pnpm testnet:update-roster-slot`.
 - `declined`: candidate declined; requires a public tracking issue.
 - `no-response`: no response after follow-up; requires a public tracking issue.
-- `blocked`: candidate cannot satisfy independence, timing, or attestation requirements; requires a public tracking issue.
+- `blocked`: candidate cannot satisfy independence, timing, or evidence requirements; requires a public tracking issue.
 
 ## Outreach Entries
 
@@ -48,11 +48,11 @@ Use `pnpm testnet:audit-outreach:strict` only when every required slot should ha
 | Dappnode community or partner route | Home-node and decentralization communities | https://dappnode.com/en-us/pages/contact | deployer-1 | deployer | candidate | open | open | Candidate route identified from first-wave queue; not contacted. |
 | Dappnode community or app-store builder route | Home-node and decentralization communities | https://dappnode.com/ | indexer-1 | api-indexer | candidate | open | open | Candidate route identified from first-wave queue; not contacted. |
 | Open Source Collective hosted-project community | Open-source fiscal-hosted projects | https://oscollective.org/ | indexer-2 | api-indexer | candidate | open | open | Candidate route identified from first-wave queue; not contacted. |
-| EthStaker community | Ethereum solo-staker communities | https://ethstaker.org/ | replay-1 | replay-verifier | candidate | open | open | Candidate route identified from first-wave queue; not contacted. |
-| Open Collective open-source project directory | Open-source/public-goods collectives | https://opencollective.com/search?hostname=opencollective.com | replay-2 | replay-verifier | candidate | open | open | Candidate route identified from first-wave queue; not contacted. |
-| EthStaker allied-community route | Ethereum solo-staker communities | https://ethstaker.org/ | replay-3 | replay-verifier | candidate | open | open | Candidate route identified from first-wave queue; not contacted. |
-| Open Fresno civic-tech volunteer community | Local civic-tech volunteer groups | https://openfresno.org/ | steward-1 | community-steward | candidate | open | open | Candidate route identified from first-wave queue; not contacted. |
-| SF Civic Tech volunteer community | Local civic-tech volunteer groups | https://www.sfcivictech.org/ | steward-2 | community-steward | candidate | open | open | Candidate route identified from first-wave queue; not contacted. |
+| EthStaker community | Ethereum solo-staker communities | https://ethstaker.org/ | replay-1 | replay-verifier | candidate | open | open | Replay-checker route identified from first-wave queue; not contacted. |
+| Open Collective open-source project directory | Open-source/public-goods collectives | https://opencollective.com/search?hostname=opencollective.com | replay-2 | replay-verifier | candidate | open | open | Replay-checker route identified from first-wave queue; not contacted. |
+| EthStaker allied-community route | Ethereum solo-staker communities | https://ethstaker.org/ | replay-3 | replay-verifier | candidate | open | open | Replay-checker route identified from first-wave queue; not contacted. |
+| Open Fresno civic-tech volunteer community | Local civic-tech volunteer groups | https://openfresno.org/ | steward-1 | community-steward | candidate | open | open | Community-guide route identified from first-wave queue; not contacted. |
+| SF Civic Tech volunteer community | Local civic-tech volunteer groups | https://www.sfcivictech.org/ | steward-2 | community-steward | candidate | open | open | Community-guide route identified from first-wave queue; not contacted. |
 
 ## Promotion Rule
 
@@ -61,4 +61,4 @@ When a candidate accepts:
 1. Capture assignment details with `docs/public-testnet-operator-assignment-intake.md`.
 2. Update `docs/public-testnet-operator-roster.md` with `pnpm testnet:update-roster-slot`.
 3. Keep the outreach-log row for history, but the roster becomes the coordination source for the assigned slot.
-4. Do not mark the roster slot `reviewed` until the attestation exists and maintainer independence review passes.
+4. Do not mark the roster slot `reviewed` until the evidence file exists and maintainer independence review passes.

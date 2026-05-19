@@ -40,4 +40,4 @@ The focused Foundry tests prove:
 
 ## Privacy Boundary
 
-This account-execution layer authenticates social and protocol actor actions. It must not become the identity key for private ballot contents. Credential proofs, nullifiers, encrypted ballot payloads, and aggregate result artifacts remain separate from wallet, passkey, and smart-account metadata.
+This account-execution layer authenticates social and public-record actions. It must not become the identity key for private vote choices. Voting-pass proofs, duplicate-vote blockers, encrypted ballot payloads, and combined result receipts remain separate from wallet, passkey, and smart-account metadata.

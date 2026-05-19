@@ -1,6 +1,6 @@
 # Popular Consensus Yellow Paper
 
-## MVP Protocol Specification for a ZK-First Civic Appchain
+## MVP Technical Specification for Private Voting and Public Results
 
 Version: 0.1 draft  
 Date: April 27, 2026  
@@ -8,34 +8,36 @@ Companion to: `docs/popular-consensus-blueprint-whitepaper.md`
 
 This document is a technical planning draft. It is not legal, tax, investment, or compliance advice. Production launch requires independent legal review, security review, privacy review, and community governance review.
 
+Plain-language summary: this document explains how the app lets people ask questions, prove they are allowed to vote, cast one private vote, and check the public result without seeing individual answers.
+
 ## Abstract
 
-Popular Consensus is a civic signal protocol for public questions, privacy-preserving participation, transparent registry curation, and auditable aggregate results. The MVP is specified as a modular appchain with native utility gas, proposal staking, ZK credentials, encrypted private ballots, and verifiable tally publication.
+Popular Consensus is a civic signal protocol for public questions, privacy-preserving participation, transparent question review, and checkable combined results. The MVP is specified as a modular appchain with native utility gas, proposal staking, ZK credentials, encrypted private ballots, and verifiable vote counting.
 
-The protocol is designed to support advisory opinion polling first. It also includes an adoption layer that lets communities later define when a process is recognized or binding under their own rules. The system must never imply binding authority unless a published community adoption policy grants it.
+The protocol is designed to support advisory opinion polling first. It also includes a next-step layer that lets communities later define when a process guides action or becomes binding under their own rules. The system must never imply a committed decision unless a published community rule grants it.
 
-The core primitive is a public question with an auditable lifecycle. A question can be proposed, challenged, amended, accepted, opened for participation, tallied, challenged again on result integrity grounds, finalized, and archived. Each step emits public registry events while individual eligibility proofs and ballots remain private by default.
+The core object is a public question with a checkable lifecycle. A question can be proposed, flagged, clarified, accepted, opened for participation, counted, flagged again on result-integrity grounds, finalized, and saved. Each step emits public events while individual eligibility proofs and ballots remain private by default.
 
 The MVP has three technical goals:
 
-- Make public questions inspectable.
+- Make public questions easy to inspect.
 - Make eligible participation private and duplicate-resistant.
-- Make aggregate results verifiable without exposing individual responses.
+- Make combined results verifiable without exposing individual responses.
 
 ## 1. Terminology
 
 | Term | Meaning |
 | --- | --- |
-| Appchain | The Popular Consensus application-specific network that executes registry, staking, poll, and governance logic. |
+| Appchain | The Popular Consensus application-specific network that runs question records, demo stake, voting, and governance logic. |
 | PC | Working symbol for the native utility token used for gas, proposal bonds, challenge bonds, appeal bonds, juror rewards, tally rewards, and protocol fees. |
-| Question | A structured civic prompt with answer schema, eligibility schema, sponsor disclosure, timing, and methodology label. |
-| Registry | Public protocol state that records accepted questions, credential schemas, issuers, communities, challenges, results, and adoption policies. |
-| Credential | A private eligibility attestation issued by a registered issuer. |
-| Nullifier | A poll-specific value proving a credential was used once without revealing the holder. |
-| Ballot | A respondent's encrypted answer payload plus proof material. |
-| Tally committee | A threshold group authorized to decrypt and aggregate ballots after poll close. |
-| Result artifact | A public bundle containing aggregate results, proof references, methodology, privacy checks, and archive hashes. |
-| Adoption policy | A community-published rule set defining whether a class of polls is advisory, recognized, or binding. |
+| Question | A structured civic prompt with an answer type, eligibility rule, sponsor disclosure, timing, and method label. |
+| Registry | Public protocol state that records accepted questions, voting-pass schemas, issuers, communities, flags, results, and next-step rules. |
+| Credential | A private voting pass issued by a trusted issuer. |
+| Nullifier | A poll-specific value proving a voting pass was used once without revealing the holder. |
+| Ballot | A participant's encrypted answer plus proof material. |
+| Tally committee | A threshold group authorized to decrypt and count ballots after voting closes. |
+| Result artifact | A public result receipt containing combined results, proof references, method notes, privacy checks, and saved-record hashes. |
+| Adoption policy | A community-published next-step rule defining whether a class of polls is advisory, recognized, or binding. |
 | Reputation | Non-transferable record of useful protocol work. Reputation is not PC and cannot be transferred. |
 
 ## 2. Design Invariants

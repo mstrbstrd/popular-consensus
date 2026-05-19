@@ -1,6 +1,6 @@
 # Public Testnet Operator Issue URL Intake
 
-Use this sheet after the eight public operator tracking issues are created. It is an intake helper only; it does not create issues, record outreach, assign operators, publish attestations, or complete the final public-testnet gate.
+Use this sheet after the eight public operator tracking issues are created. It is an intake helper only; it does not create issues, record outreach, assign operators, publish evidence, or complete the final public-testnet gate.
 
 After filling the table, record each URL on `docs/public-testnet-operator-roster.md` with:
 

@@ -1,8 +1,8 @@
 # Public Testnet Role Command Reference
 
-This reference gives each public-testnet role a concrete attestation command shape. Operators should still read `docs/public-testnet-operator-runbook.md` first.
+This reference gives each public-testnet role a concrete evidence-file command shape. Operators should still read `docs/public-testnet-operator-runbook.md` first.
 
-Replace the example values with real public-testnet values before generating attestations.
+Replace the example values with real public-testnet values before generating evidence.
 
 ## Shared Required Checks
 
@@ -16,7 +16,7 @@ pnpm --filter @pc/contracts test
 pnpm test:api:db
 ```
 
-Every operator attestation must include:
+Every operator evidence file must include:
 
 - `--operator-id`
 - `--operator-contact`
@@ -69,16 +69,16 @@ pnpm testnet:collect-attestation -- \
   --out docs/public-testnet-attestations/indexer-name.json
 ```
 
-## Replay Verifier
+## Replay Checker
 
 Use this after independently checking replay output:
 
 ```sh
 pnpm testnet:collect-attestation -- \
-  --operator-id replay-verifier-name-or-public-key \
+  --operator-id replay-checker-name-or-public-key \
   --operator-contact contact-url-email-handle-or-public-key \
   --operator-organization organization-or-independent-individual \
-  --independence-statement "Independent replay verifier not controlled by the maintainers or sibling operators." \
+  --independence-statement "Independent replay checker not controlled by the maintainers or sibling operators." \
   --role replay-verifier \
   --git-commit commit-hash \
   --chain-id public-testnet-chain-id \
@@ -86,19 +86,19 @@ pnpm testnet:collect-attestation -- \
   --api-base-url public-api-base-url \
   --community-id public-testnet-community-id \
   --checks-preset required \
-  --out docs/public-testnet-attestations/replay-verifier-name.json
+  --out docs/public-testnet-attestations/replay-checker-name.json
 ```
 
-## Community Steward
+## Community Guide
 
 Use this after completing governance and safety drills:
 
 ```sh
 pnpm testnet:collect-attestation -- \
-  --operator-id steward-name-or-public-key \
+  --operator-id community-guide-name-or-public-key \
   --operator-contact contact-url-email-handle-or-public-key \
   --operator-organization organization-or-independent-individual \
-  --independence-statement "Independent community steward not controlled by the maintainers or sibling operators." \
+  --independence-statement "Independent community guide not controlled by the maintainers or sibling operators." \
   --role community-steward \
   --git-commit commit-hash \
   --chain-id public-testnet-chain-id \
@@ -106,12 +106,12 @@ pnpm testnet:collect-attestation -- \
   --api-base-url public-api-base-url \
   --community-id public-testnet-community-id \
   --checks-preset complete \
-  --out docs/public-testnet-attestations/steward-name.json
+  --out docs/public-testnet-attestations/community-guide-name.json
 ```
 
 ## Maintainer Verification
 
-After collecting attestations:
+After collecting evidence files:
 
 ```sh
 pnpm testnet:audit-roster

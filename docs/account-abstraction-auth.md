@@ -1,6 +1,8 @@
-# Account Abstraction Auth MVP
+# Passkey And Wallet Login MVP
 
-Popular Consensus now has an account-abstraction authentication surface for the social client and actor-signed protocol writes. The MVP supports two controller types:
+Popular Consensus lets people sign in with a passkey or a wallet. In plain terms, that means a user can prove "this is my account" before asking questions, joining communities, reviewing flags, or publishing records. Private votes stay separate from login, so signing in does not reveal how someone voted.
+
+The technical login layer supports two controller types:
 
 - Passkey controller: WebAuthn P-256 registration and login.
 - Wallet controller: Ethereum wallet EIP-191 `personal_sign` registration and login.
@@ -24,31 +26,31 @@ Both controller types create or recover a deterministic counterfactual smart acc
 
 The backing tables are `AuthController`, `AuthChallenge`, and `AuthSession`, with `UserAccount.smartAccountAddress` and `UserAccount.smartAccountKind` linking profile identity to the counterfactual account. Controllers store the EntryPoint, factory, paymaster, salt, initCode, and passkey P-256 coordinates when available.
 
-## Enforcement Model
+## Where Login Is Required
 
-When `PC_REQUIRE_AUTH=true` or the API is not in dev mode, actor-bearing writes require a bearer token for the same actor id in the request body. This includes community creation and membership writes, follows, question proposals, challenge and ruling flows, discussion and moderation writes, governance/steward writes, tally committee operations, data-union consent/product/grant writes, and emergency/adoption operations.
+When `PC_REQUIRE_AUTH=true` or the API is not in dev mode, actions that change public records require a bearer token for the same actor id in the request body. This includes community creation, membership changes, follows, question proposals, flags and review decisions, discussion and moderation, community-guide actions, vote-counting operations, rewards consent/report/customer actions, and emergency or next-step rule actions.
 
-The `/users` local account endpoint is dev-only when auth is required. Demo coordinator poll close/tally routes are also disabled when auth is required because they do not yet carry an authenticated steward/coordinator actor.
+The `/users` local account endpoint is dev-only when auth is required. Demo coordinator close/count routes are also disabled when auth is required because they do not yet carry an authenticated community-guide or coordinator actor.
 
 ## Privacy Boundary
 
-Account auth is not attached to private ballot submission. Poll eligibility, signup, and voting continue to use the credential proof path:
+Account auth is not attached to private vote submission. Voting eligibility, signup, and voting continue to use the voting-pass proof path:
 
-- wallet-held credential import/export stays secret-based,
-- credential membership proofs derive nullifiers,
+- wallet-held voting-pass import/export stays secret-based,
+- voting-pass membership proofs derive duplicate-vote blockers,
 - ballots are stored as encrypted payloads and commitments,
-- no public result artifact links a wallet, passkey, or smart account to an answer.
+- no public result receipt links a wallet, passkey, or smart account to an answer.
 
-This preserves the original protocol boundary: smart accounts authenticate social/protocol actions, while private voting remains credential/nullifier based.
+This preserves the original privacy boundary: smart accounts authenticate social and public-record actions, while private voting remains voting-pass based.
 
-## Client Surface
+## User-Facing Screens
 
-The social client routes use the AA auth flow:
+The web app uses this login flow here:
 
-- `/signup`: create a passkey-backed or wallet-backed account.
-- `/login`: log in with passkey or wallet.
-- `/feed` and `/account`: consume `pc.authToken` from local storage and attach `Authorization: Bearer ...` to actor writes.
-- `/testing`: remains the local integration hub for legacy demo flows.
+- `/signup`: create an account with a passkey or wallet.
+- `/login`: log in with a passkey or wallet.
+- `/feed` and `/account`: keep the signed-in session and attach `Authorization: Bearer ...` to writes.
+- `/testing`: remains the local demo hub for older test flows.
 
 ## ERC-4337 Execution Bridge
 

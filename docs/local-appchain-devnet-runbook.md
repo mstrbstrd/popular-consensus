@@ -1,6 +1,6 @@
 # Local Appchain Devnet Runbook
 
-This runbook describes the current Popular Consensus MVP devnet. It is a local appchain-style stack made of:
+This runbook describes the current Popular Consensus MVP devnet. In plain terms, it starts every local service needed to ask questions, vote privately, count results, and check the public records on your machine. It is a local appchain-style stack made of:
 
 - An Anvil chain running the MVP protocol modules in `packages/contracts`.
 - Postgres as the local indexer/application database.
@@ -201,4 +201,4 @@ pnpm e2e
 
 Today, contract deployment is verified and local API lifecycle actions emit protocol transaction results plus explicit `devnet-commitment-v0` records for the minimum commitment set. The API exposes those records through `/registry/protocol-transactions`, `/registry/protocol-transactions/replay`, `/registry/commitments`, `/registry/events`, and each public civic record.
 
-The next decentralization step is to run the same public response contracts on a public testnet with independent operators. Operator launch and attestation requirements are tracked in `docs/public-testnet-operator-runbook.md`.
+The next decentralization step is to run the same public response contracts on a public testnet with independent operators. Operator launch and evidence requirements are tracked in `docs/public-testnet-operator-runbook.md`.

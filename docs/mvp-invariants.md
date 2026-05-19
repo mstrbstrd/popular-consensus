@@ -1,6 +1,6 @@
 # Popular Consensus MVP Invariants
 
-This document lists the product and protocol invariants the runnable MVP must preserve. These are not feature ideas. They are guardrails: if a change violates one, the MVP is no longer expressing the Popular Consensus mission in `docs/popular_consensus_mission.md`. For mission-level evidence and gaps, see `docs/mission-to-mvp-traceability.md`.
+This document lists the promises the runnable MVP must keep. These are not feature ideas. They are guardrails: if a change violates one, the MVP is no longer expressing the Popular Consensus mission in `docs/popular_consensus_mission.md`. For mission-level evidence and gaps, see `docs/mission-to-mvp-traceability.md`.
 
 ## 1. Civic Purpose, Not Market Mechanics
 
@@ -15,18 +15,18 @@ Covered by:
 - `pnpm lint:terms`
 - contract tests for proposal/challenge stake behavior
 
-## 2. Advisory by Default
+## 2. Community Signal by Default
 
-Every question, community, result, and adoption surface must default to advisory authority.
+Every question, community, result, and next-step surface must default to a community signal.
 
-- Binding authority must never be implied by question creation.
-- Recognized or binding labels require an explicit active community adoption policy.
-- Adoption policy proposals have no authority effect until activated by a community owner or moderator account.
-- Binding adoption policies require explicit legal handoff metadata before activation.
-- Suspended adoption policies must stop elevating future matching questions.
-- Unpublished questions tied to a suspended policy must return to advisory authority.
-- Result artifacts must include the authority level.
-- Result artifacts should include the adoption policy reference when a policy determined the authority level.
+- A committed decision must never be implied by question creation.
+- "Guides a real next step" or "Committed decision" labels require an explicit active community rule.
+- Next-step rule proposals have no effect until activated by a community lead or guide account.
+- Committed-decision rules require explicit legal or community handoff metadata before activation.
+- Paused rules must stop elevating future matching questions.
+- Unpublished questions tied to a paused rule must return to community-signal status.
+- Result receipts must include the authority level.
+- Result receipts should include the next-step rule reference when a rule determined the authority level.
 
 Covered by:
 - API integration tests for `authorityLevel`
@@ -34,15 +34,15 @@ Covered by:
 - e2e assertions for `Advisory`
 - contract adoption default test
 
-## 3. Account-Backed Writes
+## 3. Signed-In Actions
 
-Protocol-changing product actions must be attached to a local account in the MVP.
+Actions that change the civic record must be attached to a local account in the MVP.
 
 - Question proposals require an existing local proposer account.
 - Challenges require an existing local challenger account.
 - Amendments require an existing local proposer account.
 - Communities require an existing local creator account.
-- Question acceptance and challenge rulings require an active community owner or moderator account.
+- Question acceptance and flag decisions require an active community lead or guide account.
 - Proposers cannot challenge or accept their own question.
 - Proposers and challengers cannot rule on their own challenge dispute.
 
@@ -79,14 +79,14 @@ Covered by:
 
 ## 6. Ballot Secrecy
 
-Individual ballot contents must remain private by default.
+Individual vote choices must remain private by default.
 
 - Ballots are encrypted before storage.
 - API vote responses must not expose raw encrypted payload JSON.
-- Result APIs must return aggregates and proof/artifact references, not individual choices.
-- Result artifacts must not include credential secrets or private identity evidence.
-- Data-union products must reference published aggregate result artifacts only; they must not include raw ballots, encrypted payloads, credential secrets, or identifiable responses.
-- Data-union product publication must require active member consent count and result turnout to meet the active policy cohort threshold.
+- Result APIs must return combined counts and proof/record references, not individual choices.
+- Result receipts must not include voting-pass secrets or private identity evidence.
+- Rewards reports must reference published combined result receipts only; they must not include raw ballots, encrypted payloads, voting-pass secrets, or identifiable responses.
+- Rewards report publication must require enough opted-in members and enough total votes to meet the active privacy threshold.
 
 Covered by:
 - privacy package tests
@@ -95,30 +95,30 @@ Covered by:
 
 ## 7. Eligibility and Duplicate Participation
 
-A respondent must prove local demo eligibility before voting, and a poll must reject duplicate participation.
+A respondent must prove local demo eligibility before voting, and each vote must reject duplicate participation.
 
-- Invalid credentials must fail.
-- Credential schema mismatch must fail.
-- Demo credential issuance must allow only one active credential per holder, schema, and issuer.
-- Private community polls require the credential holder alias to be an active member.
-- A poll-specific nullifier must prevent a second valid ballot from the same credential.
+- Invalid voting passes must fail.
+- Voting-pass type mismatch must fail.
+- Demo voting-pass issuance must allow only one active pass per holder, type, and issuer.
+- Private community votes require the voting-pass holder alias to be an active member.
+- A vote-specific duplicate blocker must prevent a second valid ballot from the same voting pass.
 
 Covered by:
 - privacy package tests
 - DB-backed API tests
 - e2e duplicate vote test
 
-## 8. Poll Lifecycle Controls
+## 8. Voting Flow Controls
 
-The UI and API must respect poll lifecycle state.
+The UI and API must respect each voting step.
 
-- New questions start in registry review with a configured poll, not an open poll.
-- A poll may open only after the question is accepted and all pending challenges are resolved.
+- New questions start in review with a prepared vote, not an open vote.
+- Voting may open only after the question is accepted and all pending flags are resolved.
 - Rejected questions must not open for voting.
-- Voting is allowed only while the poll status is open.
-- Closed or result-published polls must disable vote controls.
+- Voting is allowed only while voting is open.
+- Closed or result-published votes must disable vote controls.
 - Result loading is available only once a result exists.
-- The UI must show explicit poll state labels.
+- The UI must show clear voting state labels.
 
 Covered by:
 - e2e poll lifecycle tests
@@ -142,15 +142,15 @@ Covered by:
 
 ## 10. Public Archive and Auditability
 
-Every civic action that changes registry state should leave a durable public trace.
+Every civic action that changes public state should leave a durable public trace.
 
-- Question submission emits a registry event.
-- Challenge opening emits a registry event.
-- Amendment emits a registry event.
-- Challenge rulings and bond settlement emit registry events.
-- Question acceptance and poll opening emit registry events.
-- Poll close and result publication emit registry events.
-- Question bodies, sponsor disclosures, evidence, and result artifacts use content-addressed storage.
+- Question submission emits a public event.
+- Flag opening emits a public event.
+- Edits emit a public event.
+- Review decisions and stake payments emit public events.
+- Question acceptance and voting opening emit public events.
+- Voting close and result publication emit public events.
+- Question bodies, sponsor disclosures, evidence, and result receipts use content-addressed storage.
 
 Covered by:
 - artifact package tests
@@ -161,7 +161,7 @@ Covered by:
 Question context must not be detached from disclosure.
 
 - Every proposed question requires sponsor disclosure input.
-- Every question stores a sponsor disclosure artifact hash.
+- Every question stores a sponsor disclosure record hash.
 - Every question includes a methodology label.
 
 Covered by:
@@ -174,12 +174,12 @@ Covered by:
 The MVP may use local shortcuts, but it must label them honestly.
 
 - Local accounts are not production authentication.
-- Private communities are API membership-gated, not credential-encrypted spaces.
-- The tally coordinator is a demo trust assumption until a threshold tally committee is implemented.
+- Private communities are API membership-gated, not voting-pass-encrypted spaces.
+- The vote-counting coordinator is a demo trust assumption until a multi-party counting committee is implemented.
 
 Covered by:
 - README trust model
-- result artifact privacy report
+- result receipt privacy report
 
 ## 13. User-Facing Error Recovery
 
@@ -194,3 +194,16 @@ Covered by:
 - e2e account/community conflict tests
 - e2e duplicate vote test
 - e2e private join test
+
+## 14. Plain-Language Public Copy
+
+The public UI must explain actions in everyday words before exposing protocol terms.
+
+- Primary actions should use words like ask, vote, review, count, share, save, and claim.
+- Technical terms such as registry, artifact, nullifier, quorum, steward, and tally should not appear in primary user-facing labels unless they are paired with a plain explanation.
+- Public proof should be introduced as a receipt or record everyone can check.
+- Reward flows should describe people, reports, approved customers, payments, and claims before data-union internals.
+
+Covered by:
+- UI copy review
+- README mission and trust-model review

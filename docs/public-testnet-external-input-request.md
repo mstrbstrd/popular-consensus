@@ -1,8 +1,8 @@
 # Public Testnet External Input Request
 
-The final roadmap item, `Run public testnet with independent operators`, cannot be completed from local readiness alone. Use this sheet to provide the next real-world input without mixing it with rehearsal evidence.
+The final roadmap item, `Run public testnet with independent operators`, cannot be completed from local readiness alone. Use this sheet to provide the next real-world input without mixing it with rehearsal evidence. In plain terms, this file asks for the outside proof we cannot create from this workspace.
 
-Minimum unblocker: provide either a public repository plus explicit approval to create the eight operator tracking issues, or provide the eight already-created issue URLs. Until one of those happens, outreach, assignments, attestations, and the launch summary cannot be recorded as real completion evidence.
+Minimum unblocker: provide either a public repository plus explicit approval to create the eight operator tracking issues, or provide the eight already-created issue URLs. Until one of those happens, outreach, assignments, operator evidence, and the launch summary cannot be recorded as real completion evidence.
 
 ## Option 1: Public Repository And Issue Approval
 
@@ -57,9 +57,9 @@ pnpm testnet:update-roster-slot
 pnpm testnet:audit-roster
 ```
 
-## Option 5: Operator Attestations
+## Option 5: Operator Evidence
 
-Place real operator attestation JSON files in:
+Place real operator evidence JSON files in:
 
 ```text
 docs/public-testnet-attestations
@@ -71,4 +71,4 @@ Then run:
 pnpm testnet:verify-attestations:pending
 ```
 
-Do not write the final `GO` launch summary until independent operators have published valid attestations and maintainer independence review is complete.
+Do not write the final `GO` launch summary until independent operators have published valid evidence files and maintainer independence review is complete.

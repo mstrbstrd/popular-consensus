@@ -10,9 +10,9 @@ The high-contrast CMYK-inspired palette of cyan, magenta, and yellow creates a s
 
 The interlocking rings and long shadows suggest movement, connectivity, and a forward-thinking approach.
 
-### Friendly and Accessible
+### Friendly and Clear
 
-Rounded forms and bright tones make the brand feel approachable and fun.
+Rounded forms, bright tones, and plain words make the brand feel approachable, useful, and easy to trust.
 
 ## Color Palette
 
@@ -50,9 +50,12 @@ Use a clean sans-serif such as Inter or Roboto.
 - Long shadows: Apply 45-degree flat shadows to cards or buttons for a pop-art feel.
 - Rounded corners: Use generous border radii from `12px` to `24px` to maintain the friendly circular theme.
 - White space: Use generous spacing to balance the intense color palette.
+- Plain-language labels: Name actions in the words a person would use: ask, vote, review, count, share, save, and claim. Keep protocol terms in developer docs, not primary UI copy.
+- Trust cues: When the product shows proof, explain it as a public receipt or a record everyone can check before showing hashes or technical detail.
 
 ## Component Patterns
 
 - Buttons: Rounded buttons using Action Cyan backgrounds with white text.
 - Cards: White cards with Soft Gray borders and Electric Magenta accent bars.
 - Icons: Simple, thick-stroke icons using the brand colors.
+- Empty states: Use light, useful guidance that tells the user what they can do next.

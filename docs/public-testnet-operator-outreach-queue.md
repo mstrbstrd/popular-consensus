@@ -2,7 +2,7 @@
 
 This queue turns the broad recruitment pools into concrete first-contact routes for filling the final public-testnet operator slots.
 
-This file is prospecting support only. A row here is not an assignment, not an attestation, and not completion evidence for the roadmap gate. Move a slot into `docs/public-testnet-operator-roster.md` only after a real operator accepts and provides the fields in `docs/public-testnet-operator-assignment-intake.md`.
+This file is prospecting support only. A row here is not an assignment, not an evidence file, and not completion evidence for the roadmap gate. Move a slot into `docs/public-testnet-operator-roster.md` only after a real operator accepts and provides the fields in `docs/public-testnet-operator-assignment-intake.md`.
 
 Use `docs/public-testnet-operator-send-packets.md` for per-slot messages with the slot ids and issue-body paths already filled in.
 
@@ -18,15 +18,15 @@ Source links were checked on 2026-05-09.
 | 4 | indexer-2 | api-indexer | Open Source Collective hosted-project community | https://oscollective.org/ | Open-Source Maintainer | operator id, contact/public key, organization/individual marker, public API base URL plan, independence statement |
 | 5 | replay-2 | replay-verifier | Open Collective open-source project directory | https://opencollective.com/search?hostname=opencollective.com | Open-Source Maintainer | operator id, contact/public key, independence statement, replay environment |
 | 6 | replay-3 | replay-verifier | EthStaker allied-community route | https://ethstaker.org/ | Infrastructure Operator | operator id, contact/public key, independence statement, replay environment |
-| 7 | steward-1 | community-steward | Open Fresno civic-tech volunteer community | https://openfresno.org/ | Civic Or Community Steward | operator id, contact/public key, organization/individual marker, governance-drill availability, independence statement |
-| 8 | steward-2 | community-steward | SF Civic Tech volunteer community | https://www.sfcivictech.org/ | Civic Or Community Steward | operator id, contact/public key, organization/individual marker, governance-drill availability, independence statement |
+| 7 | steward-1 | community-steward | Open Fresno civic-tech volunteer community | https://openfresno.org/ | Civic Or Community Guide | operator id, contact/public key, organization/individual marker, governance-drill availability, independence statement |
+| 8 | steward-2 | community-steward | SF Civic Tech volunteer community | https://www.sfcivictech.org/ | Civic Or Community Guide | operator id, contact/public key, organization/individual marker, governance-drill availability, independence statement |
 
 ## Contact Notes
 
 - Dappnode publishes a Discord route for technical questions and a partner route for collaboration; use the collaboration route for `deployer-1` and the community route for operator volunteers.
 - EthStaker lists Discord, Reddit, Farcaster, Twitter, and allied communities from its community navigation; ask for one solo-staker or infrastructure operator per slot rather than treating the community itself as the operator.
 - Open Source Collective and Open Collective are discovery paths for maintainers of independent open-source projects; any accepted operator still needs a named operator id and maintainer-reviewed independence.
-- Open Fresno and SF Civic Tech are community-governance prospects for steward slots; use the steward draft and emphasize governance/safety drills over chain operation.
+- Open Fresno and SF Civic Tech are community-governance prospects for community-guide slots; use the community-guide draft and emphasize governance/safety drills over chain operation.
 
 ## Outreach Packet
 
@@ -38,7 +38,7 @@ For each row:
 4. Audit the prospect log with `pnpm testnet:audit-outreach`.
 5. If a real operator accepts, fill `docs/public-testnet-operator-assignment-intake.md`.
 6. Update the roster with `pnpm testnet:update-roster-slot`.
-7. Keep `independenceReview` as `pending` until the attestation exists and maintainer review passes.
+7. Keep `independenceReview` as `pending` until the evidence file exists and maintainer review passes.
 
 ## Source References
 

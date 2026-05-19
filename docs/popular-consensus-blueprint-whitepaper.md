@@ -1,6 +1,6 @@
 # Popular Consensus
 
-## A Blueprint and White Paper for a Civic Signal Protocol
+## A Blueprint and White Paper for Trusted Public Answers
 
 Version: 0.1 draft  
 Date: April 27, 2026  
@@ -8,30 +8,32 @@ Working title: Popular Consensus
 
 This document is a planning draft, not legal, tax, investment, or compliance advice. A real launch requires qualified counsel in every operating jurisdiction, independent security review, user research, and governance design review.
 
+Plain-language summary: Popular Consensus is a way for communities to ask clear questions, gather private answers from real people, publish results anyone can check, and share value when those answers become useful reports.
+
 ## Abstract
 
-Popular Consensus is a blockchain-based public opinion and question-curation platform inspired by the clarity of prediction-market interfaces, but deliberately separated from gambling, event-contract trading, and winner-take-all speculation.
+Popular Consensus is a public-opinion and question-quality platform inspired by the clarity of prediction-market interfaces, but deliberately separated from gambling, event-contract trading, and winner-take-all speculation.
 
-Instead of asking users to buy positions on future outcomes, the platform lets users propose civic questions, curate question quality, participate in verifiable polls, deliberate in public discussion spaces, and produce auditable opinion signals. The core unit is not a bet. The core unit is a question.
+Instead of asking users to buy positions on future outcomes, the platform lets people ask civic questions, improve question quality, vote privately, discuss context in public, and publish answers that can be checked. The core unit is not a bet. The core unit is a question.
 
 The platform combines four ideas:
 
-1. A Token Curated Registry for public questions, topics, credential issuers, communities, source lists, and methodological standards.
-2. Privacy-preserving civic polling where verified humans can answer without publicly exposing their identity or full response history.
+1. A public question list with rules for keeping questions clear and useful.
+2. Privacy-preserving civic polling where verified humans can answer without exposing their identity or full response history.
 3. A social layer for discussion, evidence, amendments, sponsorship, local communities, and follow-based discovery.
-4. A public data layer that exposes auditable aggregate signals through dashboards and APIs.
+4. A public data layer that exposes checkable combined results through dashboards and APIs.
 
-The result is a civic signal exchange: a place where individuals, communities, researchers, municipalities, advocacy organizations, and companies can ask legitimate public questions and receive transparent, methodologically-labeled answers from the people who choose to participate.
+The result is a civic signal exchange: a place where individuals, communities, researchers, municipalities, advocacy organizations, and companies can ask legitimate public questions and receive clear, method-labeled answers from the people who choose to participate.
 
 ## Thesis
 
 Online discourse has a measurement problem. Social platforms measure attention, not consent. Pollsters measure samples, but their methods are often opaque to ordinary participants. Prediction markets produce crisp prices, but they attach civic questions to financial upside, loss, and regulatory risk.
 
-Popular Consensus proposes a different primitive:
+Popular Consensus proposes a different starting point:
 
 Public questions should become first-class civic objects.
 
-Each question should have a transparent lifecycle, public wording history, clear answer format, quality challenges, participation rules, identity assumptions, demographic limitations, discussion context, and tamper-evident aggregate results.
+Each question should have a transparent lifecycle, public wording history, clear answer format, quality flags, participation rules, identity assumptions, demographic limitations, discussion context, and tamper-evident combined results.
 
 The platform should answer questions such as:
 
@@ -49,10 +51,10 @@ Popular Consensus should be built around the following commitments:
 
 - No event-contract rewards. Users do not earn money for choosing the eventual correct answer.
 - No speculative-price-as-entertainment framing. Results are displayed as civic opinion signals, not as price-like probabilities.
-- One verified person, one poll response by default. Token stake may curate questions, but should not dominate answers.
+- One verified person, one vote by default. Demo stake may help review questions, but should not dominate answers.
 - Privacy by design. Individual responses should be private unless a user explicitly chooses to publish them.
 - Method labels over false universality. Results must identify the population, sample, verification level, weighting method, and limitations.
-- Open question history. Wording changes, challenges, sponsorship, governance decisions, and final results should be auditable.
+- Open question history. Wording changes, flags, sponsorship, governance decisions, and final results should be checkable.
 - Public-interest governance first. The initial operating entity should be mission-bound, with a credible path toward community governance only after the system is safe and understandable.
 - Minimize speculative token economics. The token system should support access, deposits, governance, and anti-spam mechanics without promising profit.
 
@@ -387,41 +389,41 @@ Archived questions remain public with:
 
 The archive is one of the platform's main public goods.
 
-## Poll Types
+## Question Types
 
 Popular Consensus should support multiple question formats, each with explicit use cases.
 
-### Binary Opinion
+### Choose One Side
 
 Example: "Do you support the proposed transit fare change?"
 
-Useful for simple support/opposition. Dangerous when overused for complex tradeoffs.
+Useful for simple support/opposition. Use carefully for complex tradeoffs.
 
-### Multiple Choice
+### Choose One Option
 
 Example: "Which of these library hours should the city prioritize?"
 
 Useful when options are mutually exclusive.
 
-### Approval Voting
+### Choose All That Fit
 
 Example: "Which of these safety improvements would you support funding?"
 
 Useful when multiple options can be acceptable.
 
-### Ranked Choice
+### Rank Your Choices
 
 Example: "Rank these budget priorities."
 
 Useful for preference ordering and reducing false binary framing.
 
-### Likert Scale
+### Agreement Scale
 
 Example: "How strongly do you agree that this rule is fair?"
 
 Useful for sentiment intensity.
 
-### Budget Allocation
+### Split 100 Points
 
 Example: "Allocate 100 points across these public projects."
 

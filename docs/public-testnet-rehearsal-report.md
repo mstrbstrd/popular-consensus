@@ -17,7 +17,7 @@ pnpm mvp:audit
 
 The rehearsal smoke test exercised:
 
-- Temporary public-testnet operator attestations.
+- Temporary public-testnet operator evidence files.
 - Reviewed launch-summary generation against temporary evidence.
 - `pnpm testnet:verify-attestations` reaching `Ready` against temporary evidence.
 - `pnpm testnet:audit-roster` reaching `Ready` against a temporary reviewed roster.
@@ -32,7 +32,7 @@ The rehearsal smoke test exercised:
 The final roadmap gate remains incomplete:
 
 - Real operator assignments: 0.
-- Real public-testnet attestations: 0.
+- Real public-testnet evidence files: 0.
 - Real launch summary: missing.
 - Maintainer independence review: missing.
 - `pnpm testnet:verify-attestations`: not ready against real evidence.
@@ -40,4 +40,4 @@ The final roadmap gate remains incomplete:
 
 ## Boundary
 
-No rehearsal attestation, roster, or launch-summary output should be copied into the real evidence paths. The final gate can close only after real independent operators publish attestations and a maintainer records the launch summary.
+No rehearsal evidence file, roster, or launch-summary output should be copied into the real evidence paths. The final gate can close only after real independent operators publish evidence and a maintainer records the launch summary.

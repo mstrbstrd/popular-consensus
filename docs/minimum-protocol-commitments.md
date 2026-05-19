@@ -1,19 +1,21 @@
-# Minimum Protocol Commitments
+# Minimum Public Promises
 
-This is the MVP commitment set that must be anchored outside the application database before Popular Consensus can claim public auditability. The typed source of truth is `MinimumProtocolCommitments` in `packages/shared/src/index.ts`; this document explains the intent.
+Popular Consensus should never ask people to “just trust the app.” Important actions must leave a public record that someone else can check later.
 
-## Commitment Set
+This page lists the minimum public promises the MVP must publish outside the app database before we can claim public auditability. The typed source of truth is `MinimumProtocolCommitments` in `packages/shared/src/index.ts`; this document explains what those commitments mean in plain language.
 
-| Commitment | Covers | Event anchors | Artifact anchors | Target module |
+## Promise Set
+
+| Promise | Plain meaning | Event anchors | Record anchors | Technical owner |
 | --- | --- | --- | --- | --- |
-| Question version | Question body, answer schema, credential schema, authority metadata, and amendments | `QuestionSubmitted`, `QuestionAmended` | `question-body`, `sponsor-disclosure` | `QuestionRegistry` |
-| Bond | Proposal/challenge escrow, settlement, rewards, refunds, slashing, and treasury accounting | `BondEscrowed`, `BondSettled` | none | `StakeManager` |
-| Challenge | Question/result challenge opening, reason, challenger, evidence hash, and challenge bond | `ChallengeOpened`, `ResultChallenged` | `question-challenge-evidence`, `result-challenge-evidence` | `ChallengeCourt` |
-| Ruling | Question/result rulings, resolution hashes, corrected result artifacts, and settlement effects | `ChallengeRuled`, `ResultChallengeRuled`, `ResultCorrected` | `question-challenge-resolution`, `result-challenge-resolution`, `result-artifact-correction` | `ChallengeCourt` |
-| Result hash | Aggregate counts, tally proof, privacy report, turnout, invalid ballots, and final status | `ResultPublished`, `ResultCorrected`, `ResultFinalized` | `result-artifact`, `result-artifact-correction` | `ResultArchive` |
-| Adoption policy | Authority level, quorum rule, approval rule, legal handoff, fork rule, activation, and suspension | `AdoptionPolicyProposed`, `AdoptionPolicyActivated`, `AdoptionPolicySuspended` | `adoption-policy-proposal`, `adoption-policy-activation`, `adoption-policy-suspension` | `AdoptionRegistry` |
-| Archive | Final archive hash, artifact manifest, event snapshot, export bundle, and archived-by authority | `QuestionArchived` | `question-archive`, `artifact-manifest`, `artifact-export-bundle` | `QuestionRegistry` |
-| Data union | Opt-in aggregate data policy, consent, revocation, product, buyer access, and revenue split records | `DataUnionPolicyProposed`, `DataUnionPolicyActivated`, `DataUnionConsentRecorded`, `DataUnionConsentRevoked`, `DataUnionProductPublished`, `DataUnionAccessGranted` | `data-union-policy`, `data-union-policy-activation`, `data-union-consent`, `data-union-consent-revocation`, `data-union-product`, `data-union-access-grant` | `DataUnionRegistry` |
+| Question text | What was asked, what answers were allowed, who could vote, and how the question changed. | `QuestionSubmitted`, `QuestionAmended` | `question-body`, `sponsor-disclosure` | `QuestionRegistry` |
+| Stake and rewards | Money-like demo value held for proposals, flags, refunds, rewards, and community funds. | `BondEscrowed`, `BondSettled` | none | `StakeManager` |
+| Flagged question or result | Who raised a concern, why they raised it, and what evidence they shared. | `ChallengeOpened`, `ResultChallenged` | `question-challenge-evidence`, `result-challenge-evidence` | `ChallengeCourt` |
+| Review decision | How a concern was resolved, whether a result changed, and where value was paid. | `ChallengeRuled`, `ResultChallengeRuled`, `ResultCorrected` | `question-challenge-resolution`, `result-challenge-resolution`, `result-artifact-correction` | `ChallengeCourt` |
+| Result receipt | The final vote count, privacy report, invalid vote count, and public proof reference. | `ResultPublished`, `ResultCorrected`, `ResultFinalized` | `result-artifact`, `result-artifact-correction` | `ResultArchive` |
+| Next-step rule | Whether a result is only a community signal or is tied to a real-world handoff. | `AdoptionPolicyProposed`, `AdoptionPolicyActivated`, `AdoptionPolicySuspended` | `adoption-policy-proposal`, `adoption-policy-activation`, `adoption-policy-suspension` | `AdoptionRegistry` |
+| Export package | The complete record a community can take with it if it leaves or mirrors the system. | `QuestionArchived` | `question-archive`, `artifact-manifest`, `artifact-export-bundle` | `QuestionRegistry` |
+| Rewards report | Opt-in member consent, privacy-safe reports, approved customers, and value sharing. | `DataUnionPolicyProposed`, `DataUnionPolicyActivated`, `DataUnionConsentRecorded`, `DataUnionConsentRevoked`, `DataUnionProductPublished`, `DataUnionAccessGranted` | `data-union-policy`, `data-union-policy-activation`, `data-union-consent`, `data-union-consent-revocation`, `data-union-product`, `data-union-access-grant` | `DataUnionRegistry` |
 
 ## Public Contract
 
@@ -21,12 +23,12 @@ The API exposes the current set at:
 
 `GET /public/protocol/commitments`
 
-The response includes a `minimum-commitments-v0` protocol block with a deterministic `commitmentSetHash`, plus the shared commitment definitions clients can use to know which event and artifact anchors are required.
+The response includes a `minimum-commitments-v0` protocol block with a deterministic `commitmentSetHash`, plus the shared definitions clients can use to check which public events and record anchors are required.
 
 ## Local Devnet Records
 
-Until lifecycle actions are wired to live contracts, the API writes explicit local commitment records for every registry event covered by the minimum set. These records use `devnet-commitment-v0` payloads and can be inspected at:
+Until lifecycle actions are wired to live contracts, the API writes local public-promise records for every covered event. These records use `devnet-commitment-v0` payloads and can be inspected at:
 
 `GET /registry/commitments`
 
-Each commitment record stores the commitment kind, target contract module, source registry event, payload hash, and commitment hash. This gives the indexer and tests a concrete public audit surface before replacing the local record writer with contract event ingestion.
+Each record stores the promise kind, technical owner, source event, payload hash, and commitment hash. That gives indexers, testers, and public reviewers a concrete surface to check before local records are replaced by live contract events.

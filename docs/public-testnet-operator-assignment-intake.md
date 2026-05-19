@@ -2,7 +2,7 @@
 
 Use this template when a real independent operator agrees to take a public-testnet slot.
 
-This intake is coordination data only. It does not complete the final MVP gate. A slot is complete only after the operator publishes a valid attestation JSON file and maintainer independence review passes.
+This intake is coordination data only. It does not complete the final MVP gate. A slot is complete only after the operator publishes a valid evidence JSON file and maintainer independence review passes.
 
 ## Assignment Fields
 
@@ -61,8 +61,8 @@ pnpm mvp:audit
 ## Evidence Still Required Later
 
 - Operator follows `docs/public-testnet-operator-runbook.md`.
-- Operator generates an attestation with `pnpm testnet:collect-attestation`.
-- Attestation JSON is committed under `docs/public-testnet-attestations`.
+- Operator generates an evidence file with `pnpm testnet:collect-attestation`.
+- Evidence JSON is committed under `docs/public-testnet-attestations`.
 - Maintainer records independence review.
 - `pnpm testnet:verify-attestations` reports `Ready`.
 - `pnpm mvp:audit` reports `Ready`.

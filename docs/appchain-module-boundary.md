@@ -1,31 +1,33 @@
-# Appchain Module Boundary
+# Appchain Source Of Truth
 
-This document records the first canonical source-of-truth boundary for the Popular Consensus MVP. The public machine-readable version is exposed at:
+Popular Consensus needs one dependable public record of what happened. This document describes the first MVP boundary for that source of truth: which part of the protocol owns each kind of action, and which public views people can check.
+
+The machine-readable version is exposed at:
 
 - `GET /public/protocol/appchain-boundary`
 - Shared schema: `CanonicalProtocolBoundarySchema`
 - Schema version: `canonical-appchain-boundary-v0`
 
-The goal is to make the API and frontend behave like clients/indexers of protocol state before the database writes are fully moved behind appchain transaction results.
+The goal is simple: the website and API should read from public protocol facts instead of quietly trusting private database writes.
 
-## Canonical Modules
+## Protocol Areas
 
-| Module | Owns | Public indexes |
+| Technical module | Plain responsibility | Public views |
 | --- | --- | --- |
-| `QuestionRegistry` | Question versions, question lifecycle state, archive eligibility, fork references. | Questions, civic records, archives, community exports. |
-| `StakeManager` | Proposal, challenge, appeal, reward, refund, slash, and treasury ledger accounting. | Treasury ledger, civic records, community exports. |
-| `ChallengeCourt` | Question/result challenges, juror assignment, conflict disclosure, rulings, and appeals. | Civic records, challenge appeals, juror assignments, community exports. |
-| `PollManager` | Poll configuration, open/close state, ballot commitments, nullifiers, encrypted payload hashes. | Civic records, community exports. |
-| `TallyManager` | Tally committee lifecycle, threshold public keys, decryption shares, publication proof references. | Tally committees, tally key setups, decryption shares, result artifacts, community exports. |
-| `AdoptionRegistry` | Adoption policies, governance parameters, steward powers, emergency suspensions. | Governance parameters, steward powers, community exports. |
-| `ResultArchive` | Result artifact commitments, result finalization, archive manifests, export roots. | Result artifacts, archives, archive exports, community exports. |
-| `CredentialRegistry` | Credential schemas, issuer registry, credential issuance, credential revocations, issuer suspension, revocation roots, community trust policies. | Credential trust policies, civic records, community exports. |
-| `DataUnionRegistry` | Data-union policies, member consent records, aggregate data products, buyer access grants, and commercial aggregate revenue splits. | Data-union views, treasury ledger, result artifacts, community exports. |
-| `SocialGraph` | Profiles, discussion records, moderation records, follows, reputation events. | Profile records, discussion/moderation views, discovery, reputation, community exports. |
+| `QuestionRegistry` | Keeps the question text, status, edits, export history, and fork references. | Questions, civic records, archives, community exports. |
+| `StakeManager` | Tracks proposal stakes, flags, appeals, refunds, rewards, and community funds. | Treasury ledger, civic records, community exports. |
+| `ChallengeCourt` | Handles flags, evidence, reviewer selection, conflicts, decisions, and appeals. | Civic records, challenge appeals, reviewer assignments, community exports. |
+| `PollManager` | Opens and closes voting, accepts one private vote per eligible person, and stores vote proofs. | Civic records, community exports. |
+| `TallyManager` | Counts private votes, checks proof references, and supports multi-person counting ceremonies. | Counting setup, proof records, result receipts, community exports. |
+| `AdoptionRegistry` | Stores community rules, next-step rules, guide powers, and emergency pauses. | Rule records, guide powers, community exports. |
+| `ResultArchive` | Stores final result receipts, archive packages, and export roots. | Result receipts, archives, archive exports, community exports. |
+| `CredentialRegistry` | Tracks voting-pass types, issuers, revocations, suspensions, and community trust rules. | Voting-pass trust records, civic records, community exports. |
+| `DataUnionRegistry` | Tracks opt-in consent, privacy-safe reports, approved customers, and shared value. | Rewards views, treasury ledger, result receipts, community exports. |
+| `SocialGraph` | Stores profiles, discussion, moderation, follows, and reputation events. | Profile records, discussion views, discovery, reputation, community exports. |
 
-## Canonical State Machines
+## Expected Action Flows
 
-The boundary defines six MVP state machines:
+The boundary defines six MVP action flows:
 
 - `question-lifecycle-v0`
 - `poll-lifecycle-v0`
@@ -34,7 +36,7 @@ The boundary defines six MVP state machines:
 - `adoption-policy-lifecycle-v0`
 - `archive-lifecycle-v0`
 
-Every transition names:
+Every step names:
 
 - source and destination state
 - canonical event type
@@ -42,8 +44,16 @@ Every transition names:
 - guard condition
 - protocol fields written by the transition
 
-This is intentionally stricter than the current database model. It gives the next implementation slice a concrete target: each state-changing API action should become either a protocol transaction or a direct result of indexed protocol events.
+This is intentionally stricter than the current database model. It gives the next implementation slice a concrete target: every action that changes public state should become either a protocol transaction or a direct result of indexed protocol events.
 
 ## Implementation Status
 
-The canonical registry, stake, challenge, poll, tally, adoption, archive, credential, social, and data-union modules are represented in the shared boundary. The canonical Solidity suite still implements the original registry, stake, challenge, poll, tally, adoption, and archive modules in `packages/contracts/src/PopularConsensus.sol`; `DataUnionRegistry` is currently implemented as local protocol transaction results, artifacts, and public API/indexer state. Registry events are now backed by local protocol transaction results exposed at `GET /registry/protocol-transactions`, which is the first bridge toward event ingestion. Protocol-owned API writes now pre-build and ingest protocol transaction results inside the database transaction before their domain rows are persisted across question registry, stake/bond, challenge court, poll manager, tally manager, adoption registry, result/archive, credential registry, data-union registry, social graph, and reputation flows. Wallet credential import/export remains an explicit client-wallet boundary/cache rather than a canonical credential issuance path. Independent clients can replay the protocol transaction feed through `GET /registry/protocol-transactions/replay`, verify payload/event/result hashes and canonical module membership, and rebuild per-module/per-subject heads without reading domain tables. Communities can inspect `GET /communities/:communityId/governance/upgrade-safety` for proposal-artifact gates, effective-at activation delay, replay requirements, emergency pause limits, fork/exit guarantees, and the still-pending public testnet operator gate. The data-union MVP is documented in `docs/data-union-mvp.md`. The public testnet operator launch package is documented in `docs/public-testnet-operator-runbook.md`; the final source-of-truth gate remains open until independent operators run the network and publish attestations.
+The shared boundary now represents question flow, stakes, flags, voting, counting, next-step rules, archives, voting passes, rewards, social features, and reputation.
+
+The Solidity suite still implements the original core modules in `packages/contracts/src/PopularConsensus.sol`. Rewards-report records are currently implemented through local protocol transaction results, stored records, and public API/indexer state.
+
+Registry events are backed by local protocol transaction results exposed at `GET /registry/protocol-transactions`. Independent clients can replay those records through `GET /registry/protocol-transactions/replay`, verify hashes, and rebuild public state without reading private database tables.
+
+Communities can inspect `GET /communities/:communityId/governance/upgrade-safety` for upgrade gates, activation delays, replay requirements, emergency pause limits, fork/exit guarantees, and the still-pending public testnet operator gate. The rewards MVP is documented in `docs/data-union-mvp.md`. The public testnet operator launch package is documented in `docs/public-testnet-operator-runbook.md`.
+
+The final source-of-truth gate remains open until independent operators run the network and publish evidence.

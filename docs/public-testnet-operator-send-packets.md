@@ -2,7 +2,7 @@
 
 These packets are the send-ready layer on top of the outreach queue. They are for recruiting real independent operators for the final public-testnet gate.
 
-This file is not completion evidence. It does not assign operators, prove independence, create attestations, or close the roadmap item. The gate stays open until accepted operators publish valid attestation JSON files, maintainers complete independence review, `docs/public-testnet-launch-summary.md` records `Decision: GO`, and `pnpm mvp:audit` reports `Ready`.
+This file is not completion evidence. It does not assign operators, prove independence, create evidence files, or close the roadmap item. The gate stays open until accepted operators publish valid evidence JSON files, maintainers complete independence review, `docs/public-testnet-launch-summary.md` records `Decision: GO`, and `pnpm mvp:audit` reports `Ready`.
 
 Before sending any packet:
 
@@ -47,9 +47,9 @@ Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-te
 Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/1
 Issue body: included in the tracking issue above.
 
-The output we need is a public-testnet operator attestation JSON file with an operator id, contact or public key, organization or independent-individual marker, independence statement, tested commit, chain/RPC details, and deployment hash.
+The output we need is a public-testnet operator evidence JSON file with an operator id, contact or public key, organization or independent-individual marker, independence statement, tested commit, chain/RPC details, and deployment hash.
 
-The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the attestation and we will include them in the launch summary.
+The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the evidence file and we will include them in the launch summary.
 ```
 
 Acceptance fields to collect:
@@ -69,12 +69,12 @@ notes:
 
 Target route: EthStaker community, https://ethstaker.org/
 
-Subject: Independent replay-verifier request for Popular Consensus MVP
+Subject: Independent replay-checker request for Popular Consensus MVP
 
 ```text
 Hello,
 
-We are preparing the Popular Consensus MVP public testnet and need an independent replay verifier who can confirm that public protocol records can be rebuilt outside the maintainer environment.
+We are preparing the Popular Consensus MVP public testnet and need an independent replay checker who can confirm that public protocol records can be rebuilt outside the maintainer environment.
 
 Would a solo-staker or infrastructure operator from your community be willing to run roster slot replay-1?
 
@@ -82,9 +82,9 @@ Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-te
 Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/4
 Issue body: included in the tracking issue above.
 
-The key output is a public-testnet operator attestation JSON file. Replay verifiers independently report transaction and event stream hashes for the same testnet window so maintainers can confirm the hashes match across operators.
+The key output is a public-testnet operator evidence JSON file. Replay checkers independently report transaction and event stream hashes for the same testnet window so maintainers can confirm the hashes match across operators.
 
-The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the attestation and we will include them in the launch summary.
+The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the evidence file and we will include them in the launch summary.
 ```
 
 Acceptance fields to collect:
@@ -117,9 +117,9 @@ Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-te
 Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/2
 Issue body: included in the tracking issue above.
 
-The output we need is a public API base URL plus a public-testnet operator attestation JSON file with an operator id, contact or public key, organization or independent-individual marker, independence statement, tested commit, chain/RPC details, and replay hashes.
+The output we need is a public API base URL plus a public-testnet operator evidence JSON file with an operator id, contact or public key, organization or independent-individual marker, independence statement, tested commit, chain/RPC details, and replay hashes.
 
-The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the attestation and we will include them in the launch summary.
+The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the evidence file and we will include them in the launch summary.
 ```
 
 Acceptance fields to collect:
@@ -152,9 +152,9 @@ Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-te
 Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/3
 Issue body: included in the tracking issue above.
 
-The output we need is a public API base URL plus a public-testnet operator attestation JSON file with an operator id, contact or public key, organization or independent-individual marker, independence statement, tested commit, chain/RPC details, and replay hashes.
+The output we need is a public API base URL plus a public-testnet operator evidence JSON file with an operator id, contact or public key, organization or independent-individual marker, independence statement, tested commit, chain/RPC details, and replay hashes.
 
-The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the attestation and we will include them in the launch summary.
+The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the evidence file and we will include them in the launch summary.
 ```
 
 Acceptance fields to collect:
@@ -187,9 +187,9 @@ Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-te
 Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/5
 Issue body: included in the tracking issue above.
 
-The key output is a public-testnet operator attestation JSON file. Replay verifiers independently report transaction and event stream hashes for the same testnet window so maintainers can confirm the hashes match across operators.
+The key output is a public-testnet operator evidence JSON file. Replay checkers independently report transaction and event stream hashes for the same testnet window so maintainers can confirm the hashes match across operators.
 
-The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the attestation and we will include them in the launch summary.
+The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the evidence file and we will include them in the launch summary.
 ```
 
 Acceptance fields to collect:
@@ -209,12 +209,12 @@ notes:
 
 Target route: EthStaker allied-community route, https://ethstaker.org/
 
-Subject: Third independent replay-verifier request for Popular Consensus
+Subject: Third independent replay-checker request for Popular Consensus
 
 ```text
 Hello,
 
-We are preparing the Popular Consensus MVP public testnet and need a third independent replay verifier so the final evidence is not controlled by the maintainers or a single operator group.
+We are preparing the Popular Consensus MVP public testnet and need a third independent replay checker so the final evidence is not controlled by the maintainers or a single operator group.
 
 Would a solo-staker or infrastructure operator from your community be willing to run roster slot replay-3?
 
@@ -222,9 +222,9 @@ Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-te
 Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/6
 Issue body: included in the tracking issue above.
 
-The key output is a public-testnet operator attestation JSON file. Replay verifiers independently report transaction and event stream hashes for the same testnet window so maintainers can confirm the hashes match across operators.
+The key output is a public-testnet operator evidence JSON file. Replay checkers independently report transaction and event stream hashes for the same testnet window so maintainers can confirm the hashes match across operators.
 
-The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the attestation and we will include them in the launch summary.
+The final MVP gate does not require a perfect launch. If the operator finds issues, they should record observations in the evidence file and we will include them in the launch summary.
 ```
 
 Acceptance fields to collect:
@@ -244,12 +244,12 @@ notes:
 
 Target route: Open Fresno civic-tech volunteer community, https://openfresno.org/
 
-Subject: Community-steward request for Popular Consensus public testnet
+Subject: Community-guide request for Popular Consensus public testnet
 
 ```text
 Hello,
 
-We are preparing the Popular Consensus MVP public testnet for a community-governed opinion polling protocol. We need independent community stewards to run governance and safety drills so the final MVP evidence is not maintained only by the project team.
+We are preparing the Popular Consensus MVP public testnet for a community-governed opinion polling protocol. We need independent community guides to run governance and safety drills so the final MVP evidence is not maintained only by the project team.
 
 Would someone from your civic-tech community be willing to run roster slot steward-1?
 
@@ -257,9 +257,9 @@ Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-te
 Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/7
 Issue body: included in the tracking issue above.
 
-The steward role focuses on governance-process review, emergency/safety drill checks, fork/export review, and a public attestation explaining what was tested. We will also ask for a contact or public key and a short independence statement.
+The community-guide role focuses on governance-process review, emergency/safety drill checks, fork/export review, and a public evidence file explaining what was tested. We will also ask for a contact or public key and a short independence statement.
 
-The final MVP gate does not require a perfect launch. If the steward finds issues, they should record observations in the attestation and we will include them in the launch summary.
+The final MVP gate does not require a perfect launch. If the community guide finds issues, they should record observations in the evidence file and we will include them in the launch summary.
 ```
 
 Acceptance fields to collect:
@@ -279,12 +279,12 @@ notes:
 
 Target route: SF Civic Tech volunteer community, https://www.sfcivictech.org/
 
-Subject: Independent community-steward request for Popular Consensus
+Subject: Independent community-guide request for Popular Consensus
 
 ```text
 Hello,
 
-We are preparing the Popular Consensus MVP public testnet for a community-governed opinion polling protocol. We need a second independent community steward so governance and safety drills are reviewed by more than one civic/community operator.
+We are preparing the Popular Consensus MVP public testnet for a community-governed opinion polling protocol. We need a second independent community guide so governance and safety drills are reviewed by more than one civic/community operator.
 
 Would someone from your civic-tech community be willing to run roster slot steward-2?
 
@@ -292,9 +292,9 @@ Runbook: https://github.com/mstrbstrd/popular-consensus/blob/main/docs/public-te
 Tracking issue: https://github.com/mstrbstrd/popular-consensus/issues/8
 Issue body: included in the tracking issue above.
 
-The steward role focuses on governance-process review, emergency/safety drill checks, fork/export review, and a public attestation explaining what was tested. We will also ask for a contact or public key and a short independence statement.
+The community-guide role focuses on governance-process review, emergency/safety drill checks, fork/export review, and a public evidence file explaining what was tested. We will also ask for a contact or public key and a short independence statement.
 
-The final MVP gate does not require a perfect launch. If the steward finds issues, they should record observations in the attestation and we will include them in the launch summary.
+The final MVP gate does not require a perfect launch. If the community guide finds issues, they should record observations in the evidence file and we will include them in the launch summary.
 ```
 
 Acceptance fields to collect:
@@ -338,4 +338,4 @@ pnpm testnet:audit-roster
 pnpm mvp:audit
 ```
 
-Do not mark `independenceReview` as reviewed until the attestation exists and maintainer review confirms the operator is independent from maintainers and sibling operators.
+Do not mark `independenceReview` as reviewed until the evidence file exists and maintainer review confirms the operator is independent from maintainers and sibling operators.

@@ -7,7 +7,7 @@ Testnet window:
 
 ## Operators
 
-| Operator ID | Role | Organization | Contact | Endpoint | Independence Statement | Attestation Hash |
+| Operator ID | Role | Organization | Contact | Endpoint | Independence Statement | Evidence Hash |
 | --- | --- | --- | --- | --- | --- | --- |
 |  |  |  |  |  |  |  |
 
@@ -22,7 +22,7 @@ Upgrade safety model hash:
 | Drill | Evidence | Status |
 | --- | --- | --- |
 | Governance parameter activation |  |  |
-| Adoption policy activation |  |  |
+| Next-step rule activation |  |  |
 | Emergency suspension resolution |  |  |
 | Community export/import replay |  |  |
 | Fork metadata publication |  |  |
