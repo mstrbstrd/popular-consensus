@@ -63,7 +63,10 @@ export const ArtifactSchemaVersions = {
   "data-union-consent": "pc-data-union-consent-v1",
   "data-union-consent-revocation": "pc-data-union-consent-revocation-v1",
   "data-union-product": "pc-data-union-product-v1",
-  "data-union-access-grant": "pc-data-union-access-grant-v1"
+  "data-union-buyer-approval": "pc-data-union-buyer-approval-v1",
+  "data-union-access-grant": "pc-data-union-access-grant-v1",
+  "data-union-settlement": "pc-data-union-settlement-v1",
+  "data-union-claim-redemption": "pc-data-union-claim-redemption-v1"
 } as const;
 
 export type ArtifactKind = keyof typeof ArtifactSchemaVersions;

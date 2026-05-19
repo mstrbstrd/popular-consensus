@@ -27,7 +27,7 @@ const publicNavItems: NavItem[] = [
   { href: "/testing", icon: FlaskConical, key: "testing", label: siteCopy.nav.testing },
 ];
 
-const accountNavItem: NavItem = { href: "/account", icon: UserRound, key: "account", label: "Profile" };
+const accountNavItem: NavItem = { href: "/account", icon: UserRound, key: "account", label: siteCopy.nav.account };
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:4000";
 
 function hasLocalSession() {

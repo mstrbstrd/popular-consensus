@@ -22,12 +22,12 @@ const formatCases: Array<{
   },
   {
     schemaId: "answer-single-choice-civic-priority",
-    label: "Single-Select Multiple Choice",
+    label: "Choose one option",
     submit: async (detail) => detail.getByRole("button", { name: "Vote service frequency" }).click()
   },
   {
     schemaId: "answer-approval-civic-priorities",
-    label: "Approval / Select All",
+    label: "Choose all that fit",
     submit: async (detail) => {
       await detail.getByLabel("Safety upgrades").check();
       await detail.getByLabel("More service").check();
@@ -36,7 +36,7 @@ const formatCases: Array<{
   },
   {
     schemaId: "answer-ranked-policy-options",
-    label: "Ranked Choice",
+    label: "Rank your choices",
     submit: async (detail) => {
       await detail.getByLabel("Rank Limited rollout").fill("1");
       await detail.getByLabel("Rank Full rollout").fill("2");
@@ -46,17 +46,17 @@ const formatCases: Array<{
   },
   {
     schemaId: "answer-likert-agreement-5",
-    label: "Five-Point Agreement Scale",
+    label: "Agreement scale",
     submit: async (detail) => detail.getByRole("button", { name: "4", exact: true }).click()
   },
   {
     schemaId: "answer-score-0-10",
-    label: "Zero-to-Ten Score",
+    label: "0 to 10 score",
     submit: async (detail) => detail.getByRole("button", { name: "8", exact: true }).click()
   },
   {
     schemaId: "answer-budget-allocation-100",
-    label: "Budget Allocation",
+    label: "Split 100 points",
     submit: async (detail) => {
       await detail.getByLabel("Allocate to Maintenance").fill("40");
       await detail.getByLabel("Allocate to Expansion").fill("30");
@@ -67,7 +67,7 @@ const formatCases: Array<{
   },
   {
     schemaId: "answer-numeric-estimate",
-    label: "Numeric Estimate",
+    label: "Number estimate",
     submit: async (detail) => {
       await detail.getByLabel("Numeric response").fill("42");
       await detail.getByRole("button", { name: "Submit response" }).click();
@@ -75,7 +75,7 @@ const formatCases: Array<{
   },
   {
     schemaId: "answer-short-text",
-    label: "Short Form",
+    label: "Short written answer",
     submit: async (detail) => {
       await detail.getByLabel("Text response").fill("Fill potholes");
       await detail.getByRole("button", { name: "Submit response" }).click();
@@ -83,7 +83,7 @@ const formatCases: Array<{
   },
   {
     schemaId: "answer-long-text",
-    label: "Long Form",
+    label: "Long written answer",
     submit: async (detail) => {
       await detail.getByLabel("Text response").fill("Add shelters and lighting at every high-use stop.");
       await detail.getByRole("button", { name: "Submit response" }).click();
@@ -99,10 +99,10 @@ test("shows the transit advisory poll demo", async ({ page, request }) => {
   await request.post("http://127.0.0.1:4000/dev/reset");
   await page.goto("/testing");
   const detail = page.locator(".detail");
-  await expect(page.getByRole("heading", { name: "Testing Lab" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Try demo" })).toBeVisible();
   await expect(page.locator(".sidebar").getByRole("button", { name: /p\/vancouver-transit/ })).toBeVisible();
   await expect(page.locator(".community-hero .statusline").getByText("Community signal", { exact: true })).toBeVisible();
-  await expect(detail.getByText("Ready for check", { exact: true })).toBeVisible();
+  await expect(detail.getByText("Waiting for review", { exact: true })).toBeVisible();
   await expect(detail.locator(".workflow-summary").getByRole("heading", { name: "Question check" })).toBeVisible();
   await expect(page.getByText("Voting opens after a community guide checks the question.")).toBeVisible();
   await expect(page.getByText("This is a community signal: it shows where the community is leaning, without forcing an outside decision.")).toBeVisible();
@@ -112,23 +112,23 @@ test("runs the transit poll flow and handles duplicate voting in the UI", async 
   await request.post("http://127.0.0.1:4000/dev/reset");
   await page.goto("/testing");
   const detail = page.locator(".detail");
-  await expect(detail.getByText("Ready for check", { exact: true })).toBeVisible();
+  await expect(detail.getByText("Waiting for review", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Load result" })).toBeDisabled();
 
   await switchAccount(page, "Demo Challenger");
-  await expect(detail.getByText("Ready for check", { exact: true })).toBeVisible();
+  await expect(detail.getByText("Waiting for review", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Flag question" }).click();
-  await expect(page.getByText("Question flagged with 50 PC stake.")).toBeVisible();
+  await expect(page.getByText("Question flagged for review. Demo stake: 50 PC.")).toBeVisible();
   await expect(detail.locator(".workflow-summary").getByRole("heading", { name: "Flag under review" })).toBeVisible();
   await expect(page.getByText("Open flag must be resolved or clarified before voting starts.")).toBeVisible();
 
   await switchAccount(page, "Demo Proposer");
   await expect(detail.locator(".workflow-summary").getByRole("heading", { name: "Flag under review" })).toBeVisible();
   await page.getByRole("button", { name: "Clarify question" }).click();
-  await expect(page.getByText("Question clarified and sent back for checking.")).toBeVisible();
+  await expect(page.getByText("Question clarified and sent back for review.")).toBeVisible();
 
   await switchAccount(page, "Demo Curator");
-  await expect(detail.getByText("Ready for check", { exact: true })).toBeVisible();
+  await expect(detail.getByText("Waiting for review", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Open voting" }).click();
   await expect(page.getByText("Question checked. Voting is open.")).toBeVisible();
   await expect(detail.locator(".statusline").getByText("Voting open", { exact: true })).toBeVisible();
@@ -142,18 +142,18 @@ test("runs the transit poll flow and handles duplicate voting in the UI", async 
   await expect(page.getByText("Private support vote accepted.")).toBeVisible();
 
   await page.getByRole("button", { name: "Vote oppose" }).click();
-  await expect(page.getByText("Duplicate ballot nullifier rejected")).toBeVisible();
+  await expect(page.getByText("You have already voted on this question")).toBeVisible();
 
   await page.getByRole("button", { name: "Count votes" }).click();
-  await expect(page.getByText("Votes counted and public result receipt posted.")).toBeVisible();
+  await expect(page.getByText("Votes counted. The public result receipt is posted.")).toBeVisible();
   await expect(detail.locator(".statusline span").nth(1)).toHaveText("Results posted");
   await expect(page.getByRole("button", { name: "Vote support" })).toBeDisabled();
   await expect(page.getByText('"support": 1')).toBeVisible();
   await expect(page.getByText('"authorityLevel": "Advisory"')).toBeVisible();
 
-  await page.getByLabel("Discussion note").fill("The published artifact is ready for review.");
+  await page.getByLabel("Discussion note").fill("The published receipt is ready for review.");
   await page.getByRole("button", { name: "Post comment" }).click();
-  await expect(page.getByText("The published artifact is ready for review.")).toBeVisible();
+  await expect(page.getByText("The published receipt is ready for review.")).toBeVisible();
 
   await switchAccount(page, "Demo Challenger");
   await page.getByRole("button", { name: "Flag result" }).click();
@@ -200,9 +200,9 @@ test("creates a local account, private community, and proposed question", async 
   await page.getByLabel("Question body").fill("A member advisory question about rotating meeting facilitation every month.");
   await page.getByLabel("Sponsor disclosure").fill("Sponsored by Local Builder.");
   await page.getByRole("button", { name: "Ask question" }).click();
-  await expect(page.getByText("Question asked with 100 PC stake and sent for checking.")).toBeVisible();
+  await expect(page.getByText("Question asked and sent for review. Demo stake: 100 PC.")).toBeVisible();
   await expect(page.getByRole("button", { name: /Should the assembly adopt rotating facilitation/ })).toBeVisible();
-  await expect(detail.getByText("Ready for check", { exact: true })).toBeVisible();
+  await expect(detail.getByText("Waiting for review", { exact: true })).toBeVisible();
 
   await page.getByLabel("Test as").selectOption("demo-resident");
   await expect(page.locator(".message").getByText("Join this private community to view its questions")).toBeVisible();
@@ -219,11 +219,11 @@ test("routes the social client pages around the testing hub", async ({ page, req
   await request.post("http://127.0.0.1:4000/dev/reset");
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Seek the Wisdom of the Crowd." })).toBeVisible();
-  await expect(page.locator(".site-nav").getByRole("link", { name: "My Account" })).toHaveCount(0);
-  await page.getByRole("link", { name: "Open feed" }).click();
+  await expect(page.getByRole("heading", { name: "Turn many voices into clear answers." })).toBeVisible();
+  await expect(page.locator(".site-nav").getByRole("link", { name: "My profile" })).toHaveCount(0);
+  await page.getByRole("link", { name: "See questions" }).click();
   await expect(page).toHaveURL(/\/feed$/);
-  await expect(page.getByRole("heading", { name: "Feed", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Questions", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Ask a question" }).click();
   await expect(page.getByRole("heading", { name: "Log in to ask a question" })).toBeVisible();
   await page.getByRole("button", { name: "Close compose" }).click();
@@ -232,14 +232,14 @@ test("routes the social client pages around the testing hub", async ({ page, req
   await expect(page.getByRole("heading", { name: /Should Vancouver pilot car-free Sundays/ })).toBeVisible();
   await expect(page.locator("details").filter({ hasText: "Actions" }).locator("summary")).toBeVisible();
   await expect(page.locator("details").filter({ hasText: "Proof everyone can check" }).locator("summary")).toBeVisible();
-  await expect(page.locator("details").filter({ hasText: "Data Rewards" }).locator("summary")).toBeVisible();
+  await expect(page.locator("details").filter({ hasText: "Rewards" }).locator("summary")).toBeVisible();
   await expect(page.locator("details").filter({ hasText: "What happens next" }).locator("summary")).toBeVisible();
   await expect(page.locator(".vote-panel").getByRole("link", { name: "Log in to vote" })).toBeVisible();
   await page.locator("details").filter({ hasText: "Actions" }).locator("summary").click();
   await expect(page.locator(".civic-actions-panel").getByRole("link", { name: "Log in to act" })).toBeVisible();
-  await page.locator("details").filter({ hasText: "Data Rewards" }).locator("summary").click();
-  await expect(page.getByText("Log in for Data Rewards")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Suggest sharing rules" })).toHaveCount(0);
+  await page.locator("details").filter({ hasText: "Rewards" }).locator("summary").click();
+  await expect(page.getByText("Log in for rewards")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Suggest rewards" })).toHaveCount(0);
   await page.locator("details").filter({ hasText: "What happens next" }).locator("summary").click();
   await expect(page.getByText("Log in for next-step rules")).toBeVisible();
   await expect(page.getByRole("button", { name: "Suggest next-step rule" })).toHaveCount(0);
@@ -261,16 +261,16 @@ test("routes the social client pages around the testing hub", async ({ page, req
   await page.getByLabel("Username").fill("route_builder");
   await page.getByLabel("Display name").fill("Route Builder");
   await page.getByLabel("Bio").fill("Testing the social client routes.");
-  await expect(page.getByRole("button", { name: "Join with passkey" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Join with wallet" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create with passkey" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create with wallet" })).toBeVisible();
 
   await page.goto("/account");
-  await expect(page.getByRole("heading", { name: "My Account" })).toBeVisible();
-  await expect(page.getByText("Log in to view My Account")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "My profile" })).toBeVisible();
+  await expect(page.getByText("Log in to view your profile")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Start a community" })).toHaveCount(0);
 
   await page.goto("/testing");
-  await expect(page.locator(".detail").getByText("Ready for check", { exact: true })).toBeVisible();
+  await expect(page.locator(".detail").getByText("Waiting for review", { exact: true })).toBeVisible();
 });
 
 for (const [index, formatCase] of formatCases.entries()) {
@@ -280,10 +280,10 @@ for (const [index, formatCase] of formatCases.entries()) {
     const detail = page.locator(".detail");
     const title = `UI format coverage ${index + 1}: ${formatCase.label}`;
 
-    await expect(detail.getByText("Ready for check", { exact: true })).toBeVisible();
+    await expect(detail.getByText("Waiting for review", { exact: true })).toBeVisible();
     await page.getByLabel("Question title").fill(title);
     await page.getByLabel("Question body").fill(`Coverage question for ${formatCase.label}.`);
-    await page.getByLabel("Question format").selectOption(formatCase.schemaId);
+    await page.getByLabel("Answer type").selectOption(formatCase.schemaId);
     await page.getByLabel("Sponsor disclosure").fill("Demo sponsor");
     await page.getByRole("button", { name: "Ask question" }).click();
     await expect(page.getByRole("button", { name: new RegExp(title) })).toBeVisible();

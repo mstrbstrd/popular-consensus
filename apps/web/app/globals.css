@@ -880,6 +880,35 @@ h3 {
 .data-union-product strong {
   color: var(--muted);
   font-size: 12px;
+  line-height: 1.35;
+}
+
+.data-union-breakdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.data-union-breakdown div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.data-union-breakdown span,
+.data-union-breakdown small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.data-union-breakdown strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 15px;
+  line-height: 1.1;
 }
 
 .data-union-actions {
@@ -1218,6 +1247,7 @@ pre {
   .discussion-tabs,
   .audit-grid,
   .data-union-grid,
+  .data-union-breakdown,
   .authority-grid {
     grid-template-columns: 1fr;
   }
@@ -2198,6 +2228,8 @@ pre {
   .account-row,
   .auth-required,
   .community-row,
+  .data-union-grid,
+  .data-union-breakdown,
   .data-union-actions {
     grid-template-columns: 1fr;
   }

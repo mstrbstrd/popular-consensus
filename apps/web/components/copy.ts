@@ -1,15 +1,15 @@
 export const siteCopy = {
-  brandSubtitle: "Wisdom of the crowd",
+  brandSubtitle: "Clear answers from real people",
   nav: {
     home: "Home",
-    feed: "Feed",
-    account: "My Account",
-    testing: "Testing Lab"
+    feed: "Questions",
+    account: "My profile",
+    testing: "Try demo"
   },
   actions: {
     askCrowd: "Ask a question",
-    seeQuestions: "Open feed",
-    joinCrowd: "Create account"
+    seeQuestions: "See questions",
+    joinCrowd: "Join"
   }
 };
 
@@ -19,8 +19,8 @@ export function splitCamel(value?: string | null) {
 }
 
 export function publicRoleLabel(role?: string | null) {
-  if (role === "Owner") return "Lead Kernel";
-  if (role === "Moderator") return "Kernel";
+  if (role === "Owner") return "Community lead";
+  if (role === "Moderator") return "Community guide";
   if (role === "Member") return "Member";
   if (role === "Visitor") return "Guest";
   return role ?? "Guest";
@@ -28,29 +28,29 @@ export function publicRoleLabel(role?: string | null) {
 
 export function publicAuthorityLabel(authorityLevel?: string | null) {
   if (authorityLevel === "Advisory") return "Community signal";
-  if (authorityLevel === "Recognized") return "Recognized next step";
-  if (authorityLevel === "Binding") return "Binding decision";
+  if (authorityLevel === "Recognized") return "Guides a real next step";
+  if (authorityLevel === "Binding") return "Committed decision";
   return authorityLevel ? splitCamel(authorityLevel) : "Community signal";
 }
 
 export function publicQuestionStatus(status?: string | null) {
-  if (status === "Submitted") return "Being checked";
+  if (status === "Submitted") return "Ready for review";
   if (status === "Challenged") return "Flagged for review";
-  if (status === "Amendment") return "Being clarified";
+  if (status === "Amendment") return "Needs clearer wording";
   if (status === "Accepted") return "Ready for voting";
   if (status === "Rejected") return "Not moving forward";
-  if (status === "Archived") return "Saved to record";
+  if (status === "Archived") return "Saved for the record";
   if (status === "ResultPublished") return "Results posted";
   return status ? splitCamel(status) : "No question";
 }
 
 export function publicPollStatus(status?: string | null) {
-  if (status === "Configured") return "Ready for check";
+  if (status === "Configured") return "Waiting for review";
   if (status === "Open") return "Voting open";
   if (status === "Closed") return "Counting votes";
   if (status === "ResultPublished") return "Results posted";
-  if (status === "NotCreated") return "No vote yet";
-  return status ? splitCamel(status) : "No vote yet";
+  if (status === "NotCreated") return "No voting yet";
+  return status ? splitCamel(status) : "No voting yet";
 }
 
 export function publicDiscussionLabel(kind?: string | null) {

@@ -151,7 +151,7 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
     answerSchemaId: "answer-binary-support-oppose",
     kind: "Binary",
     label: "Support / Oppose",
-    description: "A two-option advisory response with an optional abstain response.",
+    description: "People choose support, oppose, or abstain.",
     responseShape: "SingleChoice",
     options: [
       { id: "support", label: "Support", description: "I support the proposal as worded." },
@@ -172,7 +172,7 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
     answerSchemaId: "answer-yes-no",
     kind: "Binary",
     label: "Yes / No",
-    description: "A neutral yes/no version of binary multiple choice.",
+    description: "People choose yes, no, or abstain.",
     responseShape: "SingleChoice",
     options: [
       { id: "yes", label: "Yes", description: "Yes." },
@@ -193,7 +193,7 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
     answerSchemaId: "answer-true-false",
     kind: "Binary",
     label: "True / False",
-    description: "A neutral true/false format for factual or claim-review questions.",
+    description: "People choose true, false, or abstain.",
     responseShape: "SingleChoice",
     options: [
       { id: "true", label: "True", description: "The statement is true." },
@@ -213,8 +213,8 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
   {
     answerSchemaId: "answer-single-choice-civic-priority",
     kind: "MultipleChoice",
-    label: "Single-Select Multiple Choice",
-    description: "Respondents choose one option from a fixed list.",
+    label: "Choose one option",
+    description: "People choose one option from a short list.",
     responseShape: "SingleChoice",
     options: [
       { id: "safety", label: "Safety", description: "Prioritize safety improvements." },
@@ -236,8 +236,8 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
   {
     answerSchemaId: "answer-approval-civic-priorities",
     kind: "Approval",
-    label: "Approval / Select All",
-    description: "Respondents may approve any number of compatible options.",
+    label: "Choose all that fit",
+    description: "People can choose any number of options that work for them.",
     responseShape: "MultipleChoice",
     options: [
       { id: "safety", label: "Safety upgrades", description: "Protected crossings, lighting, and traffic calming." },
@@ -259,8 +259,8 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
   {
     answerSchemaId: "answer-ranked-policy-options",
     kind: "RankedChoice",
-    label: "Ranked Choice",
-    description: "Respondents rank options in order of preference.",
+    label: "Rank your choices",
+    description: "People put options in order from favorite to least favorite.",
     responseShape: "RankedChoice",
     options: [
       { id: "pilot", label: "Short pilot", description: "Run a short trial before deciding." },
@@ -282,8 +282,8 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
   {
     answerSchemaId: "answer-likert-agreement-5",
     kind: "Likert",
-    label: "Five-Point Agreement Scale",
-    description: "Respondents choose a level of agreement from 1 to 5.",
+    label: "Agreement scale",
+    description: "People choose how strongly they agree, from 1 to 5.",
     responseShape: "Scale",
     options: [],
     optionsHash: "schema:likert-agreement-5:v1",
@@ -300,8 +300,8 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
   {
     answerSchemaId: "answer-score-0-10",
     kind: "Score",
-    label: "Zero-to-Ten Score",
-    description: "Respondents score a proposal or experience from 0 to 10.",
+    label: "0 to 10 score",
+    description: "People rate a proposal or experience from 0 to 10.",
     responseShape: "Scale",
     options: [],
     optionsHash: "schema:score-0-10:v1",
@@ -318,8 +318,8 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
   {
     answerSchemaId: "answer-budget-allocation-100",
     kind: "Budget",
-    label: "Budget Allocation",
-    description: "Respondents allocate 100 civic budget points across options.",
+    label: "Split 100 points",
+    description: "People divide 100 points across the options.",
     responseShape: "BudgetAllocation",
     options: [
       { id: "maintenance", label: "Maintenance", description: "Maintain existing services." },
@@ -341,8 +341,8 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
   {
     answerSchemaId: "answer-numeric-estimate",
     kind: "Numeric",
-    label: "Numeric Estimate",
-    description: "Respondents submit one bounded numeric estimate; tally publishes summary statistics.",
+    label: "Number estimate",
+    description: "People enter one number. Results show a summary, not individual answers.",
     responseShape: "Numeric",
     options: [],
     optionsHash: "schema:numeric-estimate:v1",
@@ -359,8 +359,8 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
   {
     answerSchemaId: "answer-short-text",
     kind: "ShortText",
-    label: "Short Form",
-    description: "Respondents submit a short private text response; MVP tally publishes counts, not raw text.",
+    label: "Short written answer",
+    description: "People write a short private answer. Results show counts, not raw text.",
     responseShape: "FreeText",
     options: [],
     optionsHash: "schema:short-text:v1",
@@ -377,8 +377,8 @@ export const BuiltInAnswerSchemas: AnswerSchema[] = [
   {
     answerSchemaId: "answer-long-text",
     kind: "LongText",
-    label: "Long Form",
-    description: "Respondents submit a longer private text response; MVP tally publishes counts, not raw text.",
+    label: "Long written answer",
+    description: "People write a longer private answer. Results show counts, not raw text.",
     responseShape: "FreeText",
     options: [],
     optionsHash: "schema:long-text:v1",
@@ -664,13 +664,15 @@ export const TreasuryLedgerEntryTypeSchema = z.enum([
   "Refund",
   "Reward",
   "TreasuryFee",
+  "DataUnionSettlement",
   "DataUnionPayment",
   "DataUnionRevenue",
   "ParticipantPoolCredit",
+  "PollAuthorRoyaltyCredit",
   "OperatorPoolCredit"
 ]);
 export const TreasuryLedgerDirectionSchema = z.enum(["Debit", "Credit"]);
-export const TreasuryLedgerAccountRoleSchema = z.enum(["Participant", "CommunityTreasury", "ParticipantPool", "OperatorPool", "DataBuyer"]);
+export const TreasuryLedgerAccountRoleSchema = z.enum(["Participant", "CommunityTreasury", "ParticipantPool", "PollAuthor", "OperatorPool", "DataBuyer"]);
 
 export const TreasuryLedgerEntrySchema = z.object({
   id: z.string(),
@@ -683,7 +685,7 @@ export const TreasuryLedgerEntrySchema = z.object({
   balanceImpactPc: z.number().int(),
   bondId: z.string().nullable().optional(),
   bondType: z.enum(["Proposal", "Challenge", "Appeal"]).nullable().optional(),
-  sourceType: z.enum(["ProposalBond", "QuestionChallengeBond", "ResultChallengeBond", "AppealBond", "DataUnionAccessGrant"]),
+  sourceType: z.enum(["ProposalBond", "QuestionChallengeBond", "ResultChallengeBond", "AppealBond", "DataUnionAccessGrant", "DataUnionSettlement"]),
   sourceId: z.string(),
   questionId: z.string().nullable(),
   challengeId: z.string().nullable(),
@@ -691,6 +693,7 @@ export const TreasuryLedgerEntrySchema = z.object({
   challengeAppealId: z.string().nullable(),
   dataUnionProductId: z.string().nullable().optional(),
   dataUnionAccessGrantId: z.string().nullable().optional(),
+  dataUnionSettlementId: z.string().nullable().optional(),
   createdAt: z.union([z.number().int(), z.string().datetime(), z.date()])
 });
 
@@ -702,6 +705,7 @@ export const TreasuryLedgerTotalsSchema = z.object({
   treasuryPc: z.number().int().nonnegative(),
   dataUnionRevenuePc: z.number().int().nonnegative().default(0),
   participantPoolPc: z.number().int().nonnegative().default(0),
+  pollAuthorRoyaltyPc: z.number().int().nonnegative().default(0),
   operatorPoolPc: z.number().int().nonnegative().default(0),
   openEscrowPc: z.number().int().nonnegative(),
   treasuryBalancePc: z.number().int().nonnegative(),
@@ -1150,18 +1154,26 @@ export const DataUnionPolicyStatusSchema = z.enum(["Proposed", "Active", "Suspen
 export const DataUnionConsentStatusSchema = z.enum(["Active", "Revoked"]);
 export const DataUnionProductStatusSchema = z.enum(["Published", "Retired"]);
 export const DataUnionAccessGrantStatusSchema = z.enum(["Active", "Revoked"]);
+export const DataUnionBuyerStatusSchema = z.enum(["Approved", "Suspended"]);
+export const DataUnionSettlementStatusSchema = z.enum(["Pending", "Settled", "Failed"]);
+export const DataUnionSettlementRailSchema = z.enum(["ExternalReference", "Card", "BankTransfer", "Stablecoin", "Crypto", "FuturePcCoin"]);
+export const DataUnionLicenseTemplateSchema = z.enum(["AggregateResearch", "PublicInterest", "CommercialInternal", "Custom"]);
+export const DataUnionClaimRoleSchema = z.enum(["CommunityTreasury", "PollAuthor", "Participant", "OperatorPool"]);
+export const DataUnionClaimStatusSchema = z.enum(["Claimable", "Claimed", "Voided"]);
 export const DataUnionProductTypeSchema = z.enum(["AggregateResultDataset", "MethodologyExport"]);
 export const DataUnionConsentScopeSchema = z.enum(["AggregateAnalytics", "SponsoredResearch", "PublicInterestResearch"]);
 export const DataUnionBuyerTypeSchema = z.enum(["ApprovedCustomer", "ResearchPartner", "PublicInterest", "CommunityPartner"]);
 
 export const DataUnionRevenueSplitSchema = z
   .object({
-    communityTreasuryPercent: z.number().int().min(0).max(100).default(70),
-    participantPoolPercent: z.number().int().min(0).max(100).default(20),
+    communityTreasuryPercent: z.number().int().min(0).max(100).default(55),
+    participantPoolPercent: z.number().int().min(0).max(100).default(25),
+    pollAuthorRoyaltyPercent: z.number().int().min(0).max(100).default(0),
     operatorPoolPercent: z.number().int().min(0).max(100).default(10)
   })
   .refine(
-    (value) => value.communityTreasuryPercent + value.participantPoolPercent + value.operatorPoolPercent === 100,
+    (value) =>
+      value.communityTreasuryPercent + value.participantPoolPercent + value.pollAuthorRoyaltyPercent + value.operatorPoolPercent === 100,
     "Data-union revenue split must total 100 percent"
   );
 
@@ -1219,6 +1231,25 @@ export const DataUnionProductSchema = z.object({
   updatedAt: z.union([z.number().int(), z.string().datetime(), z.date()])
 });
 
+export const DataUnionBuyerSchema = z.object({
+  id: z.string(),
+  communityId: z.string(),
+  buyerId: z.string(),
+  buyerType: DataUnionBuyerTypeSchema,
+  status: DataUnionBuyerStatusSchema,
+  allowedProductTypes: z.array(DataUnionProductTypeSchema),
+  purposeHash: z.string(),
+  eligibilityHash: z.string(),
+  licenseTemplate: DataUnionLicenseTemplateSchema,
+  licenseTemplateHash: z.string(),
+  approvalHash: z.string(),
+  approvedBy: z.string(),
+  approvedAt: z.union([z.number().int(), z.string().datetime(), z.date()]),
+  suspendedAt: z.union([z.number().int(), z.string().datetime(), z.date()]).nullable().optional(),
+  createdAt: z.union([z.number().int(), z.string().datetime(), z.date()]),
+  updatedAt: z.union([z.number().int(), z.string().datetime(), z.date()])
+});
+
 export const DataUnionAccessGrantSchema = z.object({
   id: z.string(),
   communityId: z.string(),
@@ -1226,16 +1257,52 @@ export const DataUnionAccessGrantSchema = z.object({
   buyerId: z.string(),
   buyerType: DataUnionBuyerTypeSchema,
   purposeHash: z.string(),
+  licenseTemplate: DataUnionLicenseTemplateSchema,
   licenseHash: z.string(),
   paymentPc: z.number().int().nonnegative(),
   treasuryPc: z.number().int().nonnegative(),
   participantPoolPc: z.number().int().nonnegative(),
+  pollAuthorRoyaltyPc: z.number().int().nonnegative().default(0),
   operatorPoolPc: z.number().int().nonnegative(),
   accessHash: z.string(),
   status: DataUnionAccessGrantStatusSchema,
   grantedBy: z.string(),
   createdAt: z.union([z.number().int(), z.string().datetime(), z.date()]),
   revokedAt: z.union([z.number().int(), z.string().datetime(), z.date()]).nullable().optional()
+});
+
+export const DataUnionSettlementSchema = z.object({
+  id: z.string(),
+  communityId: z.string(),
+  accessGrantId: z.string(),
+  rail: DataUnionSettlementRailSchema,
+  unit: z.string().min(1),
+  amountPc: z.number().int().nonnegative(),
+  feesPc: z.number().int().nonnegative(),
+  settledPc: z.number().int().nonnegative(),
+  externalReferenceHash: z.string(),
+  settlementProofHash: z.string(),
+  settlementHash: z.string(),
+  status: DataUnionSettlementStatusSchema,
+  recordedBy: z.string(),
+  settledAt: z.union([z.number().int(), z.string().datetime(), z.date()]).nullable().optional(),
+  createdAt: z.union([z.number().int(), z.string().datetime(), z.date()])
+});
+
+export const DataUnionClaimSchema = z.object({
+  id: z.string(),
+  communityId: z.string(),
+  accessGrantId: z.string(),
+  settlementId: z.string(),
+  productId: z.string(),
+  policyId: z.string(),
+  role: DataUnionClaimRoleSchema,
+  amountPc: z.number().int().nonnegative(),
+  claimHash: z.string(),
+  redemptionHash: z.string().nullable().optional(),
+  status: DataUnionClaimStatusSchema,
+  createdAt: z.union([z.number().int(), z.string().datetime(), z.date()]),
+  claimedAt: z.union([z.number().int(), z.string().datetime(), z.date()]).nullable().optional()
 });
 
 export const DiscussionPostKindSchema = z.enum(["Comment", "Source", "ProArgument", "ConArgument", "ClarifyingQuestion", "ModeratorNote"]);
@@ -1477,7 +1544,7 @@ export const MinimumProtocolCommitments = [
   },
   {
     kind: "data-union",
-    subject: "Community data-union policy, consent, aggregate data product, buyer access, and revenue routing records.",
+    subject: "Community data-union policy, consent, aggregate data product, buyer approval, settlement, claim, and revenue routing records.",
     description:
       "Commercial aggregate-data access must be opt-in, revocable for future use, privacy-thresholded, and auditable without exposing raw ballots or identifiable responses.",
     eventTypes: [
@@ -1486,7 +1553,10 @@ export const MinimumProtocolCommitments = [
       "DataUnionConsentRecorded",
       "DataUnionConsentRevoked",
       "DataUnionProductPublished",
-      "DataUnionAccessGranted"
+      "DataUnionBuyerApproved",
+      "DataUnionAccessGranted",
+      "DataUnionSettlementRecorded",
+      "DataUnionClaimRedeemed"
     ],
     requiredHashes: [
       "policyHash",
@@ -1496,7 +1566,10 @@ export const MinimumProtocolCommitments = [
       "dataProductHash",
       "privacyReportHash",
       "accessHash",
-      "revenueSplitHash"
+      "revenueSplitHash",
+      "buyerApprovalHash",
+      "settlementHash",
+      "claimHash"
     ],
     requiredArtifacts: [
       "data-union-policy",
@@ -1504,9 +1577,12 @@ export const MinimumProtocolCommitments = [
       "data-union-consent",
       "data-union-consent-revocation",
       "data-union-product",
-      "data-union-access-grant"
+      "data-union-buyer-approval",
+      "data-union-access-grant",
+      "data-union-settlement",
+      "data-union-claim-redemption"
     ],
-    replayChecks: ["data-union-policy-active-before-product", "data-union-cohort-threshold", "data-union-revenue-split"],
+    replayChecks: ["data-union-policy-active-before-product", "data-union-cohort-threshold", "data-union-revenue-split", "data-union-settlement-before-claims"],
     contractModule: "DataUnionRegistry"
   }
 ] satisfies ProtocolCommitment[];
@@ -1635,15 +1711,28 @@ export const CanonicalProtocolModules = [
   {
     id: "DataUnionRegistry",
     label: "Community data-union registry",
-    owns: ["data-union policies", "member consent records", "aggregate data products", "access grants", "commercial aggregate revenue splits"],
-    transactionTypes: ["proposeDataUnionPolicy", "activateDataUnionPolicy", "recordDataUnionConsent", "revokeDataUnionConsent", "publishDataUnionProduct", "grantDataUnionAccess"],
+    owns: ["data-union policies", "member consent records", "aggregate data products", "buyer approvals", "access grants", "settlements", "private claims"],
+    transactionTypes: [
+      "proposeDataUnionPolicy",
+      "activateDataUnionPolicy",
+      "recordDataUnionConsent",
+      "revokeDataUnionConsent",
+      "publishDataUnionProduct",
+      "approveDataUnionBuyer",
+      "grantDataUnionAccess",
+      "recordDataUnionSettlement",
+      "redeemDataUnionClaim"
+    ],
     eventTypes: [
       "DataUnionPolicyProposed",
       "DataUnionPolicyActivated",
       "DataUnionConsentRecorded",
       "DataUnionConsentRevoked",
       "DataUnionProductPublished",
-      "DataUnionAccessGranted"
+      "DataUnionBuyerApproved",
+      "DataUnionAccessGranted",
+      "DataUnionSettlementRecorded",
+      "DataUnionClaimRedeemed"
     ],
     indexesTo: ["dataUnion", "treasuryLedger", "resultArtifacts", "communityExport"]
   },
@@ -2324,7 +2413,10 @@ export const PublicApiV0DataUnionResponseSchema = z
     policies: z.array(DataUnionPolicySchema),
     consents: z.array(DataUnionConsentSchema),
     products: z.array(DataUnionProductSchema),
-    accessGrants: z.array(DataUnionAccessGrantSchema)
+    accessGrants: z.array(DataUnionAccessGrantSchema),
+    buyers: z.array(DataUnionBuyerSchema).default([]),
+    settlements: z.array(DataUnionSettlementSchema).default([]),
+    claims: z.array(DataUnionClaimSchema).default([])
   })
   .passthrough();
 
@@ -3320,41 +3412,42 @@ export const GovernanceParameterInputSchema = z.object({
 
 export const ProposeGovernanceParametersRequestSchema = GovernanceParameterInputSchema.extend({
   steward: z.string().min(1).default("demo-curator"),
-  rationale: z.string().min(1).max(1000).default("Community governance parameter update.")
+  rationale: z.string().min(1).max(1000).default("Community rule update.")
 });
 
 export const ActivateGovernanceParametersRequestSchema = z.object({
   steward: z.string().min(1).default("demo-curator"),
-  activationRecord: z.string().min(1).max(1000).default("Community steward activated governance parameters under local MVP rules."),
+  activationRecord: z.string().min(1).max(1000).default("Community guide turned on rule settings for the local demo."),
   effectiveAt: z.number().int().optional()
 });
 
 export const ProposeDataUnionPolicyRequestSchema = z.object({
   steward: z.string().min(1).default("demo-curator"),
-  title: z.string().min(1).max(140).default("Community aggregate data-union policy"),
+  title: z.string().min(1).max(140).default("Community rewards rule"),
   purpose: z
     .string()
     .min(1)
     .max(1200)
-    .default("Allow the community to publish opt-in, privacy-safe aggregate result products under transparent audit and revenue rules."),
+    .default("Allow the community to publish opt-in, privacy-safe reports under clear public records and reward rules."),
   allowedProductTypes: z.array(DataUnionProductTypeSchema).min(1).default(["AggregateResultDataset"]),
   minimumCohortSize: z.number().int().positive().default(25),
   consentRevocationRule: z
     .string()
     .min(1)
     .max(1000)
-    .default("A member can revoke future commercial aggregate participation; already published aggregate products remain in the audit log."),
+    .default("A member can opt out of future paid reports; already published combined reports remain in the public record."),
   dataRetentionDays: z.number().int().positive().default(365),
   revenueSplit: DataUnionRevenueSplitSchema.default({
-    communityTreasuryPercent: 70,
-    participantPoolPercent: 20,
+    communityTreasuryPercent: 55,
+    participantPoolPercent: 25,
+    pollAuthorRoyaltyPercent: 10,
     operatorPoolPercent: 10
   })
 });
 
 export const ActivateDataUnionPolicyRequestSchema = z.object({
   steward: z.string().min(1).default("demo-curator"),
-  activationRecord: z.string().min(1).max(1000).default("Community steward activated the data-union policy under local MVP rules."),
+  activationRecord: z.string().min(1).max(1000).default("Community guide turned on the rewards rule for the local demo."),
   effectiveAt: z.number().int().optional()
 });
 
@@ -3366,12 +3459,12 @@ export const RecordDataUnionConsentRequestSchema = z.object({
     .string()
     .min(1)
     .max(1000)
-    .default("I opt in to privacy-safe aggregate data products governed by this community data-union policy.")
+    .default("I opt in to privacy-safe community reports under these reward rules.")
 });
 
 export const RevokeDataUnionConsentRequestSchema = z.object({
   userId: z.string().min(1),
-  revocationReason: z.string().min(1).max(1000).default("Member revoked future data-union participation.")
+  revocationReason: z.string().min(1).max(1000).default("Member opted out of future reward reports.")
 });
 
 export const PublishDataUnionProductRequestSchema = z.object({
@@ -3381,13 +3474,28 @@ export const PublishDataUnionProductRequestSchema = z.object({
   productType: DataUnionProductTypeSchema.default("AggregateResultDataset"),
   title: z.string().min(1).max(140),
   description: z.string().min(1).max(1200),
-  methodology: z.string().min(1).max(2000).default("Privacy-safe aggregate result product derived from published tally artifacts."),
+  methodology: z.string().min(1).max(2000).default("Privacy-safe report built from published vote-count receipts."),
   privacyNotes: z
     .string()
     .min(1)
     .max(2000)
-    .default("No identifiable responses or raw encrypted payloads are included. Product publication requires active consent count and result turnout to meet the policy cohort threshold."),
+    .default("No identifiable responses or raw encrypted payloads are included. Report publication requires enough opt-ins and enough votes."),
   pricePc: z.number().int().nonnegative().default(0)
+});
+
+export const ApproveDataUnionBuyerRequestSchema = z.object({
+  steward: z.string().min(1).default("demo-curator"),
+  buyerId: z.string().min(1),
+  buyerType: DataUnionBuyerTypeSchema.default("ApprovedCustomer"),
+  allowedProductTypes: z.array(DataUnionProductTypeSchema).min(1).default(["AggregateResultDataset"]),
+  approvedPurpose: z.string().min(1).max(1000),
+  eligibilityEvidence: z.string().min(1).max(2000).default("Community guide reviewed the approved customer's eligibility."),
+  licenseTemplate: DataUnionLicenseTemplateSchema.default("AggregateResearch"),
+  licenseTerms: z
+    .string()
+    .min(1)
+    .max(2000)
+    .default("Customer may use shared reports for the approved purpose and must not identify individual voters.")
 });
 
 export const GrantDataUnionAccessRequestSchema = z.object({
@@ -3395,23 +3503,44 @@ export const GrantDataUnionAccessRequestSchema = z.object({
   buyerId: z.string().min(1),
   buyerType: DataUnionBuyerTypeSchema.default("ApprovedCustomer"),
   accessPurpose: z.string().min(1).max(1000),
+  licenseTemplate: DataUnionLicenseTemplateSchema.default("AggregateResearch"),
   license: z
     .string()
     .min(1)
     .max(2000)
-    .default("Access is limited to the named aggregate product and must not be used to identify respondents or reconstruct individual responses."),
+    .default("Access is limited to the named report and must not be used to identify or rebuild individual responses."),
   paymentPc: z.number().int().nonnegative().optional()
 });
+
+export const RecordDataUnionSettlementRequestSchema = z.object({
+  steward: z.string().min(1).default("demo-curator"),
+  rail: DataUnionSettlementRailSchema.default("ExternalReference"),
+  unit: z.string().min(1).max(20).default("PC"),
+  amountPc: z.number().int().nonnegative(),
+  feesPc: z.number().int().nonnegative().default(0),
+  externalReference: z.string().min(1).max(1000),
+  settlementProof: z.string().min(1).max(2000).default("Community guide recorded the external payment proof."),
+  status: DataUnionSettlementStatusSchema.default("Settled"),
+  settledAt: z.union([z.string().datetime(), z.number().int(), z.date()]).optional()
+});
+
+export const RedeemDataUnionClaimRequestSchema = z
+  .object({
+    receiptSecret: z.string().min(32).optional(),
+    demoClaimantId: z.string().min(1).optional(),
+    destinationAccount: z.string().min(1)
+  })
+  .refine((value) => Boolean(value.receiptSecret) || Boolean(value.demoClaimantId), "A receipt secret or explicit demo claimant is required.");
 
 export const CreateCommunityEmergencySuspensionRequestSchema = z.object({
   steward: z.string().min(1).default("demo-curator"),
   scope: CommunityEmergencySuspensionScopeSchema.default("ProtocolActions"),
-  reason: z.string().min(1).max(1000).default("Emergency pause for community protocol actions pending steward review.")
+  reason: z.string().min(1).max(1000).default("Emergency pause for community actions pending guide review.")
 });
 
 export const ResolveCommunityEmergencySuspensionRequestSchema = z.object({
   steward: z.string().min(1).default("demo-curator"),
-  resolution: z.string().min(1).max(1000).default("Emergency pause resolved and normal protocol actions restored.")
+  resolution: z.string().min(1).max(1000).default("Emergency pause resolved and normal community actions restored.")
 });
 
 export const ProposeAdoptionPolicyRequestSchema = z
@@ -3420,8 +3549,8 @@ export const ProposeAdoptionPolicyRequestSchema = z
     authorityLevel: AuthorityLevelSchema.default("Advisory"),
     eligibleQuestionTypes: z.array(z.string().min(1)).min(1).default(["transit"]),
     credentialSchemaIds: z.array(z.string().min(1)).min(1).default(["credential-vancouver-resident"]),
-    quorumRule: z.string().min(1).default("No quorum for local MVP advisory process."),
-    approvalRule: z.string().min(1).default("Community steward activation under local MVP rules."),
+    quorumRule: z.string().min(1).default("No minimum turnout for the local demo community-signal process."),
+    approvalRule: z.string().min(1).default("Community guide activation under local demo rules."),
     legalHandoff: z.string().min(1).optional(),
     forkRule: z.string().min(1).default("Community may fork metadata and archive references.")
   })
@@ -3430,20 +3559,20 @@ export const ProposeAdoptionPolicyRequestSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["legalHandoff"],
-        message: "Binding adoption policies require explicit legal handoff metadata."
+        message: "Committed-decision rules require an explicit legal or community handoff."
       });
     }
   });
 
 export const ActivateAdoptionPolicyRequestSchema = z.object({
   steward: z.string().min(1).default("demo-curator"),
-  adoptionRecord: z.string().min(1).default("Community steward accepted the policy under existing local MVP rules."),
+  adoptionRecord: z.string().min(1).default("Community guide accepted the rule under existing local demo rules."),
   effectiveAt: z.number().int().optional()
 });
 
 export const SuspendAdoptionPolicyRequestSchema = z.object({
   steward: z.string().min(1).default("demo-curator"),
-  reason: z.string().min(1).default("Community steward suspended policy authority pending review.")
+  reason: z.string().min(1).default("Community guide paused the next-step rule pending review.")
 });
 
 export type QuestionSpec = z.infer<typeof QuestionSpecSchema>;
@@ -3465,6 +3594,9 @@ export type DataUnionPolicy = z.infer<typeof DataUnionPolicySchema>;
 export type DataUnionConsent = z.infer<typeof DataUnionConsentSchema>;
 export type DataUnionProduct = z.infer<typeof DataUnionProductSchema>;
 export type DataUnionAccessGrant = z.infer<typeof DataUnionAccessGrantSchema>;
+export type DataUnionBuyer = z.infer<typeof DataUnionBuyerSchema>;
+export type DataUnionSettlement = z.infer<typeof DataUnionSettlementSchema>;
+export type DataUnionClaim = z.infer<typeof DataUnionClaimSchema>;
 export type Challenge = z.infer<typeof ChallengeSchema>;
 export type ChallengeRuling = z.infer<typeof ChallengeRulingSchema>;
 export type ChallengeAppeal = z.infer<typeof ChallengeAppealSchema>;

@@ -1,7 +1,18 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { BuiltInAnswerSchemas, type AnswerSchema, type BallotResponse } from "@pc/shared";
+import {
+  BuiltInAnswerSchemas,
+  type AnswerSchema,
+  type BallotResponse,
+  type DataUnionAccessGrant,
+  type DataUnionBuyer,
+  type DataUnionClaim,
+  type DataUnionConsent,
+  type DataUnionPolicy,
+  type DataUnionProduct,
+  type DataUnionSettlement
+} from "@pc/shared";
 import {
   Archive,
   ArrowLeft,
@@ -198,21 +209,15 @@ type ReplayCheck = {
 };
 
 type DataUnionSummary = {
-  activePolicy?: {
-    id: string;
-    title: string;
-    status: string;
-    minimumCohortSize: number;
-    revenueSplit?: {
-      communityTreasuryPercent: number;
-      participantPoolPercent: number;
-      operatorPoolPercent: number;
-    };
-  } | null;
-  policies?: Array<{ id: string; title?: string; status: string }>;
-  consents?: Array<{ id: string; userId?: string; status: string }>;
-  products?: Array<{ id: string; title: string; status: string; cohortSize: number; pricePc: number }>;
-  accessGrants?: Array<{ id: string; buyerId: string; status: string; paymentPc: number }>;
+  protocol?: { statuses?: Record<string, unknown> };
+  activePolicy?: DataUnionPolicy | null;
+  policies?: DataUnionPolicy[];
+  consents?: DataUnionConsent[];
+  products?: DataUnionProduct[];
+  buyers?: DataUnionBuyer[];
+  accessGrants?: DataUnionAccessGrant[];
+  settlements?: DataUnionSettlement[];
+  claims?: DataUnionClaim[];
 };
 
 type AdoptionPolicy = {
@@ -348,6 +353,27 @@ function formatStatus(value: string) {
   return splitCamel(value);
 }
 
+function formatRewardRole(role: string) {
+  if (role === "CommunityTreasury") return "Community fund";
+  if (role === "OperatorPool") return "Helpers";
+  if (role === "PollAuthor") return "Question asker";
+  return splitCamel(role);
+}
+
+function formatRewardRecord(value: string) {
+  if (value === "ResearchPartner") return "Research partner";
+  if (value === "AggregateResearch") return "Research use";
+  if (value === "AggregateResultDataset") return "Anonymous results report";
+  return splitCamel(value);
+}
+
+function formatPaymentStatus(value: string) {
+  if (value === "Settled") return "Paid";
+  if (value === "Pending") return "Payment pending";
+  if (value === "Failed") return "Payment failed";
+  return splitCamel(value);
+}
+
 function routeSegmentFromUsername(username: string) {
   return username
     .toLowerCase()
@@ -372,7 +398,7 @@ function profileHrefForDiscovery(profile: Pick<DiscoveryCommunity, "slug">) {
 }
 
 function shortHash(value?: string | null) {
-  if (!value) return "Not published";
+  if (!value) return "Not shared yet";
   if (value.length <= 20) return value;
   return `${value.slice(0, 10)}...${value.slice(-6)}`;
 }
@@ -601,7 +627,7 @@ function ProfileSummary({ user, role }: { user: UserAccount | null; role?: strin
         <div className="avatar">PC</div>
         <div>
           <h2>Sign in</h2>
-          <p className="muted">Passkey or wallet access</p>
+          <p className="muted">Use a passkey or wallet</p>
         </div>
         <Link className="button-link profile-login" href="/login">
           <IconLabel icon={LogIn}>Log in</IconLabel>
@@ -622,7 +648,7 @@ function ProfileSummary({ user, role }: { user: UserAccount | null; role?: strin
       </Link>
       <dl className="profile-metrics compact">
         <div>
-          <dt>Trust</dt>
+          <dt>Trust score</dt>
           <dd>{user.reputation}</dd>
         </div>
         <div>
@@ -631,7 +657,7 @@ function ProfileSummary({ user, role }: { user: UserAccount | null; role?: strin
         </div>
         <div>
           <dt>Account</dt>
-          <dd>{user.smartAccountAddress ? "Private" : "Local"}</dd>
+          <dd>{user.smartAccountAddress ? "Private voting" : "Local demo"}</dd>
         </div>
       </dl>
       {user.smartAccountAddress ? <small className="account-address">{user.smartAccountAddress}</small> : null}
@@ -745,9 +771,9 @@ function compactCommunityLabel(community?: Pick<Community, "path" | "slug" | "ki
 }
 
 function publicResultModeLabel(resultMode?: PollResultMode) {
-  if (resultMode === "PeopleVote") return "People vote";
-  if (resultMode === "CommunitiesSignal") return "Communities signal";
-  return "Show both";
+  if (resultMode === "PeopleVote") return "Count people";
+  if (resultMode === "CommunitiesSignal") return "Count communities";
+  return "Show both views";
 }
 
 function PostCard({
@@ -774,7 +800,7 @@ function PostCard({
       <span className="post-badges">
         <small>{audience}</small>
         <small>{publicQuestionStatus(question.status)}</small>
-        <small>{question.poll ? publicPollStatus(question.poll.status) : "No vote yet"}</small>
+        <small>{question.poll ? publicPollStatus(question.poll.status) : "No voting yet"}</small>
         <small>{publicResultModeLabel(question.resultMode)}</small>
         <small>{publicAuthorityLabel(question.authorityLevel)}</small>
         {(question.topicIds ?? []).slice(0, 2).map((topic) => (
@@ -783,7 +809,7 @@ function PostCard({
       </span>
       <span className="post-metrics">
         <small>{question.challenges.length} flags</small>
-        <small>{turnout} turnout</small>
+        <small>{turnout} votes</small>
         <small>v{question.version}</small>
       </span>
     </>
@@ -865,21 +891,21 @@ function CivicAuditPanel({
       {message ? <p className="audit-message">{message}</p> : null}
       <div className="audit-grid">
         <div>
-          <span>Steps</span>
+          <span>Public steps</span>
           <strong>{events.length}</strong>
         </div>
         <div>
-          <span>Locks</span>
+          <span>Proof locks</span>
           <strong>{commitments.length}</strong>
         </div>
         <div>
-          <span>Turnout</span>
+          <span>Votes</span>
           <strong>{record?.result?.turnout ?? 0}</strong>
         </div>
       </div>
       <dl className="audit-hashes">
         <div>
-          <dt>Step record</dt>
+          <dt>Step-by-step record</dt>
           <dd>{shortHash(replay?.eventStreamHash)}</dd>
         </div>
         <div>
@@ -891,7 +917,7 @@ function CivicAuditPanel({
           <dd>{shortHash(record?.result?.privacyReportHash)}</dd>
         </div>
         <div>
-          <dt>Block signal</dt>
+          <dt>Community result</dt>
           <dd>{shortHash(record?.result?.communityBlockResultHash)}</dd>
         </div>
       </dl>
@@ -926,14 +952,20 @@ function DataUnionPanel({
   actionPending,
   canSteward,
   canConsent,
+  canApproveBuyer,
   canPublishProduct,
   canGrantAccess,
+  canRecordSettlement,
+  canClaimReward,
   showActions = true,
   onProposePolicy,
   onActivatePolicy,
   onRecordConsent,
+  onApproveBuyer,
   onPublishProduct,
-  onGrantAccess
+  onGrantAccess,
+  onRecordSettlement,
+  onClaimReward
 }: {
   dataUnion: DataUnionSummary | null;
   loading: boolean;
@@ -941,71 +973,105 @@ function DataUnionPanel({
   actionPending: boolean;
   canSteward: boolean;
   canConsent: boolean;
+  canApproveBuyer: boolean;
   canPublishProduct: boolean;
   canGrantAccess: boolean;
+  canRecordSettlement: boolean;
+  canClaimReward: boolean;
   showActions?: boolean;
   onProposePolicy: () => void;
   onActivatePolicy: () => void;
   onRecordConsent: () => void;
+  onApproveBuyer: () => void;
   onPublishProduct: () => void;
   onGrantAccess: () => void;
+  onRecordSettlement: () => void;
+  onClaimReward: () => void;
 }) {
   const activePolicy = dataUnion?.activePolicy ?? null;
   const proposedPolicy = (dataUnion?.policies ?? []).find((policy) => policy.status === "Proposed") ?? null;
   const activeConsents = (dataUnion?.consents ?? []).filter((consent) => consent.status === "Active").length;
+  const approvedBuyers = (dataUnion?.buyers ?? []).filter((buyer) => buyer.status === "Approved");
   const publishedProducts = (dataUnion?.products ?? []).filter((product) => product.status === "Published");
   const activeGrants = (dataUnion?.accessGrants ?? []).filter((grant) => grant.status === "Active");
-  const revenuePc = activeGrants.reduce((sum, grant) => sum + grant.paymentPc, 0);
+  const settlements = dataUnion?.settlements ?? [];
+  const claims = dataUnion?.claims ?? [];
+  const settledRevenuePc = (dataUnion?.settlements ?? []).filter((settlement) => settlement.status === "Settled").reduce((sum, settlement) => sum + settlement.settledPc, 0);
+  const licensedPc = activeGrants.reduce((sum, grant) => sum + grant.paymentPc, 0);
+  const participantClaimablePc = claims.filter((claim) => claim.role === "Participant" && claim.status === "Claimable").reduce((sum, claim) => sum + claim.amountPc, 0);
+  const participantClaimedPc = claims.filter((claim) => claim.role === "Participant" && claim.status === "Claimed").reduce((sum, claim) => sum + claim.amountPc, 0);
+  const rewardRoles = ["CommunityTreasury", "Participant", "PollAuthor", "OperatorPool"] as const;
 
   return (
-    <section className="data-union-panel" aria-label="Data rewards">
+    <section className="data-union-panel" aria-label="Rewards">
       <div className="rail-heading">
-        <h3>Data Rewards</h3>
-        <small>{loading ? "Loading" : activePolicy ? activePolicy.status : "No sharing rules yet"}</small>
+        <h3>Rewards</h3>
+        <small>{loading ? "Loading" : activePolicy ? "Ready" : "Rewards not set up yet"}</small>
       </div>
       {message ? <p className="audit-message">{message}</p> : null}
       <p className="muted">
         {activePolicy
           ? activePolicy.title
-          : "When a community agrees, anonymous results can become reports, with value routed back to the community and participants."}
+          : "When a community agrees, anonymous results can become paid reports. The value goes back to the people and groups who helped create them."}
       </p>
       <div className="data-union-grid">
         <div>
-          <span>Opt-ins</span>
+          <span>People opted in</span>
           <strong>{activeConsents}</strong>
         </div>
         <div>
-          <span>Reports</span>
+          <span>Approved customers</span>
+          <strong>{approvedBuyers.length}</strong>
+        </div>
+        <div>
+          <span>Shared reports</span>
           <strong>{publishedProducts.length}</strong>
         </div>
         <div>
-          <span>Rewards</span>
-          <strong>{revenuePc} PC</strong>
+          <span>Shared value</span>
+          <strong>{licensedPc} PC</strong>
+        </div>
+        <div>
+          <span>Paid</span>
+          <strong>{settledRevenuePc} PC</strong>
+        </div>
+        <div>
+          <span>Member rewards</span>
+          <strong>{participantClaimablePc + participantClaimedPc} PC</strong>
         </div>
       </div>
       {activePolicy?.revenueSplit ? (
         <small className="action-hint">
-          Split: {activePolicy.revenueSplit.communityTreasuryPercent}% treasury, {activePolicy.revenueSplit.participantPoolPercent}% participants,{" "}
-          {activePolicy.revenueSplit.operatorPoolPercent}% operators.
+          Reward split: {activePolicy.revenueSplit.communityTreasuryPercent}% community fund, {activePolicy.revenueSplit.participantPoolPercent}% members,{" "}
+          {activePolicy.revenueSplit.pollAuthorRoyaltyPercent ?? 0}% question asker, {activePolicy.revenueSplit.operatorPoolPercent}% helpers.
         </small>
       ) : null}
       {showActions ? (
         <div className="data-union-actions">
-        <button type="button" onClick={onProposePolicy} disabled={!canSteward || Boolean(proposedPolicy) || Boolean(activePolicy) || actionPending}>
-          <IconLabel icon={CircleDollarSign}>Suggest sharing rules</IconLabel>
-        </button>
-        <button type="button" onClick={onActivatePolicy} disabled={!canSteward || !proposedPolicy || actionPending}>
-          <IconLabel icon={Power}>Turn rules on</IconLabel>
-        </button>
-        <button type="button" onClick={onRecordConsent} disabled={!canConsent || actionPending}>
-          <IconLabel icon={UserCheck}>Opt in</IconLabel>
-        </button>
-        <button type="button" onClick={onPublishProduct} disabled={!canPublishProduct || actionPending}>
-          <IconLabel icon={FileText}>Publish report</IconLabel>
-        </button>
-        <button type="button" onClick={onGrantAccess} disabled={!canGrantAccess || actionPending}>
-          <IconLabel icon={BadgeCheck}>Give buyer access</IconLabel>
-        </button>
+          <button type="button" onClick={onProposePolicy} disabled={!canSteward || Boolean(proposedPolicy) || Boolean(activePolicy) || actionPending}>
+            <IconLabel icon={CircleDollarSign}>Suggest rewards</IconLabel>
+          </button>
+          <button type="button" onClick={onActivatePolicy} disabled={!canSteward || !proposedPolicy || actionPending}>
+            <IconLabel icon={Power}>Activate rewards</IconLabel>
+          </button>
+          <button type="button" onClick={onRecordConsent} disabled={!canConsent || actionPending}>
+            <IconLabel icon={UserCheck}>Opt in</IconLabel>
+          </button>
+          <button type="button" onClick={onApproveBuyer} disabled={!canApproveBuyer || approvedBuyers.length > 0 || actionPending}>
+            <IconLabel icon={BadgeCheck}>Approve customer</IconLabel>
+          </button>
+          <button type="button" onClick={onPublishProduct} disabled={!canPublishProduct || actionPending}>
+            <IconLabel icon={FileText}>Publish report</IconLabel>
+          </button>
+          <button type="button" onClick={onGrantAccess} disabled={!canGrantAccess || actionPending}>
+            <IconLabel icon={BadgeCheck}>Share report</IconLabel>
+          </button>
+          <button type="button" onClick={onRecordSettlement} disabled={!canRecordSettlement || actionPending}>
+            <IconLabel icon={CircleDollarSign}>Mark paid</IconLabel>
+          </button>
+          <button type="button" onClick={onClaimReward} disabled={!canClaimReward || actionPending}>
+            <IconLabel icon={Wallet}>Claim reward</IconLabel>
+          </button>
         </div>
       ) : null}
       {publishedProducts.slice(0, 2).map((product) => (
@@ -1016,6 +1082,44 @@ function DataUnionPanel({
           </strong>
         </div>
       ))}
+      {approvedBuyers.slice(0, 2).map((buyer) => (
+        <div className="data-union-product" key={buyer.id}>
+          <span>{buyer.buyerId}</span>
+          <strong>
+            {formatRewardRecord(buyer.buyerType)} · {formatRewardRecord(buyer.licenseTemplate)} · {buyer.allowedProductTypes.map(formatRewardRecord).join(", ")}
+          </strong>
+        </div>
+      ))}
+      {activeGrants.slice(0, 2).map((grant) => {
+        const settlement = settlements.find((item) => item.accessGrantId === grant.id && item.status === "Settled") ?? settlements.find((item) => item.accessGrantId === grant.id);
+        return (
+          <div className="data-union-product" key={grant.id}>
+            <span>
+              {grant.buyerId} · {formatRewardRecord(grant.licenseTemplate)}
+            </span>
+            <strong>
+              {grant.paymentPc} PC shared · {settlement ? `${formatPaymentStatus(settlement.status)} ${settlement.settledPc} PC` : "Payment pending"} · {grant.participantPoolPc} PC members ·{" "}
+              {grant.pollAuthorRoyaltyPc} PC question asker
+            </strong>
+          </div>
+        );
+      })}
+      {claims.length ? (
+        <div className="data-union-breakdown" aria-label="Reward distribution">
+          {rewardRoles.map((role) => {
+            const roleClaims = claims.filter((claim) => claim.role === role);
+            const totalPc = roleClaims.reduce((sum, claim) => sum + claim.amountPc, 0);
+            const claimedPc = roleClaims.filter((claim) => claim.status === "Claimed").reduce((sum, claim) => sum + claim.amountPc, 0);
+            return (
+              <div key={role}>
+                <span>{formatRewardRole(role)}</span>
+                <strong>{totalPc} PC</strong>
+                <small>{claimedPc ? `${claimedPc} PC claimed` : "Claimable"}</small>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -1054,8 +1158,8 @@ function AuthorityPolicyPanel({
       {message ? <p className="audit-message">{message}</p> : null}
       <p className="muted">
         {activePolicy
-          ? `${publicAuthorityLabel(activePolicy.authorityLevel)} rule is on for future questions like this.`
-          : "Most answers are community signals unless a community guide turns on a next-step rule."}
+          ? `${publicAuthorityLabel(activePolicy.authorityLevel)} is on for future questions like this.`
+          : "Most answers simply show where the community stands. A community guide can turn on a rule when results should guide a real next step."}
       </p>
       <div className="authority-grid">
         <div>
@@ -1063,7 +1167,7 @@ function AuthorityPolicyPanel({
           <strong>{policies.length}</strong>
         </div>
         <div>
-          <span>On</span>
+          <span>Active</span>
           <strong>{adoption?.activePolicies?.length ?? 0}</strong>
         </div>
         <div>
@@ -1073,15 +1177,15 @@ function AuthorityPolicyPanel({
       </div>
       {showActions ? (
         <div className="data-union-actions">
-        <button type="button" onClick={onProposeRecognized} disabled={!canSteward || Boolean(proposedPolicy) || actionPending}>
-          <IconLabel icon={ClipboardCheck}>Suggest next-step rule</IconLabel>
-        </button>
-        <button type="button" onClick={onActivatePolicy} disabled={!canSteward || !proposedPolicy || actionPending}>
-          <IconLabel icon={Power}>Turn rule on</IconLabel>
-        </button>
-        <button type="button" onClick={onSuspendPolicy} disabled={!canSteward || !activePolicy || actionPending}>
-          <IconLabel icon={PauseCircle}>Pause rule</IconLabel>
-        </button>
+          <button type="button" onClick={onProposeRecognized} disabled={!canSteward || Boolean(proposedPolicy) || actionPending}>
+            <IconLabel icon={ClipboardCheck}>Suggest next-step rule</IconLabel>
+          </button>
+          <button type="button" onClick={onActivatePolicy} disabled={!canSteward || !proposedPolicy || actionPending}>
+            <IconLabel icon={Power}>Turn on rule</IconLabel>
+          </button>
+          <button type="button" onClick={onSuspendPolicy} disabled={!canSteward || !activePolicy || actionPending}>
+            <IconLabel icon={PauseCircle}>Pause rule</IconLabel>
+          </button>
         </div>
       ) : null}
     </section>
@@ -1158,7 +1262,7 @@ export function LoginPageClient() {
       <div className="auth-copy">
         <p className="eyebrow">Welcome back</p>
         <h1>Log in</h1>
-        <p className="muted">Use a passkey or wallet to keep your votes private and your account easy to recover.</p>
+        <p className="muted">Use a passkey or wallet. Your account is easy to open, and your vote stays private.</p>
       </div>
       <form className="panel auth-form" onSubmit={loginWithPasskey}>
         <label className="field-label">
@@ -1261,7 +1365,7 @@ export function SignupPageClient() {
       <div className="auth-copy">
         <p className="eyebrow">{siteCopy.actions.joinCrowd}</p>
         <h1>Create your account</h1>
-        <p className="muted">Join communities, ask questions, and help turn private votes into public answers.</p>
+        <p className="muted">Join communities, ask useful questions, and help turn private votes into answers everyone can trust.</p>
       </div>
       <form className="panel auth-form" onSubmit={createPasskeyAccount}>
         <label className="field-label">
@@ -1293,10 +1397,10 @@ export function SignupPageClient() {
         </label>
         <div className="button-row">
           <button className="wide-action" disabled={pending} type="submit">
-            <IconLabel icon={KeyRound}>Join with passkey</IconLabel>
+            <IconLabel icon={KeyRound}>Create with passkey</IconLabel>
           </button>
           <button className="wide-action secondary" disabled={pending} type="button" onClick={() => void createWalletAccount()}>
-            <IconLabel icon={Wallet}>Join with wallet</IconLabel>
+            <IconLabel icon={Wallet}>Create with wallet</IconLabel>
           </button>
         </div>
         {message ? <p className="message">{message}</p> : null}
@@ -1440,20 +1544,33 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
       : credential
       ? ""
       : "Get a voting pass before submitting a private vote."
-    : "This question does not have a poll yet.";
+    : "Voting has not been set up for this question yet.";
   const proposedDataUnionPolicy = (dataUnion?.policies ?? []).find((policy) => policy.status === "Proposed") ?? null;
   const activeDataUnionPolicy = dataUnion?.activePolicy ?? null;
   const userHasDataUnionConsent = Boolean(
     data.activeUser && (dataUnion?.consents ?? []).some((consent) => consent.status === "Active" && consent.userId === data.activeUser?.id)
   );
   const firstPublishedDataProduct = (dataUnion?.products ?? []).find((product) => product.status === "Published") ?? null;
+  const firstApprovedDataUnionBuyer = (dataUnion?.buyers ?? []).find((buyer) => buyer.status === "Approved") ?? null;
+  const firstActiveDataUnionGrant = (dataUnion?.accessGrants ?? []).find((grant) => grant.status === "Active") ?? null;
+  const firstUnsettledDataUnionGrant =
+    (dataUnion?.accessGrants ?? []).find(
+      (grant) => grant.status === "Active" && !(dataUnion?.settlements ?? []).some((settlement) => settlement.accessGrantId === grant.id && settlement.status === "Settled")
+    ) ?? null;
+  const firstClaimableDataUnionClaim = (dataUnion?.claims ?? []).find((claim) => claim.role === "Participant" && claim.status === "Claimable") ?? null;
+  const firstClaimableDataUnionGrant = firstClaimableDataUnionClaim
+    ? (dataUnion?.accessGrants ?? []).find((grant) => grant.id === firstClaimableDataUnionClaim.accessGrantId) ?? null
+    : null;
   const proposedAdoptionPolicy = (adoption?.policies ?? []).find((policy) => policy.status === "Proposed") ?? null;
   const activeAdoptionPolicy = adoption?.activePolicies?.[0] ?? null;
   const selectedResultId = selectedQuestion?.poll?.result?.id;
   const canStewardDataUnion = Boolean(data.activeUser && selectedQuestionCommunity && canCurateSelectedQuestion);
   const canConsentToDataUnion = Boolean(data.activeUser && activeDataUnionPolicy && !userHasDataUnionConsent);
+  const canApproveDataUnionBuyer = Boolean(canStewardDataUnion && activeDataUnionPolicy && !firstApprovedDataUnionBuyer);
   const canPublishDataUnionProduct = Boolean(canStewardDataUnion && activeDataUnionPolicy && selectedResultId && !firstPublishedDataProduct);
-  const canGrantDataUnionAccess = Boolean(canStewardDataUnion && firstPublishedDataProduct);
+  const canGrantDataUnionAccess = Boolean(canStewardDataUnion && firstPublishedDataProduct && firstApprovedDataUnionBuyer && !firstActiveDataUnionGrant);
+  const canRecordDataUnionSettlement = Boolean(canStewardDataUnion && firstUnsettledDataUnionGrant);
+  const canClaimDataUnionReward = Boolean(data.activeUser && userHasDataUnionConsent && firstClaimableDataUnionClaim && firstClaimableDataUnionGrant);
   const canPost = Boolean(
     data.activeUser &&
       composeCommunity &&
@@ -1635,7 +1752,7 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
       .catch((error) => {
         if (!active) return;
         setDataUnion(null);
-        setDataUnionMessage(error instanceof Error ? error.message : "Data Rewards records are unavailable for this community.");
+        setDataUnionMessage(error instanceof Error ? error.message : "Rewards records are unavailable for this community.");
       })
       .finally(() => {
         if (active) setDataUnionLoading(false);
@@ -1778,13 +1895,13 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
       setQuestionDraft(emptyQuestion);
       setSelectedQuestionId(created.question.id);
       setComposeOpen(false);
-      data.setMessage("Question asked and sent for checking.");
+      data.setMessage("Question asked and sent for review.");
       await data.refresh(data.activeUser.id, composeCommunity.id);
       setFeedScope(composeCommunity.kind === "Profile" ? "profile" : "community");
       setFeedRefreshNonce((value) => value + 1);
       router.push(`/q/${created.question.id}`);
     } catch (postError) {
-      data.setMessage(postError instanceof Error ? postError.message : "Question post failed");
+      data.setMessage(postError instanceof Error ? postError.message : "Question could not be posted");
     } finally {
       setPending(false);
     }
@@ -1897,7 +2014,7 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
     if (!selectedQuestion?.poll) return;
     await apiCall(`/polls/${selectedQuestion.poll.id}/close`, { method: "POST", body: "{}" });
     await apiCall(`/polls/${selectedQuestion.poll.id}/tally`, { method: "POST", body: "{}" });
-    data.setMessage("Votes counted and public result receipt posted.");
+    data.setMessage("Votes counted. The public result receipt is posted.");
     await refreshSelectedQuestion();
   }
 
@@ -1946,13 +2063,13 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
       method: "POST",
       body: JSON.stringify({
         steward: data.activeUser.id,
-        title: `${selectedQuestionCommunity.name} sharing rules`.slice(0, 140),
-        purpose: "Allow opt-in, privacy-safe reports with clear community approval and reward routing.",
+        title: `${selectedQuestionCommunity.name} reward rules`.slice(0, 140),
+        purpose: "Allow people to opt in to privacy-safe reports, with clear community approval and rewards.",
         minimumCohortSize: 1,
-        revenueSplit: { communityTreasuryPercent: 70, participantPoolPercent: 20, operatorPoolPercent: 10 }
+        revenueSplit: { communityTreasuryPercent: 55, participantPoolPercent: 25, pollAuthorRoyaltyPercent: 10, operatorPoolPercent: 10 }
       })
     });
-    data.setMessage("Sharing rules suggested.");
+    data.setMessage("Reward rules suggested.");
     await refreshDataUnion();
   }
 
@@ -1962,10 +2079,10 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
       method: "POST",
       body: JSON.stringify({
         steward: data.activeUser.id,
-        activationRecord: "Community guide turned on the sharing rules from the social client."
+        activationRecord: "Community guide turned on the reward rules from the social client."
       })
     });
-    data.setMessage("Sharing rules turned on.");
+    data.setMessage("Reward rules turned on.");
     await refreshDataUnion();
   }
 
@@ -1977,10 +2094,29 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
         userId: data.activeUser.id,
         policyId: activeDataUnionPolicy.id,
         scope: "AggregateAnalytics",
-        consentStatement: "I opt in to privacy-safe aggregate data products governed by this community policy."
+        consentStatement: "I opt in to privacy-safe community reports under these reward rules."
       })
     });
-    data.setMessage("Data Rewards opt-in recorded.");
+    data.setMessage("Rewards opt-in recorded.");
+    await refreshDataUnion();
+  }
+
+  async function approveDataUnionBuyer() {
+    if (!selectedQuestionCommunity || !data.activeUser) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/data-union/buyers`, {
+      method: "POST",
+      body: JSON.stringify({
+        steward: data.activeUser.id,
+        buyerId: "public-interest-research-lab",
+        buyerType: "ResearchPartner",
+        allowedProductTypes: ["AggregateResultDataset"],
+        approvedPurpose: "Study the community answer without identifying individual voters.",
+        eligibilityEvidence: "Demo community guide approval for a public-interest research customer.",
+        licenseTemplate: "AggregateResearch",
+        licenseTerms: "Use only the combined results. Do not identify or rebuild individual responses."
+      })
+    });
+    data.setMessage("Customer approved for rewards reports.");
     await refreshDataUnion();
   }
 
@@ -1993,29 +2129,62 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
         policyId: activeDataUnionPolicy.id,
         resultId: selectedResultId,
         productType: "AggregateResultDataset",
-        title: `${selectedQuestion.title} aggregate signal`.slice(0, 140),
-        description: "Anonymous result totals, method notes, and proof links for approved buyers.",
-        methodology: "Derived only from the published public receipt and proof record.",
+        title: `${selectedQuestion.title} combined answer`.slice(0, 140),
+        description: "Anonymous result totals, method notes, and proof links for approved customers.",
+        methodology: "Built only from the public result receipt and proof record.",
         pricePc: 1000
       })
     });
-    data.setMessage("Data Rewards report published.");
+    data.setMessage("Rewards report published.");
     await refreshDataUnion();
   }
 
   async function grantDataUnionAccess() {
-    if (!selectedQuestionCommunity || !data.activeUser || !firstPublishedDataProduct) return;
+    if (!selectedQuestionCommunity || !data.activeUser || !firstPublishedDataProduct || !firstApprovedDataUnionBuyer) return;
     await apiCall(`/communities/${selectedQuestionCommunity.id}/data-union/products/${firstPublishedDataProduct.id}/access-grants`, {
       method: "POST",
       body: JSON.stringify({
         steward: data.activeUser.id,
-        buyerId: "public-interest-research-lab",
-        buyerType: "ResearchPartner",
-        accessPurpose: "Analyze aggregate civic sentiment without respondent identification.",
+        buyerId: firstApprovedDataUnionBuyer.buyerId,
+        buyerType: firstApprovedDataUnionBuyer.buyerType,
+        accessPurpose: "Study the community answer without identifying individual voters.",
+        licenseTemplate: "AggregateResearch",
         paymentPc: firstPublishedDataProduct.pricePc
       })
     });
-    data.setMessage("Buyer access recorded.");
+    data.setMessage("Report sharing recorded.");
+    await refreshDataUnion();
+  }
+
+  async function recordDataUnionSettlement() {
+    if (!selectedQuestionCommunity || !data.activeUser || !firstUnsettledDataUnionGrant) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/data-union/access-grants/${firstUnsettledDataUnionGrant.id}/settlements`, {
+      method: "POST",
+      body: JSON.stringify({
+        steward: data.activeUser.id,
+        rail: "ExternalReference",
+        unit: "PC",
+        amountPc: firstUnsettledDataUnionGrant.paymentPc,
+        feesPc: 0,
+        externalReference: `demo-settlement-${firstUnsettledDataUnionGrant.id}`,
+        settlementProof: "Demo external payment reference recorded by the community guide.",
+        status: "Settled"
+      })
+    });
+    data.setMessage("Payment recorded and rewards are ready to claim.");
+    await refreshDataUnion();
+  }
+
+  async function claimDataUnionReward() {
+    if (!selectedQuestionCommunity || !data.activeUser || !firstClaimableDataUnionGrant) return;
+    await apiCall(`/communities/${selectedQuestionCommunity.id}/data-union/access-grants/${firstClaimableDataUnionGrant.id}/claims`, {
+      method: "POST",
+      body: JSON.stringify({
+        demoClaimantId: data.activeUser.id,
+        destinationAccount: data.activeUser.smartAccountAddress ?? data.activeUser.id
+      })
+    });
+    data.setMessage("Reward claimed.");
     await refreshDataUnion();
   }
 
@@ -2028,8 +2197,8 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
         authorityLevel: "Recognized",
         eligibleQuestionTypes: ["community", selectedQuestionCommunity.slug],
         credentialSchemaIds: [selectedQuestionCommunity.credentialSchemaId],
-        quorumRule: "Community steward recognition for local MVP social-client policy.",
-        approvalRule: "Community guide activation under transparent policy record."
+        quorumRule: "Community guide recognition for this local demo.",
+        approvalRule: "Community guide turns the rule on under a public record."
       })
     });
     data.setMessage("Next-step rule suggested.");
@@ -2166,7 +2335,7 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
           {!data.activeUser ? (
             <div className="empty-state">
               <h3>Log in to ask a question</h3>
-              <p>Your account lets communities check, vote, and route results back to the right audience.</p>
+              <p>Your account lets communities review questions, vote privately, and share results with the right people.</p>
               <div className="button-row">
                 <Link className="button-link" href="/login">
                   <IconLabel icon={LogIn}>Log in</IconLabel>
@@ -2223,22 +2392,25 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
                     value={questionDraft.resultMode}
                     onChange={(event) => setQuestionDraft((current) => ({ ...current, resultMode: event.target.value as PollResultMode }))}
                   >
-                    <option value="ShowBoth">Show people and communities</option>
-                    <option value="PeopleVote">People vote</option>
-                    <option value="CommunitiesSignal">Communities signal</option>
+                    <option value="ShowBoth">Show both people and communities</option>
+                    <option value="PeopleVote">Count individual people</option>
+                    <option value="CommunitiesSignal">Count community groups</option>
                   </select>
                 </label>
-                <select
-                  aria-label="Question format"
-                  value={questionDraft.answerSchemaId}
-                  onChange={(event) => setQuestionDraft((current) => ({ ...current, answerSchemaId: event.target.value }))}
-                >
-                  {BuiltInAnswerSchemas.map((schema) => (
-                    <option key={schema.answerSchemaId} value={schema.answerSchemaId}>
-                      {schema.label}
-                    </option>
-                  ))}
-                </select>
+                <label className="field-label">
+                  Answer type
+                  <select
+                    aria-label="Answer type"
+                    value={questionDraft.answerSchemaId}
+                    onChange={(event) => setQuestionDraft((current) => ({ ...current, answerSchemaId: event.target.value }))}
+                  >
+                    {BuiltInAnswerSchemas.map((schema) => (
+                      <option key={schema.answerSchemaId} value={schema.answerSchemaId}>
+                        {schema.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <input
                   aria-label="Sponsor disclosure"
                   placeholder="Who is asking? (optional)"
@@ -2261,7 +2433,7 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
       return (
         <div className="empty-state">
           <strong>Loading question</strong>
-          <p>The conversation and results are opening.</p>
+          <p>Opening the conversation and results.</p>
         </div>
       );
     }
@@ -2280,7 +2452,7 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
         <section className="panel question-primary">
           <div className="statusline">
             <span>{publicQuestionStatus(selectedQuestion.status)}</span>
-            <span>{selectedQuestion.poll ? publicPollStatus(selectedQuestion.poll.status) : "No vote yet"}</span>
+            <span>{selectedQuestion.poll ? publicPollStatus(selectedQuestion.poll.status) : "No voting yet"}</span>
             <span>{publicAuthorityLabel(selectedQuestion.authorityLevel)}</span>
             <span>{publicResultModeLabel(selectedQuestion.resultMode)}</span>
           </div>
@@ -2300,11 +2472,11 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
               </dd>
             </div>
             <div>
-              <dt>Turnout</dt>
+              <dt>Votes</dt>
               <dd>{selectedQuestion.poll?.result?.turnout ?? 0}</dd>
             </div>
             <div>
-              <dt>Version</dt>
+              <dt>Draft</dt>
               <dd>{selectedQuestion.version}</dd>
             </div>
           </dl>
@@ -2392,7 +2564,7 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
               <section className="action-group">
                 <div className="group-heading">
                   <h3>Question check</h3>
-                  <p>Flag unclear wording, resolve flags, or open the question for voting.</p>
+                  <p>Flag unclear wording, review flags, or open the question for voting.</p>
                 </div>
                 <div className="actions">
                   <button type="button" onClick={() => void runCivicAction(challengeQuestion)} disabled={!canChallengeQuestion || pending}>
@@ -2413,7 +2585,7 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
               <section className="action-group">
                 <div className="group-heading">
                   <h3>Results</h3>
-                  <p>Close voting, count private votes, publish the public receipt.</p>
+                  <p>Close voting, count private votes, and publish the public receipt.</p>
                 </div>
                 <div className="actions">
                   <button type="button" onClick={() => void runCivicAction(closeAndTally)} disabled={!canCloseAndTally || pending}>
@@ -2440,14 +2612,14 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
         <details className="panel advanced-panel">
           <summary>
             <span>Proof everyone can check</span>
-            <small>Public receipt and replay</small>
+            <small>Public receipt and step-by-step check</small>
           </summary>
           <CivicAuditPanel record={civicRecord} replay={replayCheck} loading={auditLoading} message={auditMessage} />
         </details>
         <details className="panel advanced-panel">
           <summary>
-            <span>Data Rewards</span>
-            <small>Sharing rules and reports</small>
+            <span>Rewards</span>
+            <small>Reports and payments</small>
           </summary>
           <DataUnionPanel
             dataUnion={dataUnion}
@@ -2456,19 +2628,25 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
             actionPending={pending}
             canSteward={canStewardDataUnion}
             canConsent={canConsentToDataUnion}
+            canApproveBuyer={canApproveDataUnionBuyer}
             canPublishProduct={canPublishDataUnionProduct}
             canGrantAccess={canGrantDataUnionAccess}
+            canRecordSettlement={canRecordDataUnionSettlement}
+            canClaimReward={canClaimDataUnionReward}
             showActions={Boolean(data.activeUser)}
             onProposePolicy={() => void runCivicAction(proposeDataUnionPolicy)}
             onActivatePolicy={() => void runCivicAction(activateDataUnionPolicy)}
             onRecordConsent={() => void runCivicAction(recordDataUnionConsent)}
+            onApproveBuyer={() => void runCivicAction(approveDataUnionBuyer)}
             onPublishProduct={() => void runCivicAction(publishDataUnionProduct)}
             onGrantAccess={() => void runCivicAction(grantDataUnionAccess)}
+            onRecordSettlement={() => void runCivicAction(recordDataUnionSettlement)}
+            onClaimReward={() => void runCivicAction(claimDataUnionReward)}
           />
           {!data.activeUser ? (
             <AuthRequiredCallout
-              title="Log in for Data Rewards"
-              body="Signed-in members can opt in, suggest sharing rules, and help publish reports."
+              title="Log in for rewards"
+              body="Signed-in members can opt in, suggest reward rules, and help publish reports."
               actionLabel="Log in"
             />
           ) : null}
@@ -2505,7 +2683,7 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
     return (
       <section className="question-page">
         <Link className="back-link" href="/feed">
-          <IconLabel icon={ArrowLeft}>Back to Feed</IconLabel>
+          <IconLabel icon={ArrowLeft}>Back to questions</IconLabel>
         </Link>
         {renderQuestionDetail()}
         {data.message ? <p className="message">{data.message}</p> : null}
@@ -2567,7 +2745,7 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
                     if (event.target.value) void selectCommunity(event.target.value);
                   }}
                 >
-                  <option value="">Choose from the full registry</option>
+                  <option value="">Choose any community</option>
                   {data.communities.map((community) => (
                     <option key={community.id} value={community.id}>
                       {compactCommunityLabel(community)}
@@ -2633,13 +2811,13 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
       <div className="social-main">
         <section className="feed-hero">
           <div>
-            <p className="eyebrow">Community feed</p>
+            <p className="eyebrow">Community questions</p>
             <h1>{siteCopy.nav.feed}</h1>
             <p className="muted">Find questions from your communities, cast a private vote, and see the public answer.</p>
           </div>
           <div className="network-stats">
             <span>{data.communities.length} communities</span>
-            <span>{feedItems.length} feed items</span>
+            <span>{feedItems.length} posts</span>
             <span>{data.discovery?.communityFollows.length ?? 0} follows</span>
           </div>
         </section>
@@ -2652,16 +2830,16 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
         <section className="panel feed-list-panel">
           <div className="section-heading">
             <div>
-              <h2>{feedScope === "profile" ? "My profile feed" : feedScope === "community" ? "Community feed" : feedScope === "global" ? "Global feed" : feedScope === "following" ? "Following" : "For You"}</h2>
-              <p className="muted">{data.loading || feedLoading ? "Loading feed" : `${filteredFeedItems.length} visible items`}</p>
+              <h2>{feedScope === "profile" ? "My profile" : feedScope === "community" ? "This community" : feedScope === "global" ? "Everyone" : feedScope === "following" ? "Following" : "For You"}</h2>
+              <p className="muted">{data.loading || feedLoading ? "Loading questions" : `${filteredFeedItems.length} visible posts`}</p>
             </div>
           </div>
           <div className="feed-tabs" role="tablist" aria-label="Feed scopes">
             {[
               { key: "for-you", label: "For You" },
-              { key: "global", label: "Global" },
+              { key: "global", label: "Everyone" },
               { key: "following", label: "Following" },
-              { key: "profile", label: "My Profile" }
+              { key: "profile", label: "My profile" }
             ].map((scope) => (
               <button
                 key={scope.key}
@@ -2717,7 +2895,7 @@ export function FeedPageClient({ questionId }: { questionId?: string } = {}) {
               )
             ) : (
               <div className="empty-state">
-                <strong>No feed items in this view</strong>
+                <strong>No questions here yet</strong>
                 <p>Switch feeds or ask the first question.</p>
               </div>
             )}
@@ -2876,7 +3054,7 @@ export function PublicProfilePageClient({ username }: { username: string }) {
             </Link>
           )}
           <Link className="button-link secondary" href="/feed">
-            <IconLabel icon={Rss}>Open feed</IconLabel>
+            <IconLabel icon={Rss}>See questions</IconLabel>
           </Link>
         </div>
       </section>
@@ -2904,9 +3082,9 @@ export function PublicProfilePageClient({ username }: { username: string }) {
         <section className="panel feed-list-panel">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Profile feed</p>
+              <p className="eyebrow">Profile questions</p>
               <h2>{profile.displayName}'s questions</h2>
-              <p className="muted">Public questions appear here. Follower-only questions stay private unless you are in that audience.</p>
+              <p className="muted">Public questions appear here. Follower-only questions stay hidden unless you are part of that audience.</p>
             </div>
           </div>
           <div className="post-list">
@@ -2941,7 +3119,7 @@ export function PublicProfilePageClient({ username }: { username: string }) {
             <>
               <div className="statusline">
                 <span>{publicQuestionStatus(selectedQuestion.status)}</span>
-                <span>{selectedQuestion.poll ? publicPollStatus(selectedQuestion.poll.status) : "No vote yet"}</span>
+                <span>{selectedQuestion.poll ? publicPollStatus(selectedQuestion.poll.status) : "No voting yet"}</span>
                 <span>{selectedQuestion.audience === "Members" ? "Members" : selectedQuestion.audience === "Followers" ? "Followers" : "Everyone"}</span>
               </div>
               <h2>{selectedQuestion.title}</h2>
@@ -2952,11 +3130,11 @@ export function PublicProfilePageClient({ username }: { username: string }) {
                   <dd>{compactCommunityLabel(selectedQuestion.community)}</dd>
                 </div>
                 <div>
-                  <dt>Turnout</dt>
+                  <dt>Votes</dt>
                   <dd>{selectedQuestion.poll?.result?.turnout ?? 0}</dd>
                 </div>
                 <div>
-                  <dt>Public receipt</dt>
+                  <dt>Result receipt</dt>
                   <dd>{shortHash(selectedQuestion.poll?.result?.resultArtifactHash)}</dd>
                 </div>
               </dl>
@@ -2968,7 +3146,7 @@ export function PublicProfilePageClient({ username }: { username: string }) {
             </div>
           )}
           <div className="profile-receipt">
-            <span>Profile receipt</span>
+            <span>Profile proof</span>
             <strong>{shortHash(profileArtifactHash)}</strong>
           </div>
         </aside>
@@ -3056,7 +3234,7 @@ export function AccountPageClient() {
     try {
       await apiCall(`/communities/${proposal.parentId}/child-proposals/${proposal.id}/approve`, {
         method: "POST",
-        body: JSON.stringify({ curator: data.activeUser.id, reason: "Approved from the account stewardship panel." })
+        body: JSON.stringify({ curator: data.activeUser.id, reason: "Approved from the profile community tools." })
       });
       data.setMessage(`${proposal.title} approved under its parent community.`);
       setChildProposals((current) => current.filter((item) => item.id !== proposal.id));
@@ -3120,13 +3298,13 @@ export function AccountPageClient() {
           <div>
             <p className="eyebrow">Popular Consensus</p>
             <h1>{siteCopy.nav.account}</h1>
-            <p className="muted">Log in to manage your profile, communities, and questions.</p>
+            <p className="muted">Log in to update your profile, communities, and questions.</p>
           </div>
         </section>
         <section className="panel account-gate">
           <AuthRequiredCallout
-            title="Log in to view My Account"
-            body="Your account page includes private profile controls, community tools, and questions you have asked."
+            title="Log in to view your profile"
+            body="Your profile page includes private profile controls, community tools, and questions you have asked."
             actionLabel="Log in"
           />
           <Link className="button-link" href="/signup">
@@ -3144,7 +3322,7 @@ export function AccountPageClient() {
         <div>
           <p className="eyebrow">Popular Consensus</p>
           <h1>{siteCopy.nav.account}</h1>
-          <p className="muted">Manage your profile, communities, and questions.</p>
+          <p className="muted">Update your profile, communities, and questions.</p>
         </div>
       </section>
       <div className="account-hero">
@@ -3242,7 +3420,7 @@ export function AccountPageClient() {
         <section className="panel account-list">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Child proposals</p>
+              <p className="eyebrow">New communities</p>
               <h2>Communities to check</h2>
             </div>
           </div>
@@ -3282,7 +3460,7 @@ export function AccountPageClient() {
             ))}
             {!childProposals.length ? (
               <div className="empty-state">
-                <strong>No child communities waiting</strong>
+                <strong>No new communities waiting</strong>
               </div>
             ) : null}
           </div>
@@ -3316,7 +3494,7 @@ export function AccountPageClient() {
         <section className="panel account-list">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Published</p>
+              <p className="eyebrow">Asked</p>
               <h2>Questions I asked</h2>
             </div>
           </div>

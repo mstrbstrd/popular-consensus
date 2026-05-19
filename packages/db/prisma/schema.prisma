@@ -195,6 +195,9 @@ model Community {
   dataUnionConsents     DataUnionConsent[]
   dataUnionProducts     DataUnionProduct[]
   dataUnionAccessGrants DataUnionAccessGrant[]
+  dataUnionBuyers       DataUnionBuyer[]
+  dataUnionSettlements  DataUnionSettlement[]
+  dataUnionClaims       DataUnionClaim[]
 
   @@index([kind, createdAt])
   @@index([parentId, registryStatus, createdAt])
@@ -699,6 +702,7 @@ model DataUnionProduct {
   policy            DataUnionPolicy        @relation(fields: [policyId], references: [id])
   result            Result                 @relation(fields: [resultId], references: [id])
   accessGrants      DataUnionAccessGrant[]
+  claims            DataUnionClaim[]
 
   @@index([communityId, status, createdAt])
   @@index([policyId, status, createdAt])
@@ -713,10 +717,12 @@ model DataUnionAccessGrant {
   buyerId           String
   buyerType         String           @default("ApprovedCustomer")
   purposeHash       String
+  licenseTemplate   String           @default("AggregateResearch")
   licenseHash       String
   paymentPc         Int              @default(0)
   treasuryPc        Int              @default(0)
   participantPoolPc Int              @default(0)
+  pollAuthorRoyaltyPc Int            @default(0)
   operatorPoolPc    Int              @default(0)
   accessHash        String
   status            String           @default("Active")
@@ -725,10 +731,89 @@ model DataUnionAccessGrant {
   revokedAt         DateTime?
   community         Community        @relation(fields: [communityId], references: [id])
   product           DataUnionProduct @relation(fields: [productId], references: [id])
+  settlements       DataUnionSettlement[]
+  claims            DataUnionClaim[]
 
   @@index([communityId, status, createdAt])
   @@index([productId, status, createdAt])
   @@index([buyerId, status, createdAt])
+}
+
+model DataUnionBuyer {
+  id                  String    @id
+  communityId         String
+  buyerId             String
+  buyerType           String    @default("ApprovedCustomer")
+  status              String    @default("Approved")
+  allowedProductTypes String[]
+  purposeHash         String
+  eligibilityHash     String
+  licenseTemplate     String    @default("AggregateResearch")
+  licenseTemplateHash String
+  approvalHash        String
+  approvedBy          String
+  approvedAt          DateTime  @default(now())
+  suspendedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
+  community           Community @relation(fields: [communityId], references: [id])
+
+  @@unique([communityId, buyerId])
+  @@index([communityId, status, createdAt])
+  @@index([buyerId, status, createdAt])
+}
+
+model DataUnionSettlement {
+  id                    String               @id
+  communityId           String
+  accessGrantId         String
+  rail                  String               @default("ExternalReference")
+  unit                  String               @default("PC")
+  amountPc              Int                  @default(0)
+  feesPc                Int                  @default(0)
+  settledPc             Int                  @default(0)
+  externalReferenceHash String
+  settlementProofHash   String
+  settlementHash        String               @unique
+  status                String               @default("Settled")
+  recordedBy            String
+  settledAt             DateTime?
+  createdAt             DateTime             @default(now())
+  community             Community            @relation(fields: [communityId], references: [id])
+  accessGrant           DataUnionAccessGrant @relation(fields: [accessGrantId], references: [id])
+  claims                DataUnionClaim[]
+
+  @@index([communityId, status, createdAt])
+  @@index([accessGrantId, status, createdAt])
+}
+
+model DataUnionClaim {
+  id                  String               @id
+  communityId         String
+  accessGrantId       String
+  settlementId        String
+  productId           String
+  policyId            String
+  role                String
+  claimantId          String?
+  receiptHash         String?
+  amountPc            Int                  @default(0)
+  claimHash           String               @unique
+  redemptionHash      String?
+  redemptionNullifier String?              @unique
+  status              String               @default("Claimable")
+  createdAt           DateTime             @default(now())
+  claimedAt           DateTime?
+  community           Community            @relation(fields: [communityId], references: [id])
+  accessGrant         DataUnionAccessGrant @relation(fields: [accessGrantId], references: [id])
+  settlement          DataUnionSettlement  @relation(fields: [settlementId], references: [id])
+  product             DataUnionProduct     @relation(fields: [productId], references: [id])
+
+  @@index([communityId, status, createdAt])
+  @@index([accessGrantId, role, status])
+  @@index([settlementId, role, status])
+  @@index([receiptHash, status])
+  @@index([claimantId, status])
 }
 
 model ResultChallenge {

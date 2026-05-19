@@ -157,7 +157,7 @@ describe("adoption policy request schemas", () => {
         approvalRule: "Majority approval after board notice.",
         forkRule: "Members may fork records under cooperative bylaws."
       })
-    ).toThrow("Binding adoption policies require explicit legal handoff metadata.");
+    ).toThrow("Committed-decision rules require an explicit legal or community handoff.");
   });
 });
 

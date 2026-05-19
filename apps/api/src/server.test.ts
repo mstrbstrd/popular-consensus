@@ -530,7 +530,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       payload: { credentialId: unopenedIssued.credentialId, credentialSecret: unopenedIssued.secret, choice: "support" }
     });
     expect(unopenedVote.statusCode).toBe(409);
-    expect(unopenedVote.json().error).toBe("Poll is not open");
+    expect(unopenedVote.json().error).toBe("Voting is not open");
 
     const challenge = await app.inject({
       method: "POST",
@@ -665,7 +665,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       payload: { credentialId: issued.credentialId, credentialSecret: issued.secret, choice: "oppose" }
     });
     expect(duplicateVote.statusCode).toBe(409);
-    expect(duplicateVote.json().error).toBe("Duplicate ballot nullifier rejected");
+    expect(duplicateVote.json().error).toBe("You have already voted on this question");
 
     const close = await app.inject({ method: "POST", url: `/polls/${pollId}/close`, payload: {} });
     expect(close.statusCode).toBe(200);
@@ -1899,7 +1899,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       }
     });
     expect(blockedVote.statusCode).toBe(403);
-    expect(blockedVote.json().error).toBe("Credential issuer is not active");
+    expect(blockedVote.json().error).toBe("Voting pass issuer is not active");
 
     const communityExport = await app.inject({ method: "GET", url: "/communities/community-vancouver/export?userId=demo-curator" });
     expect(communityExport.statusCode).toBe(200);
@@ -2007,7 +2007,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       payload: { credentialId: issued.credentialId, credentialSecret: issued.secret, choice: "support" }
     });
     expect(revokedVote.statusCode).toBe(403);
-    expect(revokedVote.json().error).toBe("Credential is revoked");
+    expect(revokedVote.json().error).toBe("Voting pass was revoked");
 
     await prisma.credentialSchema.update({ where: { id: "credential-vancouver-resident" }, data: { expiresAfter: 1 } });
     const expiringCredential = await app.inject({
@@ -2028,7 +2028,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       payload: { credentialId: expiringIssued.credentialId, credentialSecret: expiringIssued.secret, choice: "support" }
     });
     expect(expiredVote.statusCode).toBe(403);
-    expect(expiredVote.json().error).toBe("Credential is expired");
+    expect(expiredVote.json().error).toBe("Voting pass is expired");
 
     const rootEvents = await app.inject({
       method: "GET",
@@ -2105,7 +2105,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       payload: { credential: { ...exported.json().walletCredential, secret: "tampered-secret" } }
     });
     expect(tamperedImport.statusCode).toBe(400);
-    expect(tamperedImport.json().error).toBe("Wallet credential id does not match its secret");
+    expect(tamperedImport.json().error).toBe("Wallet voting pass does not match its secret");
 
     const imported = await app.inject({
       method: "POST",
@@ -2131,7 +2131,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
     expect(JSON.stringify(communityExport.json())).not.toContain(issued.secret);
   });
 
-  it("accepts explicit credential membership and nullifier proofs for signup and voting", async () => {
+  it("accepts explicit voting-pass proofs for signup and voting", async () => {
     const question = await app.inject({
       method: "POST",
       url: "/questions",
@@ -2196,7 +2196,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       }
     });
     expect(tamperedVote.statusCode).toBe(403);
-    expect(tamperedVote.json().error).toBe("Invalid credential membership proof");
+    expect(tamperedVote.json().error).toBe("Voting pass proof could not be verified");
 
     const vote = await app.inject({
       method: "POST",
@@ -2302,7 +2302,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       }
     });
     expect(blockedVote.statusCode).toBe(403);
-    expect(blockedVote.json().error).toBe("Credential issuer is not trusted by this community");
+    expect(blockedVote.json().error).toBe("Voting pass issuer is not trusted by this community");
 
     const trustedCredential = await app.inject({
       method: "POST",
@@ -2770,7 +2770,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       }
     });
     expect(bindingWithoutHandoff.statusCode).toBe(400);
-    expect(bindingWithoutHandoff.json().error).toBe("Binding adoption policies require explicit legal handoff metadata.");
+    expect(bindingWithoutHandoff.json().error).toBe("Committed-decision rules require an explicit legal or community handoff.");
 
     const proposal = await app.inject({
       method: "POST",
@@ -3179,7 +3179,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
         title: "Aggregate transit research data union",
         purpose: "Allow opt-in aggregate transit poll products to be licensed to approved research buyers.",
         minimumCohortSize: 1,
-        revenueSplit: { communityTreasuryPercent: 60, participantPoolPercent: 30, operatorPoolPercent: 10 }
+        revenueSplit: { communityTreasuryPercent: 55, participantPoolPercent: 25, pollAuthorRoyaltyPercent: 10, operatorPoolPercent: 10 }
       }
     });
     expect(policyProposal.statusCode).toBe(200);
@@ -3188,7 +3188,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       id: policyId,
       status: "Proposed",
       minimumCohortSize: 1,
-      revenueSplit: { communityTreasuryPercent: 60, participantPoolPercent: 30, operatorPoolPercent: 10 }
+      revenueSplit: { communityTreasuryPercent: 55, participantPoolPercent: 25, pollAuthorRoyaltyPercent: 10, operatorPoolPercent: 10 }
     });
     expect(policyProposal.json().policyArtifact.value).toMatchObject({
       artifactKind: "data-union-policy",
@@ -3277,7 +3277,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
     });
     expect(JSON.stringify(product.json().productArtifact.value)).not.toContain("encryptedPayloadJson");
 
-    const grant = await app.inject({
+    const blockedGrant = await app.inject({
       method: "POST",
       url: `/communities/community-vancouver/data-union/products/${productId}/access-grants`,
       payload: {
@@ -3288,6 +3288,110 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
         paymentPc: 1000
       }
     });
+    expect(blockedGrant.statusCode).toBe(403);
+    expect(blockedGrant.json()).toMatchObject({ error: "Data-union buyer must be steward-approved before access is granted" });
+
+    const buyerApproval = await app.inject({
+      method: "POST",
+      url: "/communities/community-vancouver/data-union/buyers",
+      payload: {
+        steward: "demo-curator",
+        buyerId: "metro-research-lab",
+        buyerType: "ResearchPartner",
+        allowedProductTypes: ["AggregateResultDataset"],
+        approvedPurpose: "Model aggregate public-space sentiment without respondent identification.",
+        eligibilityEvidence: "Steward-reviewed research partner for the Data Union economics test.",
+        licenseTemplate: "AggregateResearch",
+        licenseTerms: "Aggregate research use only; no re-identification or response reconstruction."
+      }
+    });
+    expect(buyerApproval.statusCode).toBe(200);
+    const buyerRecordId = buyerApproval.json().buyer.id as string;
+    expect(buyerApproval.json().buyer).toMatchObject({
+      id: buyerRecordId,
+      buyerId: "metro-research-lab",
+      status: "Approved",
+      licenseTemplate: "AggregateResearch"
+    });
+    expect(buyerApproval.json().approvalArtifact.value).toMatchObject({
+      artifactKind: "data-union-buyer-approval",
+      schemaVersion: "pc-data-union-buyer-approval-v1",
+      buyerId: "metro-research-lab",
+      eligibilityHash: expect.any(String)
+    });
+
+    const typeMismatchGrant = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/products/${productId}/access-grants`,
+      payload: {
+        steward: "demo-curator",
+        buyerId: "metro-research-lab",
+        buyerType: "ApprovedCustomer",
+        accessPurpose: "Try to reuse an approved buyer under the wrong buyer type.",
+        licenseTemplate: "AggregateResearch",
+        paymentPc: 1000
+      }
+    });
+    expect(typeMismatchGrant.statusCode).toBe(409);
+    expect(typeMismatchGrant.json()).toMatchObject({ error: "Data-union buyer type does not match the approved buyer record" });
+
+    const licenseMismatchGrant = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/products/${productId}/access-grants`,
+      payload: {
+        steward: "demo-curator",
+        buyerId: "metro-research-lab",
+        buyerType: "ResearchPartner",
+        accessPurpose: "Try to use a license template that was not approved.",
+        licenseTemplate: "PublicInterest",
+        paymentPc: 1000
+      }
+    });
+    expect(licenseMismatchGrant.statusCode).toBe(409);
+    expect(licenseMismatchGrant.json()).toMatchObject({ error: "Access grant license template does not match the approved buyer license" });
+
+    const methodologyOnlyBuyer = await app.inject({
+      method: "POST",
+      url: "/communities/community-vancouver/data-union/buyers",
+      payload: {
+        steward: "demo-curator",
+        buyerId: "methodology-only-lab",
+        buyerType: "ResearchPartner",
+        allowedProductTypes: ["MethodologyExport"],
+        approvedPurpose: "Review methodology notes only.",
+        eligibilityEvidence: "Steward-reviewed buyer for methodology exports only.",
+        licenseTemplate: "AggregateResearch",
+        licenseTerms: "Methodology export use only."
+      }
+    });
+    expect(methodologyOnlyBuyer.statusCode).toBe(200);
+    const productTypeMismatchGrant = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/products/${productId}/access-grants`,
+      payload: {
+        steward: "demo-curator",
+        buyerId: "methodology-only-lab",
+        buyerType: "ResearchPartner",
+        accessPurpose: "Try to access an aggregate result dataset with methodology-only approval.",
+        licenseTemplate: "AggregateResearch",
+        paymentPc: 1000
+      }
+    });
+    expect(productTypeMismatchGrant.statusCode).toBe(409);
+    expect(productTypeMismatchGrant.json()).toMatchObject({ error: "Approved buyer is not eligible for this product type" });
+
+    const grant = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/products/${productId}/access-grants`,
+      payload: {
+        steward: "demo-curator",
+        buyerId: "metro-research-lab",
+        buyerType: "ResearchPartner",
+        accessPurpose: "Model aggregate public-space sentiment without respondent identification.",
+        licenseTemplate: "AggregateResearch",
+        paymentPc: 1000
+      }
+    });
     expect(grant.statusCode).toBe(200);
     const grantId = grant.json().accessGrant.id as string;
     expect(grant.json().accessGrant).toMatchObject({
@@ -3295,10 +3399,151 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       productId,
       buyerId: "metro-research-lab",
       paymentPc: 1000,
-      treasuryPc: 600,
-      participantPoolPc: 300,
+      treasuryPc: 550,
+      participantPoolPc: 250,
+      pollAuthorRoyaltyPc: 100,
       operatorPoolPc: 100
     });
+
+    const claimBeforeSettlement = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/access-grants/${grantId}/claims`,
+      payload: { demoClaimantId: "demo-resident", destinationAccount: "demo-resident" }
+    });
+    expect(claimBeforeSettlement.statusCode).toBe(404);
+    expect(claimBeforeSettlement.json()).toMatchObject({ error: "Data-union participant claim not found" });
+
+    const invalidSettlement = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/access-grants/${grantId}/settlements`,
+      payload: {
+        steward: "demo-curator",
+        rail: "ExternalReference",
+        unit: "PC",
+        amountPc: 100,
+        feesPc: 101,
+        externalReference: "invalid-fee-demo",
+        settlementProof: "Invalid fee proof.",
+        status: "Settled"
+      }
+    });
+    expect(invalidSettlement.statusCode).toBe(400);
+    expect(invalidSettlement.json()).toMatchObject({ error: "Settlement fees cannot exceed the settlement amount" });
+
+    const pendingSettlement = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/access-grants/${grantId}/settlements`,
+      payload: {
+        steward: "demo-curator",
+        rail: "ExternalReference",
+        unit: "PC",
+        amountPc: 1000,
+        feesPc: 0,
+        externalReference: "invoice-demo-data-union-pending",
+        settlementProof: "Demo invoice created but not paid.",
+        status: "Pending"
+      }
+    });
+    expect(pendingSettlement.statusCode).toBe(200);
+    const pendingSettlementId = pendingSettlement.json().settlement.id as string;
+    expect(pendingSettlement.json()).toMatchObject({
+      settlement: { id: pendingSettlementId, status: "Pending", settledPc: 0 },
+      claims: []
+    });
+
+    const unsettledLedger = await app.inject({ method: "GET", url: `/communities/community-vancouver/treasury/ledger?questionId=${questionId}` });
+    expect(unsettledLedger.statusCode).toBe(200);
+    expect(unsettledLedger.json().totals).toMatchObject({ dataUnionRevenuePc: 0, participantPoolPc: 0, pollAuthorRoyaltyPc: 0, operatorPoolPc: 0 });
+
+    const settlement = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/access-grants/${grantId}/settlements`,
+      payload: {
+        steward: "demo-curator",
+        rail: "ExternalReference",
+        unit: "PC",
+        amountPc: 1000,
+        feesPc: 0,
+        externalReference: "invoice-demo-data-union-001",
+        settlementProof: "Demo invoice marked paid by the steward.",
+        status: "Settled"
+      }
+    });
+    expect(settlement.statusCode).toBe(200);
+    const settlementId = settlement.json().settlement.id as string;
+    expect(settlement.json().settlement).toMatchObject({
+      id: settlementId,
+      accessGrantId: grantId,
+      rail: "ExternalReference",
+      amountPc: 1000,
+      settledPc: 1000,
+      status: "Settled"
+    });
+    expect(settlement.json().claims).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: "CommunityTreasury", amountPc: 550, status: "Claimable" }),
+        expect.objectContaining({ role: "Participant", amountPc: 250, status: "Claimable" }),
+        expect.objectContaining({ role: "PollAuthor", amountPc: 100, status: "Claimable" }),
+        expect.objectContaining({ role: "OperatorPool", amountPc: 100, status: "Claimable" })
+      ])
+    );
+    expect(JSON.stringify(settlement.json().claims)).not.toContain("demo-resident");
+
+    const duplicateSettlement = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/access-grants/${grantId}/settlements`,
+      payload: {
+        steward: "demo-curator",
+        rail: "ExternalReference",
+        unit: "PC",
+        amountPc: 1000,
+        feesPc: 0,
+        externalReference: "invoice-demo-data-union-duplicate",
+        settlementProof: "Duplicate paid invoice attempt.",
+        status: "Settled"
+      }
+    });
+    expect(duplicateSettlement.statusCode).toBe(409);
+    expect(duplicateSettlement.json()).toMatchObject({ error: "Data-union access grant already has a settled payment" });
+
+    const wrongClaimant = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/access-grants/${grantId}/claims`,
+      payload: { demoClaimantId: "demo-curator", destinationAccount: "demo-curator" }
+    });
+    expect(wrongClaimant.statusCode).toBe(404);
+    expect(wrongClaimant.json()).toMatchObject({ error: "Data-union participant claim not found" });
+
+    const previousDemoMode = config.demoMode;
+    config.demoMode = false;
+    const blockedDemoClaim = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/access-grants/${grantId}/claims`,
+      payload: { demoClaimantId: "demo-resident", destinationAccount: "demo-resident" }
+    });
+    config.demoMode = previousDemoMode;
+    expect(blockedDemoClaim.statusCode).toBe(403);
+    expect(blockedDemoClaim.json()).toMatchObject({ error: "Explicit demo data-union claims are disabled outside demo mode" });
+
+    const redeemedClaim = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/access-grants/${grantId}/claims`,
+      payload: { demoClaimantId: "demo-resident", destinationAccount: "demo-resident" }
+    });
+    expect(redeemedClaim.statusCode).toBe(200);
+    expect(redeemedClaim.json()).toMatchObject({
+      redeemed: true,
+      claim: { role: "Participant", amountPc: 250, status: "Claimed" }
+    });
+    expect(JSON.stringify(redeemedClaim.json().claim)).not.toContain("demo-resident");
+
+    const duplicateClaim = await app.inject({
+      method: "POST",
+      url: `/communities/community-vancouver/data-union/access-grants/${grantId}/claims`,
+      payload: { demoClaimantId: "demo-resident", destinationAccount: "demo-resident" }
+    });
+    expect(duplicateClaim.statusCode).toBe(409);
+    expect(duplicateClaim.json()).toMatchObject({ error: "Data-union participant claim has already been redeemed" });
 
     const overview = await app.inject({ method: "GET", url: "/communities/community-vancouver/data-union" });
     expect(overview.statusCode).toBe(200);
@@ -3308,19 +3553,29 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       policies: [expect.objectContaining({ id: policyId })],
       consents: [expect.objectContaining({ id: consentId, status: "Active" })],
       products: [expect.objectContaining({ id: productId })],
+      buyers: expect.arrayContaining([expect.objectContaining({ id: buyerRecordId, status: "Approved" })]),
       accessGrants: [expect.objectContaining({ id: grantId })],
+      settlements: expect.arrayContaining([
+        expect.objectContaining({ id: pendingSettlementId, status: "Pending", settledPc: 0 }),
+        expect.objectContaining({ id: settlementId, status: "Settled" })
+      ]),
+      claims: expect.arrayContaining([expect.objectContaining({ role: "Participant", amountPc: 250, status: "Claimed" })]),
       protocol: {
-        ids: { activePolicyId: policyId, buyerIds: ["metro-research-lab"] },
+        ids: { activePolicyId: policyId, buyerIds: expect.arrayContaining(["metro-research-lab", "methodology-only-lab"]), settlementIds: [pendingSettlementId, settlementId] },
         statuses: {
           activePolicyStatus: "Active",
           activeConsentCount: 1,
+          approvedBuyerCount: 2,
           totalAccessPaymentPc: 1000,
-          communityTreasuryPc: 600,
-          participantPoolPc: 300,
+          settledAccessPaymentPc: 1000,
+          communityTreasuryPc: 550,
+          participantPoolPc: 250,
+          pollAuthorRoyaltyPc: 100,
           operatorPoolPc: 100
         }
       }
     });
+    expect(JSON.stringify(parsedOverview.claims)).not.toContain("demo-resident");
 
     const ledger = await app.inject({ method: "GET", url: `/communities/community-vancouver/treasury/ledger?questionId=${questionId}` });
     expect(ledger.statusCode).toBe(200);
@@ -3330,22 +3585,25 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
         ids: {
           dataUnionProductIds: [productId],
           dataUnionAccessGrantIds: [grantId],
+          dataUnionSettlementIds: [settlementId],
           accountIds: expect.arrayContaining([
             "data-buyer:metro-research-lab",
             "community:community-vancouver:treasury",
             "community:community-vancouver:data-union:participant-pool",
+            "demo-proposer",
             "community:community-vancouver:data-union:operator-pool"
           ])
         },
-        statuses: { dataUnionRevenuePc: 1000, participantPoolPc: 300, operatorPoolPc: 100 }
+        statuses: { dataUnionRevenuePc: 1000, participantPoolPc: 250, pollAuthorRoyaltyPc: 100, operatorPoolPc: 100 }
       },
-      totals: { dataUnionRevenuePc: 1000, participantPoolPc: 300, operatorPoolPc: 100 }
+      totals: { dataUnionRevenuePc: 1000, participantPoolPc: 250, pollAuthorRoyaltyPc: 100, operatorPoolPc: 100 }
     });
     expect(ledger.json().entries).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ entryType: "DataUnionPayment", direction: "Debit", amountPc: 1000, dataUnionAccessGrantId: grantId }),
-        expect.objectContaining({ entryType: "DataUnionRevenue", accountRole: "CommunityTreasury", amountPc: 600, dataUnionProductId: productId }),
-        expect.objectContaining({ entryType: "ParticipantPoolCredit", amountPc: 300 }),
+        expect.objectContaining({ entryType: "DataUnionPayment", direction: "Debit", amountPc: 1000, dataUnionSettlementId: settlementId }),
+        expect.objectContaining({ entryType: "DataUnionRevenue", accountRole: "CommunityTreasury", amountPc: 550, dataUnionProductId: productId }),
+        expect.objectContaining({ entryType: "ParticipantPoolCredit", amountPc: 250 }),
+        expect.objectContaining({ entryType: "PollAuthorRoyaltyCredit", accountRole: "PollAuthor", amountPc: 100, accountId: "demo-proposer" }),
         expect.objectContaining({ entryType: "OperatorPoolCredit", amountPc: 100 })
       ])
     );
@@ -3359,7 +3617,10 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
         "DataUnionPolicyActivated",
         "DataUnionConsentRecorded",
         "DataUnionProductPublished",
-        "DataUnionAccessGranted"
+        "DataUnionBuyerApproved",
+        "DataUnionAccessGranted",
+        "DataUnionSettlementRecorded",
+        "DataUnionClaimRedeemed"
       ])
     );
 
@@ -3389,16 +3650,33 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
     expect(communityExport.statusCode).toBe(200);
     PublicApiV0CommunityExportResponseSchema.parse(communityExport.json());
     expect(communityExport.json().protocol).toMatchObject({
-      ids: { activeDataUnionPolicyId: policyId, dataUnionProductIds: [productId], dataUnionAccessGrantIds: [grantId] },
-      statuses: { dataUnionPolicyCount: 1, dataUnionConsentCount: 1, dataUnionProductCount: 1, dataUnionAccessGrantCount: 1, dataUnionRevenuePc: 1000 },
+      ids: {
+        activeDataUnionPolicyId: policyId,
+        dataUnionProductIds: [productId],
+        dataUnionAccessGrantIds: [grantId],
+        dataUnionSettlementIds: [pendingSettlementId, settlementId]
+      },
+      statuses: {
+        dataUnionPolicyCount: 1,
+        dataUnionConsentCount: 1,
+        dataUnionProductCount: 1,
+        dataUnionAccessGrantCount: 1,
+        dataUnionBuyerCount: 2,
+        dataUnionSettlementCount: 2,
+        dataUnionSettledRevenuePc: 1000,
+        dataUnionClaimCount: 4
+      },
       authority: { dataUnionPrivacyBoundary: "raw ballots and identifiable responses are excluded from products and exports" }
     });
+    expect(JSON.stringify(communityExport.json().exportArtifact.artifact.dataUnionClaims)).not.toContain("demo-resident");
     expect(communityExport.json().bundle.manifest.references).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: "data-union-policy", hash: policyProposal.json().policyArtifact.hash }),
         expect.objectContaining({ kind: "data-union-consent-revocation", hash: revoked.json().revocationArtifact.hash }),
         expect.objectContaining({ kind: "data-union-product", hash: product.json().productArtifact.hash }),
-        expect.objectContaining({ kind: "data-union-access-grant", hash: grant.json().accessArtifact.hash })
+        expect.objectContaining({ kind: "data-union-buyer-approval", hash: buyerApproval.json().approvalArtifact.hash }),
+        expect.objectContaining({ kind: "data-union-access-grant", hash: grant.json().accessArtifact.hash }),
+        expect.objectContaining({ kind: "data-union-settlement", hash: settlement.json().settlementArtifact.hash })
       ])
     );
   });
@@ -3688,7 +3966,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       payload: { credentialId: issued.credentialId, credentialSecret: issued.secret, choice: "support" }
     });
     expect(rejectedVote.statusCode).toBe(409);
-    expect(rejectedVote.json().error).toBe("Poll is not open");
+    expect(rejectedVote.json().error).toBe("Voting is not open");
 
     const bonds = await app.inject({ method: "GET", url: "/registry/bonds" });
     expect(bonds.statusCode).toBe(200);
@@ -4386,7 +4664,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       payload: { holderAlias: "single-credential-holder" }
     });
     expect(duplicateCredential.statusCode).toBe(409);
-    expect(duplicateCredential.json().error).toBe("Demo resident credential already issued for this holder");
+    expect(duplicateCredential.json().error).toBe("Demo resident voting pass was already issued for this person");
 
     const vote = await app.inject({
       method: "POST",
@@ -4401,7 +4679,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       payload: { credentialId: issued.credentialId, credentialSecret: issued.secret, choice: "oppose" }
     });
     expect(duplicateVote.statusCode).toBe(409);
-    expect(duplicateVote.json().error).toBe("Duplicate ballot nullifier rejected");
+    expect(duplicateVote.json().error).toBe("You have already voted on this question");
 
     await app.inject({ method: "POST", url: `/polls/${pollId}/close`, payload: {} });
     const tally = await app.inject({ method: "POST", url: `/polls/${pollId}/tally`, payload: {} });
@@ -4437,7 +4715,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       payload: { curator: "demo-resident" }
     });
     expect(memberAccept.statusCode).toBe(403);
-    expect(memberAccept.json().error).toBe("Only community owners or moderators can curate registry items");
+    expect(memberAccept.json().error).toBe("Only community leads or guides can review questions");
 
     const accepted = await acceptQuestion(app, questionId);
     expect(accepted.json().question.status).toBe("Open");
@@ -4493,7 +4771,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       payload: { ruling: "Rejected", juror: "demo-resident", resolution: "Member ruling should fail." }
     });
     expect(memberRuling.statusCode).toBe(403);
-    expect(memberRuling.json().error).toBe("Only community owners or moderators can curate registry items");
+    expect(memberRuling.json().error).toBe("Only community leads or guides can review questions");
 
     const curatorRuling = await app.inject({
       method: "POST",
@@ -4866,7 +5144,7 @@ describe.skipIf(!runDatabaseTests)("api transit poll integration", () => {
       }
     });
     expect(created.statusCode).toBe(200);
-    expect(created.json().question.answerSchema.label).toBe("Approval / Select All");
+    expect(created.json().question.answerSchema.label).toBe("Choose all that fit");
     const questionId = created.json().question.id as string;
     const pollId = created.json().question.poll.id as string;
 

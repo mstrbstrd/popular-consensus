@@ -22,6 +22,7 @@ import {
   ActivateTallyCommitteeRequestSchema,
   AmendmentRequestSchema,
   ArchiveQuestionRequestSchema,
+  ApproveDataUnionBuyerRequestSchema,
   BuiltInAnswerSchemas,
   CanonicalProtocolBoundary,
   ChallengeRulingRequestSchema,
@@ -61,7 +62,9 @@ import {
   ProposeGovernanceParametersRequestSchema,
   PublishDataUnionProductRequestSchema,
   RedeemParticipationReceiptRequestSchema,
+  RedeemDataUnionClaimRequestSchema,
   ReputationReplayRequestSchema,
+  RecordDataUnionSettlementRequestSchema,
   RegisterAnonymousEligibilityGroupRequestSchema,
   ResultChallengeRulingRequestSchema,
   ResolveChallengeAppealRequestSchema,
@@ -97,10 +100,13 @@ import {
   type CredentialMembershipProof,
   type CredentialIssuerAnnotation,
   type DataUnionAccessGrant,
+  type DataUnionBuyer,
+  type DataUnionClaim,
   type DataUnionConsent,
   type DataUnionPolicy,
   type DataUnionProduct,
   type DataUnionRevenueSplit,
+  type DataUnionSettlement,
   type DemoVoteRequest,
   type DiscussionModerationAction,
   type DiscussionPostKind,
@@ -231,7 +237,7 @@ const STEWARD_POWERS: StewardPower[] = [
       "All steward actions are artifact-backed and recorded as registry events.",
       "Technical upgrades must satisfy the published upgrade safety model before activation.",
       "Emergency suspension can pause protocol writes but must be resolved with a public reason artifact.",
-      "Binding adoption still requires explicit legal handoff metadata."
+      "Committed-decision rules still require an explicit legal or community handoff."
     ]
   },
   {
@@ -281,6 +287,8 @@ const PUBLIC_ARTIFACT_KINDS = new Set<string>([
   "data-union-policy",
   "data-union-policy-activation",
   "data-union-product",
+  "data-union-buyer-approval",
+  "data-union-settlement",
   "data-union-access-grant"
 ]);
 const COMMUNITY_GATED_ARTIFACT_KINDS = new Set<string>([
@@ -300,6 +308,7 @@ const COMMUNITY_GATED_ARTIFACT_KINDS = new Set<string>([
   "result-challenge-resolution",
   "data-union-consent",
   "data-union-consent-revocation",
+  "data-union-claim-redemption",
   "community-export",
   "credential-revocation"
 ]);
@@ -409,7 +418,7 @@ export function buildServer() {
     const input = CreateCredentialSchemaRequestSchema.parse(request.body ?? {});
     if (!(await requireAuthenticatedActor(request, reply, input.steward))) return;
     const steward = await prisma.userAccount.findUnique({ where: { id: input.steward } });
-    if (!steward) return reply.code(404).send({ error: "Steward account not found" });
+    if (!steward) return reply.code(404).send({ error: "Community guide account not found" });
 
     const schemaArtifact = await artifactStore.write(
       withArtifactSchema("credential-schema", {
@@ -451,7 +460,7 @@ export function buildServer() {
       });
       return { credentialSchema, schemaArtifact };
     } catch {
-      return reply.code(409).send({ error: "Credential schema is already registered" });
+      return reply.code(409).send({ error: "Voting pass type is already registered" });
     }
   });
 
@@ -464,7 +473,7 @@ export function buildServer() {
     const input = CreateCredentialIssuerRequestSchema.parse(request.body ?? {});
     if (!(await requireAuthenticatedActor(request, reply, input.steward))) return;
     const steward = await prisma.userAccount.findUnique({ where: { id: input.steward } });
-    if (!steward) return reply.code(404).send({ error: "Steward account not found" });
+    if (!steward) return reply.code(404).send({ error: "Community guide account not found" });
     const activeSchemas = await prisma.credentialSchema.findMany({
       where: { id: { in: input.schemaIds }, status: "Active" }
     });
@@ -506,7 +515,7 @@ export function buildServer() {
       });
       return { credentialIssuer, issuerArtifact };
     } catch {
-      return reply.code(409).send({ error: "Credential issuer is already registered" });
+      return reply.code(409).send({ error: "Voting pass issuer is already registered" });
     }
   });
 
@@ -515,9 +524,9 @@ export function buildServer() {
     const input = SuspendCredentialIssuerRequestSchema.parse(request.body ?? {});
     if (!(await requireAuthenticatedActor(request, reply, input.steward))) return;
     const steward = await prisma.userAccount.findUnique({ where: { id: input.steward } });
-    if (!steward) return reply.code(404).send({ error: "Steward account not found" });
+    if (!steward) return reply.code(404).send({ error: "Community guide account not found" });
     const issuer = await prisma.credentialIssuer.findUnique({ where: { id: issuerId } });
-    if (!issuer) return reply.code(404).send({ error: "Credential issuer not found" });
+    if (!issuer) return reply.code(404).send({ error: "Voting pass issuer not found" });
 
     const suspensionArtifact = await artifactStore.write(
       withArtifactSchema("credential-issuer-suspension", { issuerId, suspendedBy: input.steward, reason: input.reason })
@@ -550,13 +559,13 @@ export function buildServer() {
       prisma.userAccount.findUnique({ where: { id: input.steward } }),
       prisma.credential.findUnique({ where: { id: credentialId } })
     ]);
-    if (!steward) return reply.code(404).send({ error: "Steward account not found" });
-    if (!credential) return reply.code(404).send({ error: "Credential not found" });
+    if (!steward) return reply.code(404).send({ error: "Community guide account not found" });
+    if (!credential) return reply.code(404).send({ error: "Voting pass not found" });
 
     const schema = await prisma.credentialSchema.findUnique({ where: { id: credential.schemaId } });
-    if (!schema) return reply.code(404).send({ error: "Credential schema not found" });
+    if (!schema) return reply.code(404).send({ error: "Voting pass type not found" });
     const existingRevocation = await prisma.credentialRevocation.findUnique({ where: { credentialId } });
-    if (existingRevocation) return reply.code(409).send({ error: "Credential is already revoked" });
+    if (existingRevocation) return reply.code(409).send({ error: "Voting pass was already revoked" });
 
     const revocationArtifact = await artifactStore.write(
       withArtifactSchema("credential-revocation", {
@@ -2834,7 +2843,7 @@ export function buildServer() {
   });
 
   app.post("/credentials/demo-resident", async (request, reply) => {
-    if (!config.demoMode) return reply.code(404).send({ error: "Demo credential issuance is disabled outside demo mode" });
+    if (!config.demoMode) return reply.code(404).send({ error: "Demo voting-pass issuance is disabled outside demo mode" });
     const input = DemoResidentCredentialRequestSchema.parse(request.body ?? {});
     if (!(await requireAuthenticatedActor(request, reply, input.holderAlias))) return;
     const registryError = await credentialRegistryError({ schemaId: input.schemaId, issuerId: input.issuerId });
@@ -2847,7 +2856,7 @@ export function buildServer() {
       }
     });
     if (existingCredential) {
-      return reply.code(409).send({ error: "Demo resident credential already issued for this holder" });
+      return reply.code(409).send({ error: "Demo resident voting pass was already issued for this person" });
     }
     const credential = issueDemoCredential(input.holderAlias, input.schemaId, input.issuerId);
     try {
@@ -2874,24 +2883,24 @@ export function buildServer() {
       });
       return { credential, walletCredential: toWalletCredential(storedCredential, credential.secret), walletBoundary: CREDENTIAL_WALLET_BOUNDARY };
     } catch {
-      return reply.code(409).send({ error: "Demo resident credential already issued for this holder" });
+      return reply.code(409).send({ error: "Demo resident voting pass was already issued for this person" });
     }
   });
 
   app.post("/credentials/:credentialId/export", async (request, reply) => {
-    if (!config.demoMode) return reply.code(404).send({ error: "Demo credential export is disabled outside demo mode" });
+    if (!config.demoMode) return reply.code(404).send({ error: "Demo voting-pass export is disabled outside demo mode" });
     const { credentialId } = request.params as { credentialId: string };
     const input = ExportWalletCredentialRequestSchema.parse(request.body ?? {});
     const credential = await prisma.credential.findUnique({ where: { id: credentialId } });
-    if (!credential) return reply.code(404).send({ error: "Credential not found" });
+    if (!credential) return reply.code(404).send({ error: "Voting pass not found" });
     if (!verifyDemoCredential(input.credentialSecret, credential.secretHash)) {
-      return reply.code(403).send({ error: "Invalid credential" });
+      return reply.code(403).send({ error: "Voting pass could not be verified" });
     }
     return { walletCredential: toWalletCredential(credential, input.credentialSecret), walletBoundary: CREDENTIAL_WALLET_BOUNDARY };
   });
 
   app.post("/credentials/import", async (request, reply) => {
-    if (!config.demoMode) return reply.code(404).send({ error: "Demo credential import is disabled outside demo mode" });
+    if (!config.demoMode) return reply.code(404).send({ error: "Demo voting-pass import is disabled outside demo mode" });
     const input = ImportWalletCredentialRequestSchema.parse(request.body ?? {});
     const walletCredential = input.credential;
     const expectedCredentialId = credentialIdForDemoCredential(
@@ -2901,10 +2910,10 @@ export function buildServer() {
       walletCredential.secret
     );
     if (walletCredential.credentialId !== expectedCredentialId) {
-      return reply.code(400).send({ error: "Wallet credential id does not match its secret" });
+      return reply.code(400).send({ error: "Wallet voting pass does not match its secret" });
     }
     const issuedAt = walletCredentialIssuedAtDate(walletCredential);
-    if (!issuedAt) return reply.code(400).send({ error: "Wallet credential issuedAt is invalid" });
+    if (!issuedAt) return reply.code(400).send({ error: "Wallet voting pass date is invalid" });
 
     const registryError = await credentialRegistryError({
       id: walletCredential.credentialId,
@@ -2917,7 +2926,7 @@ export function buildServer() {
     const existingCredential = await prisma.credential.findUnique({ where: { id: walletCredential.credentialId } });
     if (existingCredential) {
       if (!verifyDemoCredential(walletCredential.secret, existingCredential.secretHash)) {
-        return reply.code(403).send({ error: "Wallet credential secret does not match stored credential" });
+        return reply.code(403).send({ error: "Wallet voting pass secret does not match the saved pass" });
       }
       return {
         imported: false,
@@ -2945,7 +2954,7 @@ export function buildServer() {
         walletBoundary: CREDENTIAL_WALLET_BOUNDARY
       };
     } catch {
-      return reply.code(409).send({ error: "Wallet credential conflicts with an existing holder credential" });
+      return reply.code(409).send({ error: "Wallet voting pass conflicts with an existing pass" });
     }
   });
 
@@ -3008,27 +3017,27 @@ export function buildServer() {
   });
 
   app.post("/polls/:pollId/credential-proof", async (request, reply) => {
-    if (!config.demoMode) return reply.code(404).send({ error: "Demo credential proofs are disabled outside demo mode" });
+    if (!config.demoMode) return reply.code(404).send({ error: "Demo voting-pass proofs are disabled outside demo mode" });
     const { pollId } = request.params as { pollId: string };
     const input = CredentialProofRequestSchema.parse(request.body ?? {});
     const poll = await prisma.poll.findUnique({ where: { id: pollId }, include: { question: true } });
     const credential = await prisma.credential.findUnique({ where: { id: input.credentialId } });
-    if (!poll || !credential) return reply.code(404).send({ error: "Poll or credential not found" });
+    if (!poll || !credential) return reply.code(404).send({ error: "Vote or voting pass not found" });
     if (credential.schemaId !== poll.credentialSchemaId) {
-      return reply.code(403).send({ error: "Credential schema mismatch" });
+      return reply.code(403).send({ error: "This voting pass is not for this vote" });
     }
     const registryError = await credentialRegistryError(credential);
     if (registryError) return reply.code(403).send({ error: registryError });
     const trustError = await communityCredentialTrustError(poll.question.communityId, credential);
     if (trustError) return reply.code(403).send({ error: trustError });
     if (!(await canReadQuestion(poll.question, credential.holderAlias))) {
-      return reply.code(403).send({ error: "Follow or join this community before proving eligibility for its poll" });
+      return reply.code(403).send({ error: "Follow or join this community before proving you can vote here" });
     }
     if (!verifyDemoCredential(input.credentialSecret, credential.secretHash)) {
-      return reply.code(403).send({ error: "Invalid credential" });
+      return reply.code(403).send({ error: "Voting pass could not be verified" });
     }
     const membershipProof = resolveCredentialMembershipProof(input.membershipProof, credential, input.credentialSecret, pollId);
-    if (!membershipProof) return reply.code(403).send({ error: "Invalid credential membership proof" });
+    if (!membershipProof) return reply.code(403).send({ error: "Voting pass proof could not be verified" });
     return { membershipProof, nullifier: membershipProof.nullifier, credentialSchemaId: credential.schemaId };
   });
 
@@ -3038,24 +3047,24 @@ export function buildServer() {
     const input = CredentialProofRequestSchema.parse(request.body ?? {});
     const poll = await prisma.poll.findUnique({ where: { id: pollId }, include: { question: true } });
     const credential = await prisma.credential.findUnique({ where: { id: input.credentialId } });
-    if (!poll || !credential) return reply.code(404).send({ error: "Poll or credential not found" });
-    if (poll.status !== "Open" || poll.question.status !== "Open") return reply.code(409).send({ error: "Poll is not open" });
+    if (!poll || !credential) return reply.code(404).send({ error: "Vote or voting pass not found" });
+    if (poll.status !== "Open" || poll.question.status !== "Open") return reply.code(409).send({ error: "Voting is not open" });
     if (credential.schemaId !== poll.credentialSchemaId) {
-      return reply.code(403).send({ error: "Credential schema mismatch" });
+      return reply.code(403).send({ error: "This voting pass is not for this vote" });
     }
     const registryError = await credentialRegistryError(credential);
     if (registryError) return reply.code(403).send({ error: registryError });
     const trustError = await communityCredentialTrustError(poll.question.communityId, credential);
     if (trustError) return reply.code(403).send({ error: trustError });
     if (!(await canReadQuestion(poll.question, credential.holderAlias))) {
-      return reply.code(403).send({ error: "Follow or join this community before signing up for its poll" });
+      return reply.code(403).send({ error: "Follow or join this community before signing up to vote" });
     }
     if (!(await ensureCommunityProtocolWritable(poll.question.communityId, reply))) return;
     if (!verifyDemoCredential(input.credentialSecret, credential.secretHash)) {
-      return reply.code(403).send({ error: "Invalid credential" });
+      return reply.code(403).send({ error: "Voting pass could not be verified" });
     }
     const membershipProof = resolveCredentialMembershipProof(input.membershipProof, credential, input.credentialSecret, pollId);
-    if (!membershipProof) return reply.code(403).send({ error: "Invalid credential membership proof" });
+    if (!membershipProof) return reply.code(403).send({ error: "Voting pass proof could not be verified" });
     const nullifier = membershipProof.nullifier;
     const existing = await prisma.ballot.findUnique({ where: { pollId_nullifier: { pollId, nullifier } } });
     return { accepted: !existing, nullifier, credentialSchemaId: credential.schemaId, membershipProof };
@@ -3173,7 +3182,7 @@ export function buildServer() {
           }
         };
       } catch {
-        return reply.code(409).send({ error: "Duplicate ballot nullifier or reward receipt rejected" });
+        return reply.code(409).send({ error: "This vote or reward receipt was already used" });
       }
     }
 
@@ -3181,24 +3190,24 @@ export function buildServer() {
     const demoInput = input as DemoVoteRequest;
     const poll = await prisma.poll.findUnique({ where: { id: pollId }, include: { question: true } });
     const credential = await prisma.credential.findUnique({ where: { id: demoInput.credentialId } });
-    if (!poll || !credential) return reply.code(404).send({ error: "Poll or credential not found" });
-    if (poll.status !== "Open" || poll.question.status !== "Open") return reply.code(409).send({ error: "Poll is not open" });
+    if (!poll || !credential) return reply.code(404).send({ error: "Vote or voting pass not found" });
+    if (poll.status !== "Open" || poll.question.status !== "Open") return reply.code(409).send({ error: "Voting is not open" });
     const registryError = await credentialRegistryError(credential);
     if (registryError) return reply.code(403).send({ error: registryError });
     const trustError = await communityCredentialTrustError(poll.question.communityId, credential);
     if (trustError) return reply.code(403).send({ error: trustError });
     if (!(await canReadQuestion(poll.question, credential.holderAlias))) {
-      return reply.code(403).send({ error: "Follow or join this community before voting in its poll" });
+      return reply.code(403).send({ error: "Follow or join this community before voting here" });
     }
     if (!(await ensureCommunityProtocolWritable(poll.question.communityId, reply))) return;
     if (!verifyDemoCredential(demoInput.credentialSecret, credential.secretHash)) {
-      return reply.code(403).send({ error: "Invalid credential" });
+      return reply.code(403).send({ error: "Voting pass could not be verified" });
     }
     if (credential.schemaId !== poll.credentialSchemaId) {
-      return reply.code(403).send({ error: "Credential schema mismatch" });
+      return reply.code(403).send({ error: "This voting pass is not for this vote" });
     }
     const membershipProof = resolveCredentialMembershipProof(demoInput.membershipProof, credential, demoInput.credentialSecret, pollId);
-    if (!membershipProof) return reply.code(403).send({ error: "Invalid credential membership proof" });
+    if (!membershipProof) return reply.code(403).send({ error: "Voting pass proof could not be verified" });
     const representedCommunity = demoInput.representedCommunityId
       ? await prisma.community.findUnique({ where: { id: demoInput.representedCommunityId } })
       : null;
@@ -3288,7 +3297,7 @@ export function buildServer() {
         membershipProof
       };
     } catch {
-      return reply.code(409).send({ error: "Duplicate ballot nullifier rejected" });
+      return reply.code(409).send({ error: "You have already voted on this question" });
     }
   });
 
@@ -4551,7 +4560,10 @@ export function buildServer() {
       dataUnionPolicies,
       dataUnionConsents,
       dataUnionProducts,
-      dataUnionAccessGrants
+      dataUnionAccessGrants,
+      dataUnionBuyers,
+      dataUnionSettlements,
+      dataUnionClaims
     ] = await Promise.all([
       prisma.question.findMany({
         where: { AND: [{ communityId }, readableQuestionWhere(userId)] },
@@ -4584,9 +4596,15 @@ export function buildServer() {
       prisma.dataUnionProduct.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.dataUnionAccessGrant.findMany({
         where: { communityId, status: "Active" },
-        include: { product: { include: { result: { include: { poll: { select: { questionId: true } } } } } } },
+        include: {
+          product: { include: { result: { include: { poll: { include: { question: { select: { proposer: true } } } } } } } },
+          settlements: true
+        },
         orderBy: { createdAt: "asc" }
-      })
+      }),
+      prisma.dataUnionBuyer.findMany({ where: { communityId }, orderBy: [{ status: "asc" }, { createdAt: "asc" }] }),
+      prisma.dataUnionSettlement.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
+      prisma.dataUnionClaim.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] })
     ]);
 
     const questionIds = questions.map((question) => question.id);
@@ -4595,6 +4613,9 @@ export function buildServer() {
     const dataUnionConsentIds = dataUnionConsents.map((consent) => consent.id);
     const dataUnionProductIds = dataUnionProducts.map((product) => product.id);
     const dataUnionAccessGrantIds = dataUnionAccessGrants.map((grant) => grant.id);
+    const dataUnionBuyerIds = dataUnionBuyers.map((buyer) => buyer.id);
+    const dataUnionSettlementIds = dataUnionSettlements.map((settlement) => settlement.id);
+    const dataUnionClaimIds = dataUnionClaims.map((claim) => claim.id);
     const governanceParameterSetIds = governanceParameterSets.map((set) => set.id);
     const emergencySuspensionIds = emergencySuspensions.map((suspension) => suspension.id);
     const challengeIds = questions.flatMap((question) => question.challenges.map((challenge) => challenge.id));
@@ -4618,6 +4639,9 @@ export function buildServer() {
     const dataUnionConsentViews = dataUnionConsents.map(toDataUnionConsentResponse);
     const dataUnionProductViews = dataUnionProducts.map(toDataUnionProductResponse);
     const dataUnionAccessGrantViews = dataUnionAccessGrants.map(toDataUnionAccessGrantResponse);
+    const dataUnionBuyerViews = dataUnionBuyers.map(toDataUnionBuyerResponse);
+    const dataUnionSettlementViews = dataUnionSettlements.map(toDataUnionSettlementResponse);
+    const dataUnionClaimViews = dataUnionClaims.map(toDataUnionClaimResponse);
     const treasuryLedgerEntries = sortTreasuryLedgerEntries([
       ...buildTreasuryLedgerEntries(communityId, bonds),
       ...buildDataUnionTreasuryLedgerEntries(communityId, dataUnionAccessGrants)
@@ -4655,6 +4679,8 @@ export function buildServer() {
         ...dataUnionConsentViews.map((consent) => consent.userId),
         ...dataUnionProductViews.map((product) => product.createdBy),
         ...dataUnionAccessGrantViews.map((grant) => grant.grantedBy),
+        ...dataUnionBuyerViews.map((buyer) => buyer.approvedBy),
+        ...dataUnionSettlementViews.map((settlement) => settlement.recordedBy),
         ...questions.map((question) => question.proposer),
         ...questions.flatMap((question) => question.discussionPosts.map((post) => post.authorId)),
         ...questions.flatMap((question) => question.challenges.map((challenge) => challenge.challenger)),
@@ -4676,6 +4702,9 @@ export function buildServer() {
       ...dataUnionConsentIds,
       ...dataUnionProductIds,
       ...dataUnionAccessGrantIds,
+      ...dataUnionBuyerIds,
+      ...dataUnionSettlementIds,
+      ...dataUnionClaimIds,
       ...governanceParameterSetIds,
       ...emergencySuspensionIds,
       ...bonds.map((bond) => bond.id)
@@ -4701,6 +4730,9 @@ export function buildServer() {
         dataUnionConsentViews,
         dataUnionProductViews,
         dataUnionAccessGrantViews,
+        dataUnionBuyerViews,
+        dataUnionSettlementViews,
+        dataUnionClaimViews,
         moderationRecords,
         moderationAppeals,
         challengeAppeals,
@@ -4732,6 +4764,9 @@ export function buildServer() {
       dataUnionConsents: dataUnionConsentViews,
       dataUnionProducts: dataUnionProductViews,
       dataUnionAccessGrants: dataUnionAccessGrantViews,
+      dataUnionBuyers: dataUnionBuyerViews,
+      dataUnionSettlements: dataUnionSettlementViews,
+      dataUnionClaims: dataUnionClaimViews,
       questions: questions.map(toCommunityExportQuestion),
       moderationRecords,
       moderationAppeals,
@@ -4769,6 +4804,9 @@ export function buildServer() {
           dataUnionConsentViews,
           dataUnionProductViews,
           dataUnionAccessGrantViews,
+          dataUnionBuyerViews,
+          dataUnionSettlementViews,
+          dataUnionClaimViews,
           moderationRecords,
           moderationAppeals,
           challengeAppeals,
@@ -5485,25 +5523,34 @@ export function buildServer() {
       return reply.code(403).send({ error: "Join this private community to view data-union records" });
     }
 
-    const [policies, consents, products, accessGrants] = await Promise.all([
+    const [policies, consents, products, accessGrants, buyers, settlements, claims] = await Promise.all([
       prisma.dataUnionPolicy.findMany({ where: { communityId }, orderBy: [{ status: "asc" }, { createdAt: "asc" }] }),
       prisma.dataUnionConsent.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.dataUnionProduct.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
-      prisma.dataUnionAccessGrant.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] })
+      prisma.dataUnionAccessGrant.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
+      prisma.dataUnionBuyer.findMany({ where: { communityId }, orderBy: [{ status: "asc" }, { createdAt: "asc" }] }),
+      prisma.dataUnionSettlement.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
+      prisma.dataUnionClaim.findMany({ where: { communityId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] })
     ]);
     const policyViews = policies.map(toDataUnionPolicyResponse);
     const consentViews = consents.map(toDataUnionConsentResponse);
     const productViews = products.map(toDataUnionProductResponse);
     const accessGrantViews = accessGrants.map(toDataUnionAccessGrantResponse);
+    const buyerViews = buyers.map(toDataUnionBuyerResponse);
+    const settlementViews = settlements.map(toDataUnionSettlementResponse);
+    const claimViews = claims.map(toDataUnionClaimResponse);
     const activePolicy = activeDataUnionPolicy(policyViews);
     return {
-      protocol: buildDataUnionProtocol(communityId, activePolicy, policyViews, consentViews, productViews, accessGrantViews),
+      protocol: buildDataUnionProtocol(communityId, activePolicy, policyViews, consentViews, productViews, accessGrantViews, buyerViews, settlementViews, claimViews),
       communityId,
       activePolicy,
       policies: policyViews,
       consents: consentViews,
       products: productViews,
-      accessGrants: accessGrantViews
+      accessGrants: accessGrantViews,
+      buyers: buyerViews,
+      settlements: settlementViews,
+      claims: claimViews
     };
   });
 
@@ -5858,6 +5905,79 @@ export function buildServer() {
     return { product: toDataUnionProductResponse(product), productArtifact: dataProductArtifact };
   });
 
+  app.post("/communities/:communityId/data-union/buyers", async (request, reply) => {
+    const { communityId } = request.params as { communityId: string };
+    const input = ApproveDataUnionBuyerRequestSchema.parse(request.body ?? {});
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
+    if (!stewardCheck) return;
+    if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
+
+    const existing = await prisma.dataUnionBuyer.findUnique({ where: { communityId_buyerId: { communityId, buyerId: input.buyerId } } });
+    const buyerRecordId = existing?.id ?? `data-union-buyer-${nanoid(10)}`;
+    const purposeHash = hashJson({ approvedPurpose: input.approvedPurpose });
+    const eligibilityHash = hashJson({ eligibilityEvidence: input.eligibilityEvidence });
+    const licenseTemplateHash = hashJson({ licenseTemplate: input.licenseTemplate, licenseTerms: input.licenseTerms });
+    const approvalArtifact = await artifactStore.write(
+      withArtifactSchema("data-union-buyer-approval", {
+        buyerRecordId,
+        communityId,
+        buyerId: input.buyerId,
+        buyerType: input.buyerType,
+        allowedProductTypes: input.allowedProductTypes,
+        approvedPurpose: input.approvedPurpose,
+        purposeHash,
+        eligibilityHash,
+        licenseTemplate: input.licenseTemplate,
+        licenseTemplateHash,
+        approvedBy: input.steward
+      })
+    );
+    await storeArtifact(approvalArtifact, "data-union-buyer-approval");
+    const buyerApprovedEvent = prepareProtocolEvent({
+      eventType: "DataUnionBuyerApproved",
+      subjectId: buyerRecordId,
+      actor: input.steward,
+      previousHash: existing?.approvalHash ?? null,
+      newHash: approvalArtifact.hash
+    });
+    const buyer = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, buyerApprovedEvent);
+      const upserted = await tx.dataUnionBuyer.upsert({
+        where: { communityId_buyerId: { communityId, buyerId: input.buyerId } },
+        update: {
+          buyerType: input.buyerType,
+          status: "Approved",
+          allowedProductTypes: input.allowedProductTypes,
+          purposeHash,
+          eligibilityHash,
+          licenseTemplate: input.licenseTemplate,
+          licenseTemplateHash,
+          approvalHash: approvalArtifact.hash,
+          approvedBy: input.steward,
+          approvedAt: new Date(),
+          suspendedAt: null
+        },
+        create: {
+          id: buyerRecordId,
+          communityId,
+          buyerId: input.buyerId,
+          buyerType: input.buyerType,
+          status: "Approved",
+          allowedProductTypes: input.allowedProductTypes,
+          purposeHash,
+          eligibilityHash,
+          licenseTemplate: input.licenseTemplate,
+          licenseTemplateHash,
+          approvalHash: approvalArtifact.hash,
+          approvedBy: input.steward
+        }
+      });
+      await recordProtocolCommitments(protocolEvent, tx);
+      return upserted;
+    });
+    return { buyer: toDataUnionBuyerResponse(buyer), approvalArtifact };
+  });
+
   app.post("/communities/:communityId/data-union/products/:productId/access-grants", async (request, reply) => {
     const { communityId, productId } = request.params as { communityId: string; productId: string };
     const input = GrantDataUnionAccessRequestSchema.parse(request.body ?? {});
@@ -5868,6 +5988,11 @@ export function buildServer() {
     const product = await prisma.dataUnionProduct.findUnique({ where: { id: productId }, include: { policy: true } });
     if (!product || product.communityId !== communityId) return reply.code(404).send({ error: "Data-union product not found" });
     if (product.status !== "Published") return reply.code(409).send({ error: "Only published data-union products can receive access grants" });
+    const buyer = await prisma.dataUnionBuyer.findUnique({ where: { communityId_buyerId: { communityId, buyerId: input.buyerId } } });
+    if (!buyer || buyer.status !== "Approved") return reply.code(403).send({ error: "Data-union buyer must be steward-approved before access is granted" });
+    if (buyer.buyerType !== input.buyerType) return reply.code(409).send({ error: "Data-union buyer type does not match the approved buyer record" });
+    if (!buyer.allowedProductTypes.includes(product.productType)) return reply.code(409).send({ error: "Approved buyer is not eligible for this product type" });
+    if (buyer.licenseTemplate !== input.licenseTemplate) return reply.code(409).send({ error: "Access grant license template does not match the approved buyer license" });
     const paymentPc = input.paymentPc ?? product.pricePc;
     const split = splitDataUnionPayment(paymentPc, parseDataUnionRevenueSplit(product.policy.revenueSplitJson));
     const grantId = `data-union-access-${nanoid(10)}`;
@@ -5882,12 +6007,14 @@ export function buildServer() {
         buyerType: input.buyerType,
         accessPurpose: input.accessPurpose,
         purposeHash,
+        licenseTemplate: input.licenseTemplate,
         license: input.license,
         licenseHash,
         paymentPc,
         revenueSplit: parseDataUnionRevenueSplit(product.policy.revenueSplitJson),
         treasuryPc: split.treasuryPc,
         participantPoolPc: split.participantPoolPc,
+        pollAuthorRoyaltyPc: split.pollAuthorRoyaltyPc,
         operatorPoolPc: split.operatorPoolPc,
         productHash: product.dataProductHash,
         grantedBy: input.steward
@@ -5911,10 +6038,12 @@ export function buildServer() {
           buyerId: input.buyerId,
           buyerType: input.buyerType,
           purposeHash,
+          licenseTemplate: input.licenseTemplate,
           licenseHash,
           paymentPc,
           treasuryPc: split.treasuryPc,
           participantPoolPc: split.participantPoolPc,
+          pollAuthorRoyaltyPc: split.pollAuthorRoyaltyPc,
           operatorPoolPc: split.operatorPoolPc,
           accessHash: accessArtifact.hash,
           status: "Active",
@@ -5925,6 +6054,213 @@ export function buildServer() {
       return created;
     });
     return { accessGrant: toDataUnionAccessGrantResponse(grant), accessArtifact };
+  });
+
+  app.post("/communities/:communityId/data-union/access-grants/:grantId/settlements", async (request, reply) => {
+    const { communityId, grantId } = request.params as { communityId: string; grantId: string };
+    const input = RecordDataUnionSettlementRequestSchema.parse(request.body ?? {});
+    const stewardCheck = await requireCommunitySteward(communityId, input.steward, reply, request);
+    if (!stewardCheck) return;
+    if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
+    if (input.feesPc > input.amountPc) return reply.code(400).send({ error: "Settlement fees cannot exceed the settlement amount" });
+
+    const grant = await prisma.dataUnionAccessGrant.findUnique({
+      where: { id: grantId },
+      include: {
+        product: {
+          include: {
+            policy: true,
+            result: {
+              include: {
+                poll: { include: { question: { select: { id: true, proposer: true } } } }
+              }
+            }
+          }
+        }
+      }
+    });
+    if (!grant || grant.communityId !== communityId) return reply.code(404).send({ error: "Data-union access grant not found" });
+    if (grant.status !== "Active") return reply.code(409).send({ error: "Only active data-union access grants can be settled" });
+    const existingSettled = await prisma.dataUnionSettlement.findFirst({ where: { accessGrantId: grantId, status: "Settled" } });
+    if (existingSettled) return reply.code(409).send({ error: "Data-union access grant already has a settled payment" });
+
+    const settledPc = input.status === "Settled" ? input.amountPc - input.feesPc : 0;
+    const split = splitDataUnionPayment(settledPc, parseDataUnionRevenueSplit(grant.product.policy.revenueSplitJson));
+    const settlementId = `data-union-settlement-${nanoid(10)}`;
+    const externalReferenceHash = hashJson({ rail: input.rail, externalReference: input.externalReference });
+    const settlementProofHash = hashJson({ settlementProof: input.settlementProof });
+    const settlementHash = hashJson({
+      settlementId,
+      communityId,
+      accessGrantId: grantId,
+      rail: input.rail,
+      unit: input.unit,
+      amountPc: input.amountPc,
+      feesPc: input.feesPc,
+      settledPc,
+      externalReferenceHash,
+      settlementProofHash,
+      status: input.status
+    });
+    const settledAt = input.settledAt !== undefined ? new Date(input.settledAt) : input.status === "Settled" ? new Date() : null;
+    const settlementArtifact = await artifactStore.write(
+      withArtifactSchema("data-union-settlement", {
+        settlementId,
+        communityId,
+        accessGrantId: grantId,
+        productId: grant.productId,
+        buyerId: grant.buyerId,
+        rail: input.rail,
+        unit: input.unit,
+        amountPc: input.amountPc,
+        feesPc: input.feesPc,
+        settledPc,
+        externalReferenceHash,
+        settlementProofHash,
+        settlementHash,
+        status: input.status,
+        revenueSplit: parseDataUnionRevenueSplit(grant.product.policy.revenueSplitJson),
+        treasuryPc: split.treasuryPc,
+        participantPoolPc: split.participantPoolPc,
+        pollAuthorRoyaltyPc: split.pollAuthorRoyaltyPc,
+        operatorPoolPc: split.operatorPoolPc,
+        recordedBy: input.steward,
+        settledAt: settledAt?.getTime() ?? null
+      })
+    );
+    await storeArtifact(settlementArtifact, "data-union-settlement");
+    const settlementRecordedEvent = prepareProtocolEvent({
+      eventType: "DataUnionSettlementRecorded",
+      subjectId: settlementId,
+      actor: input.steward,
+      previousHash: grant.accessHash,
+      newHash: settlementArtifact.hash
+    });
+    const { settlement, claims } = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, settlementRecordedEvent);
+      const created = await tx.dataUnionSettlement.create({
+        data: {
+          id: settlementId,
+          communityId,
+          accessGrantId: grantId,
+          rail: input.rail,
+          unit: input.unit,
+          amountPc: input.amountPc,
+          feesPc: input.feesPc,
+          settledPc,
+          externalReferenceHash,
+          settlementProofHash,
+          settlementHash: settlementArtifact.hash,
+          status: input.status,
+          recordedBy: input.steward,
+          settledAt
+        }
+      });
+      const generatedClaims =
+        input.status === "Settled"
+          ? await createDataUnionSettlementClaims(tx, {
+              communityId,
+              grant,
+              settlementId,
+              split
+            })
+          : [];
+      if (input.status === "Settled") {
+        await tx.dataUnionAccessGrant.update({
+          where: { id: grantId },
+          data: {
+            paymentPc: input.amountPc,
+            treasuryPc: split.treasuryPc,
+            participantPoolPc: split.participantPoolPc,
+            pollAuthorRoyaltyPc: split.pollAuthorRoyaltyPc,
+            operatorPoolPc: split.operatorPoolPc
+          }
+        });
+      }
+      await recordProtocolCommitments(protocolEvent, tx);
+      return { settlement: created, claims: generatedClaims };
+    });
+    return {
+      settlement: toDataUnionSettlementResponse(settlement),
+      claims: claims.map(toDataUnionClaimResponse),
+      settlementArtifact
+    };
+  });
+
+  app.post("/communities/:communityId/data-union/access-grants/:grantId/claims", async (request, reply) => {
+    const { communityId, grantId } = request.params as { communityId: string; grantId: string };
+    const input = RedeemDataUnionClaimRequestSchema.parse(request.body ?? {});
+    if (input.demoClaimantId && !input.receiptSecret && !config.demoMode) {
+      return reply.code(403).send({ error: "Explicit demo data-union claims are disabled outside demo mode" });
+    }
+    if (!(await ensureCommunityProtocolWritable(communityId, reply))) return;
+
+    const [grant, destinationAccount] = await Promise.all([
+      prisma.dataUnionAccessGrant.findUnique({ where: { id: grantId } }),
+      prisma.userAccount.findUnique({ where: { id: input.destinationAccount }, select: { id: true } })
+    ]);
+    if (!grant || grant.communityId !== communityId) return reply.code(404).send({ error: "Data-union access grant not found" });
+    if (!destinationAccount) return reply.code(404).send({ error: "Destination account not found" });
+
+    const receiptHash = input.receiptSecret ? participationReceiptHash(input.receiptSecret) : null;
+    const claim = receiptHash
+      ? await prisma.dataUnionClaim.findFirst({ where: { communityId, accessGrantId: grantId, role: "Participant", receiptHash } })
+      : await prisma.dataUnionClaim.findFirst({
+          where: { communityId, accessGrantId: grantId, role: "Participant", claimantId: input.demoClaimantId ?? "" }
+        });
+    if (!claim) return reply.code(404).send({ error: "Data-union participant claim not found" });
+    if (claim.status !== "Claimable") return reply.code(409).send({ error: "Data-union participant claim has already been redeemed" });
+
+    const redemptionNullifier = hashJson({
+      protocol: "pc-data-union-claim-redemption-v1",
+      accessGrantId: grantId,
+      receiptSecret: input.receiptSecret ?? null,
+      demoClaimantId: input.demoClaimantId ?? null
+    });
+    const redemptionArtifact = await artifactStore.write(
+      withArtifactSchema("data-union-claim-redemption", {
+        claimId: claim.id,
+        claimHash: claim.claimHash,
+        communityId,
+        accessGrantId: grantId,
+        settlementId: claim.settlementId,
+        productId: claim.productId,
+        amountPc: claim.amountPc,
+        destinationAccountHash: hashJson({ destinationAccount: input.destinationAccount }),
+        redemptionNullifier,
+        redeemedAt: Date.now()
+      })
+    );
+    await storeArtifact(redemptionArtifact, "data-union-claim-redemption");
+    const claimRedeemedEvent = prepareProtocolEvent({
+      eventType: "DataUnionClaimRedeemed",
+      subjectId: claim.id,
+      actor: "private-data-union-claimant",
+      previousHash: claim.claimHash,
+      newHash: redemptionArtifact.hash
+    });
+    const redeemed = await prisma.$transaction(async (tx) => {
+      const protocolEvent = await ingestProtocolEvent(tx, claimRedeemedEvent);
+      const updated = await tx.dataUnionClaim.updateMany({
+        where: { id: claim.id, status: "Claimable" },
+        data: {
+          status: "Claimed",
+          claimantId: input.destinationAccount,
+          redemptionHash: redemptionArtifact.hash,
+          redemptionNullifier,
+          claimedAt: new Date()
+        }
+      });
+      if (updated.count !== 1) return null;
+      await recordProtocolCommitments(protocolEvent, tx);
+      return tx.dataUnionClaim.findUnique({ where: { id: claim.id } });
+    });
+    if (!redeemed) return reply.code(409).send({ error: "Data-union participant claim has already been redeemed" });
+    return {
+      redeemed: true,
+      claim: toDataUnionClaimResponse(redeemed),
+      redemptionArtifact
+    };
   });
 
   app.get("/communities/:communityId/treasury/ledger", async (request, reply) => {
@@ -5964,7 +6300,10 @@ export function buildServer() {
             }
           : {})
       },
-      include: { product: { include: { result: { include: { poll: { select: { questionId: true } } } } } } },
+      include: {
+        product: { include: { result: { include: { poll: { include: { question: { select: { proposer: true } } } } } } } },
+        settlements: true
+      },
       orderBy: { createdAt: "asc" }
     });
     const allEntries = sortTreasuryLedgerEntries([
@@ -6528,7 +6867,7 @@ export function buildServer() {
     if (!policy || policy.communityId !== communityId) return reply.code(404).send({ error: "Adoption policy not found" });
     if (policy.status !== "Proposed") return reply.code(409).send({ error: "Only proposed adoption policies can be activated" });
     if (policy.authorityLevel === "Binding" && !policy.legalHandoffHash) {
-      return reply.code(409).send({ error: "Binding adoption policies require legal handoff metadata before activation" });
+      return reply.code(409).send({ error: "Committed-decision rules require a legal or community handoff before activation" });
     }
 
     const activationArtifact = await artifactStore.write(
@@ -7183,8 +7522,21 @@ type DataUnionPolicyInput = Prisma.DataUnionPolicyGetPayload<Record<string, neve
 type DataUnionConsentInput = Prisma.DataUnionConsentGetPayload<Record<string, never>>;
 type DataUnionProductInput = Prisma.DataUnionProductGetPayload<Record<string, never>>;
 type DataUnionAccessGrantInput = Prisma.DataUnionAccessGrantGetPayload<Record<string, never>>;
+type DataUnionBuyerInput = Prisma.DataUnionBuyerGetPayload<Record<string, never>>;
+type DataUnionSettlementInput = Prisma.DataUnionSettlementGetPayload<Record<string, never>>;
+type DataUnionClaimInput = Prisma.DataUnionClaimGetPayload<Record<string, never>>;
 type DataUnionAccessGrantLedgerInput = Prisma.DataUnionAccessGrantGetPayload<{
-  include: { product: { include: { result: { include: { poll: { select: { questionId: true } } } } } } };
+  include: { product: { include: { result: { include: { poll: { include: { question: { select: { proposer: true } } } } } } } }; settlements: true };
+}>;
+type DataUnionSettlementGrantInput = Prisma.DataUnionAccessGrantGetPayload<{
+  include: {
+    product: {
+      include: {
+        policy: true;
+        result: { include: { poll: { include: { question: { select: { id: true; proposer: true } } } } } };
+      };
+    };
+  };
 }>;
 type CredentialIssuerAnnotationQuestionInput = { id: string; credentialSchemaId: string };
 
@@ -8987,61 +9339,75 @@ function buildDataUnionTreasuryLedgerEntries(communityId: string, grants: DataUn
   const treasuryAccountId = treasuryAccountForCommunity(communityId);
   const participantPoolAccountId = participantPoolAccountForCommunity(communityId);
   const operatorPoolAccountId = operatorPoolAccountForCommunity(communityId);
-  const entries = grants.flatMap((grant) => {
-    const base = {
-      communityId,
-      bondId: null,
-      bondType: null,
-      sourceType: "DataUnionAccessGrant" as const,
-      sourceId: grant.id,
-      questionId: grant.product.result.poll.questionId,
-      challengeId: null,
-      resultChallengeId: null,
-      challengeAppealId: null,
-      dataUnionProductId: grant.productId,
-      dataUnionAccessGrantId: grant.id,
-      createdAt: grant.createdAt
-    };
+  const entries = grants.flatMap((grant) =>
+    grant.settlements
+      .filter((settlement) => settlement.status === "Settled" && settlement.settledPc > 0)
+      .flatMap((settlement) => {
+        const base = {
+          communityId,
+          bondId: null,
+          bondType: null,
+          sourceType: "DataUnionSettlement" as const,
+          sourceId: settlement.id,
+          questionId: grant.product.result.poll.questionId,
+          challengeId: null,
+          resultChallengeId: null,
+          challengeAppealId: null,
+          dataUnionProductId: grant.productId,
+          dataUnionAccessGrantId: grant.id,
+          dataUnionSettlementId: settlement.id,
+          createdAt: settlement.settledAt ?? settlement.createdAt
+        };
 
-    return [
-      treasuryLedgerEntry({
-        ...base,
-        accountId: dataBuyerAccount(grant.buyerId),
-        accountRole: "DataBuyer",
-        entryType: "DataUnionPayment",
-        direction: "Debit",
-        amountPc: grant.paymentPc,
-        balanceImpactPc: -grant.paymentPc
-      }),
-      treasuryLedgerEntry({
-        ...base,
-        accountId: treasuryAccountId,
-        accountRole: "CommunityTreasury",
-        entryType: "DataUnionRevenue",
-        direction: "Credit",
-        amountPc: grant.treasuryPc,
-        balanceImpactPc: grant.treasuryPc
-      }),
-      treasuryLedgerEntry({
-        ...base,
-        accountId: participantPoolAccountId,
-        accountRole: "ParticipantPool",
-        entryType: "ParticipantPoolCredit",
-        direction: "Credit",
-        amountPc: grant.participantPoolPc,
-        balanceImpactPc: grant.participantPoolPc
-      }),
-      treasuryLedgerEntry({
-        ...base,
-        accountId: operatorPoolAccountId,
-        accountRole: "OperatorPool",
-        entryType: "OperatorPoolCredit",
-        direction: "Credit",
-        amountPc: grant.operatorPoolPc,
-        balanceImpactPc: grant.operatorPoolPc
+        return [
+          treasuryLedgerEntry({
+            ...base,
+            accountId: dataBuyerAccount(grant.buyerId),
+            accountRole: "DataBuyer",
+            entryType: "DataUnionPayment",
+            direction: "Debit",
+            amountPc: settlement.settledPc,
+            balanceImpactPc: -settlement.settledPc
+          }),
+          treasuryLedgerEntry({
+            ...base,
+            accountId: treasuryAccountId,
+            accountRole: "CommunityTreasury",
+            entryType: "DataUnionRevenue",
+            direction: "Credit",
+            amountPc: grant.treasuryPc,
+            balanceImpactPc: grant.treasuryPc
+          }),
+          treasuryLedgerEntry({
+            ...base,
+            accountId: participantPoolAccountId,
+            accountRole: "ParticipantPool",
+            entryType: "ParticipantPoolCredit",
+            direction: "Credit",
+            amountPc: grant.participantPoolPc,
+            balanceImpactPc: grant.participantPoolPc
+          }),
+          treasuryLedgerEntry({
+            ...base,
+            accountId: grant.product.result.poll.question.proposer,
+            accountRole: "PollAuthor",
+            entryType: "PollAuthorRoyaltyCredit",
+            direction: "Credit",
+            amountPc: grant.pollAuthorRoyaltyPc,
+            balanceImpactPc: grant.pollAuthorRoyaltyPc
+          }),
+          treasuryLedgerEntry({
+            ...base,
+            accountId: operatorPoolAccountId,
+            accountRole: "OperatorPool",
+            entryType: "OperatorPoolCredit",
+            direction: "Credit",
+            amountPc: grant.operatorPoolPc,
+            balanceImpactPc: grant.operatorPoolPc
+          })
+        ].filter((entry) => entry.amountPc > 0);
       })
-    ];
-  });
+  );
 
   return sortTreasuryLedgerEntries(entries);
 }
@@ -9066,6 +9432,7 @@ function buildTreasuryLedgerTotals(entries: TreasuryLedgerEntry[], bonds: Treasu
     treasuryPc: sumEntries(entries, "TreasuryFee") + sumEntries(entries, "DataUnionRevenue"),
     dataUnionRevenuePc: sumEntries(entries, "DataUnionPayment"),
     participantPoolPc: sumEntries(entries, "ParticipantPoolCredit"),
+    pollAuthorRoyaltyPc: sumEntries(entries, "PollAuthorRoyaltyCredit"),
     operatorPoolPc: sumEntries(entries, "OperatorPoolCredit"),
     openEscrowPc: bonds.filter((bond) => bond.status === "Escrowed").reduce((sum, bond) => sum + bond.amountPc, 0),
     treasuryBalancePc: entries
@@ -9092,6 +9459,7 @@ function buildTreasuryLedgerProtocol(
       bondIds: uniqueStrings(entries.map((entry) => entry.bondId)),
       dataUnionProductIds: uniqueStrings(entries.map((entry) => entry.dataUnionProductId)),
       dataUnionAccessGrantIds: uniqueStrings(entries.map((entry) => entry.dataUnionAccessGrantId)),
+      dataUnionSettlementIds: uniqueStrings(entries.map((entry) => entry.dataUnionSettlementId)),
       accountIds: uniqueStrings(entries.map((entry) => entry.accountId)),
       questionIds: uniqueStrings(entries.map((entry) => entry.questionId))
     },
@@ -9107,6 +9475,7 @@ function buildTreasuryLedgerProtocol(
       treasuryPc: totals.treasuryPc,
       dataUnionRevenuePc: totals.dataUnionRevenuePc,
       participantPoolPc: totals.participantPoolPc,
+      pollAuthorRoyaltyPc: totals.pollAuthorRoyaltyPc,
       operatorPoolPc: totals.operatorPoolPc,
       openEscrowPc: totals.openEscrowPc,
       treasuryBalancePc: totals.treasuryBalancePc,
@@ -9129,8 +9498,12 @@ function buildDataUnionProtocol(
   policies: DataUnionPolicy[],
   consents: DataUnionConsent[],
   products: DataUnionProduct[],
-  accessGrants: DataUnionAccessGrant[]
+  accessGrants: DataUnionAccessGrant[],
+  buyers: DataUnionBuyer[],
+  settlements: DataUnionSettlement[],
+  claims: DataUnionClaim[]
 ) {
+  const settledSettlements = settlements.filter((settlement) => settlement.status === "Settled");
   return {
     protocol: "popular-consensus",
     schemaVersion: "data-union-v0",
@@ -9143,10 +9516,13 @@ function buildDataUnionProtocol(
       productIds: products.map((product) => product.id),
       resultIds: uniqueStrings(products.map((product) => product.resultId)),
       accessGrantIds: accessGrants.map((grant) => grant.id),
-      buyerIds: uniqueStrings(accessGrants.map((grant) => grant.buyerId))
+      buyerRecordIds: buyers.map((buyer) => buyer.id),
+      buyerIds: uniqueStrings([...buyers.map((buyer) => buyer.buyerId), ...accessGrants.map((grant) => grant.buyerId)]),
+      settlementIds: settlements.map((settlement) => settlement.id),
+      claimIds: claims.map((claim) => claim.id)
     },
     hashes: {
-      dataUnionStateHash: hashJson({ policies, consents, products, accessGrants }),
+      dataUnionStateHash: hashJson({ policies, consents, products, accessGrants, buyers, settlements, claims }),
       activePolicyHash: activePolicy?.policyHash ?? null,
       policyHashes: policies.map((policy) => policy.policyHash),
       activationHashes: compactHashArray(policies.map((policy) => policy.activationHash)),
@@ -9154,7 +9530,10 @@ function buildDataUnionProtocol(
       revokedHashes: compactHashArray(consents.map((consent) => consent.revokedHash)),
       dataProductHashes: products.map((product) => product.dataProductHash),
       productPrivacyReportHashes: products.map((product) => product.privacyReportHash),
-      accessHashes: accessGrants.map((grant) => grant.accessHash)
+      buyerApprovalHashes: buyers.map((buyer) => buyer.approvalHash),
+      accessHashes: accessGrants.map((grant) => grant.accessHash),
+      settlementHashes: settlements.map((settlement) => settlement.settlementHash),
+      claimHashes: claims.map((claim) => claim.claimHash)
     },
     statuses: {
       activePolicyStatus: activePolicy ? "Active" : "Missing",
@@ -9163,16 +9542,27 @@ function buildDataUnionProtocol(
       revokedConsentCount: consents.filter((consent) => consent.status === "Revoked").length,
       productCount: products.length,
       publishedProductCount: products.filter((product) => product.status === "Published").length,
+      approvedBuyerCount: buyers.filter((buyer) => buyer.status === "Approved").length,
       accessGrantCount: accessGrants.length,
       activeAccessGrantCount: accessGrants.filter((grant) => grant.status === "Active").length,
+      settlementCount: settlements.length,
+      settledSettlementCount: settledSettlements.length,
+      claimCount: claims.length,
+      claimableClaimCount: claims.filter((claim) => claim.status === "Claimable").length,
+      claimedClaimCount: claims.filter((claim) => claim.status === "Claimed").length,
       totalAccessPaymentPc: accessGrants.reduce((sum, grant) => sum + grant.paymentPc, 0),
-      communityTreasuryPc: accessGrants.reduce((sum, grant) => sum + grant.treasuryPc, 0),
-      participantPoolPc: accessGrants.reduce((sum, grant) => sum + grant.participantPoolPc, 0),
-      operatorPoolPc: accessGrants.reduce((sum, grant) => sum + grant.operatorPoolPc, 0)
+      settledAccessPaymentPc: settledSettlements.reduce((sum, settlement) => sum + settlement.settledPc, 0),
+      communityTreasuryPc: claims.filter((claim) => claim.role === "CommunityTreasury").reduce((sum, claim) => sum + claim.amountPc, 0),
+      participantPoolPc: claims.filter((claim) => claim.role === "Participant").reduce((sum, claim) => sum + claim.amountPc, 0),
+      pollAuthorRoyaltyPc: claims.filter((claim) => claim.role === "PollAuthor").reduce((sum, claim) => sum + claim.amountPc, 0),
+      operatorPoolPc: claims.filter((claim) => claim.role === "OperatorPool").reduce((sum, claim) => sum + claim.amountPc, 0)
     },
     authority: {
       module: "DataUnionRegistry",
       consentModel: "member-opt-in-and-member-revocable-for-future-use",
+      buyerGate: "steward-approved-buyer-allowlist-with-template-and-purpose-hashes",
+      settlementModel: "rail-neutral-external-reference-records-before-claim-generation",
+      claimPrivacy: "public summaries redact claimant ids, receipt hashes, and redemption nullifiers",
       productBoundary: "published-aggregate-results-and-methodology-only",
       privacyBoundary: "no-raw-ballots-no-identifiable-responses",
       minimumCohortSize: activePolicy?.minimumCohortSize ?? null,
@@ -9252,16 +9642,77 @@ function toDataUnionAccessGrantResponse(grant: DataUnionAccessGrantInput): DataU
     buyerId: grant.buyerId,
     buyerType: grant.buyerType as DataUnionAccessGrant["buyerType"],
     purposeHash: grant.purposeHash,
+    licenseTemplate: grant.licenseTemplate as DataUnionAccessGrant["licenseTemplate"],
     licenseHash: grant.licenseHash,
     paymentPc: grant.paymentPc,
     treasuryPc: grant.treasuryPc,
     participantPoolPc: grant.participantPoolPc,
+    pollAuthorRoyaltyPc: grant.pollAuthorRoyaltyPc,
     operatorPoolPc: grant.operatorPoolPc,
     accessHash: grant.accessHash,
     status: grant.status as DataUnionAccessGrant["status"],
     grantedBy: grant.grantedBy,
     createdAt: grant.createdAt,
     revokedAt: grant.revokedAt
+  };
+}
+
+function toDataUnionBuyerResponse(buyer: DataUnionBuyerInput): DataUnionBuyer {
+  return {
+    id: buyer.id,
+    communityId: buyer.communityId,
+    buyerId: buyer.buyerId,
+    buyerType: buyer.buyerType as DataUnionBuyer["buyerType"],
+    status: buyer.status as DataUnionBuyer["status"],
+    allowedProductTypes: buyer.allowedProductTypes as DataUnionBuyer["allowedProductTypes"],
+    purposeHash: buyer.purposeHash,
+    eligibilityHash: buyer.eligibilityHash,
+    licenseTemplate: buyer.licenseTemplate as DataUnionBuyer["licenseTemplate"],
+    licenseTemplateHash: buyer.licenseTemplateHash,
+    approvalHash: buyer.approvalHash,
+    approvedBy: buyer.approvedBy,
+    approvedAt: buyer.approvedAt,
+    suspendedAt: buyer.suspendedAt,
+    createdAt: buyer.createdAt,
+    updatedAt: buyer.updatedAt
+  };
+}
+
+function toDataUnionSettlementResponse(settlement: DataUnionSettlementInput): DataUnionSettlement {
+  return {
+    id: settlement.id,
+    communityId: settlement.communityId,
+    accessGrantId: settlement.accessGrantId,
+    rail: settlement.rail as DataUnionSettlement["rail"],
+    unit: settlement.unit,
+    amountPc: settlement.amountPc,
+    feesPc: settlement.feesPc,
+    settledPc: settlement.settledPc,
+    externalReferenceHash: settlement.externalReferenceHash,
+    settlementProofHash: settlement.settlementProofHash,
+    settlementHash: settlement.settlementHash,
+    status: settlement.status as DataUnionSettlement["status"],
+    recordedBy: settlement.recordedBy,
+    settledAt: settlement.settledAt,
+    createdAt: settlement.createdAt
+  };
+}
+
+function toDataUnionClaimResponse(claim: DataUnionClaimInput): DataUnionClaim {
+  return {
+    id: claim.id,
+    communityId: claim.communityId,
+    accessGrantId: claim.accessGrantId,
+    settlementId: claim.settlementId,
+    productId: claim.productId,
+    policyId: claim.policyId,
+    role: claim.role as DataUnionClaim["role"],
+    amountPc: claim.amountPc,
+    claimHash: claim.claimHash,
+    redemptionHash: claim.redemptionHash,
+    status: claim.status as DataUnionClaim["status"],
+    createdAt: claim.createdAt,
+    claimedAt: claim.claimedAt
   };
 }
 
@@ -9282,28 +9733,32 @@ function parseDataUnionRevenueSplit(value: string): DataUnionRevenueSplit {
     const parsed = JSON.parse(value);
     const communityTreasuryPercent = Number(parsed?.communityTreasuryPercent);
     const participantPoolPercent = Number(parsed?.participantPoolPercent);
+    const pollAuthorRoyaltyPercent = Number(parsed?.pollAuthorRoyaltyPercent ?? 0);
     const operatorPoolPercent = Number(parsed?.operatorPoolPercent);
     if (
       Number.isInteger(communityTreasuryPercent) &&
       Number.isInteger(participantPoolPercent) &&
+      Number.isInteger(pollAuthorRoyaltyPercent) &&
       Number.isInteger(operatorPoolPercent) &&
       communityTreasuryPercent >= 0 &&
       participantPoolPercent >= 0 &&
+      pollAuthorRoyaltyPercent >= 0 &&
       operatorPoolPercent >= 0 &&
-      communityTreasuryPercent + participantPoolPercent + operatorPoolPercent === 100
+      communityTreasuryPercent + participantPoolPercent + pollAuthorRoyaltyPercent + operatorPoolPercent === 100
     ) {
-      return { communityTreasuryPercent, participantPoolPercent, operatorPoolPercent };
+      return { communityTreasuryPercent, participantPoolPercent, pollAuthorRoyaltyPercent, operatorPoolPercent };
     }
   } catch {
     // Fall through to the MVP default split for old or malformed local records.
   }
-  return { communityTreasuryPercent: 70, participantPoolPercent: 20, operatorPoolPercent: 10 };
+  return { communityTreasuryPercent: 55, participantPoolPercent: 25, pollAuthorRoyaltyPercent: 10, operatorPoolPercent: 10 };
 }
 
 function splitDataUnionPayment(paymentPc: number, revenueSplit: DataUnionRevenueSplit) {
   const allocations = [
     { key: "treasuryPc" as const, percent: revenueSplit.communityTreasuryPercent },
     { key: "participantPoolPc" as const, percent: revenueSplit.participantPoolPercent },
+    { key: "pollAuthorRoyaltyPc" as const, percent: revenueSplit.pollAuthorRoyaltyPercent },
     { key: "operatorPoolPc" as const, percent: revenueSplit.operatorPoolPercent }
   ].map((allocation) => {
     const exact = (paymentPc * allocation.percent) / 100;
@@ -9322,9 +9777,110 @@ function splitDataUnionPayment(paymentPc: number, revenueSplit: DataUnionRevenue
   const byKey = Object.fromEntries(allocations.map((allocation) => [allocation.key, allocation.value])) as {
     treasuryPc: number;
     participantPoolPc: number;
+    pollAuthorRoyaltyPc: number;
     operatorPoolPc: number;
   };
   return byKey;
+}
+
+function distributeDataUnionAmount(amountPc: number, bucketCount: number): number[] {
+  if (bucketCount <= 0) return [];
+  const base = Math.floor(amountPc / bucketCount);
+  let remainder = amountPc - base * bucketCount;
+  return Array.from({ length: bucketCount }, () => {
+    const value = base + (remainder > 0 ? 1 : 0);
+    remainder -= remainder > 0 ? 1 : 0;
+    return value;
+  });
+}
+
+async function createDataUnionSettlementClaims(
+  tx: Prisma.TransactionClient,
+  input: {
+    communityId: string;
+    grant: DataUnionSettlementGrantInput;
+    settlementId: string;
+    split: ReturnType<typeof splitDataUnionPayment>;
+  }
+): Promise<DataUnionClaimInput[]> {
+  const { communityId, grant, settlementId, split } = input;
+  const product = grant.product;
+  const pollId = product.result.pollId;
+  const policyId = product.policyId;
+  const base = {
+    communityId,
+    accessGrantId: grant.id,
+    settlementId,
+    productId: product.id,
+    policyId
+  };
+  const directClaims: Prisma.DataUnionClaimCreateManyInput[] = [
+    {
+      id: `data-union-claim-${nanoid(10)}`,
+      ...base,
+      role: "CommunityTreasury",
+      claimantId: treasuryAccountForCommunity(communityId),
+      amountPc: split.treasuryPc,
+      claimHash: hashJson({ ...base, role: "CommunityTreasury", claimantId: treasuryAccountForCommunity(communityId), amountPc: split.treasuryPc })
+    },
+    {
+      id: `data-union-claim-${nanoid(10)}`,
+      ...base,
+      role: "PollAuthor",
+      claimantId: product.result.poll.question.proposer,
+      amountPc: split.pollAuthorRoyaltyPc,
+      claimHash: hashJson({ ...base, role: "PollAuthor", claimantId: product.result.poll.question.proposer, amountPc: split.pollAuthorRoyaltyPc })
+    },
+    {
+      id: `data-union-claim-${nanoid(10)}`,
+      ...base,
+      role: "OperatorPool",
+      claimantId: operatorPoolAccountForCommunity(communityId),
+      amountPc: split.operatorPoolPc,
+      claimHash: hashJson({ ...base, role: "OperatorPool", claimantId: operatorPoolAccountForCommunity(communityId), amountPc: split.operatorPoolPc })
+    }
+  ].filter((claim) => claim.amountPc > 0);
+
+  const receiptClaims = await tx.participationReceipt.findMany({
+    where: { pollId },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }]
+  });
+  const receiptHashes = uniqueStrings(receiptClaims.map((receipt) => receipt.receiptHash)).slice(0, product.cohortSize);
+  let participantClaims: Prisma.DataUnionClaimCreateManyInput[] = [];
+  if (receiptHashes.length > 0) {
+    const amounts = distributeDataUnionAmount(split.participantPoolPc, receiptHashes.length);
+    participantClaims = receiptHashes.map((receiptHash, index) => ({
+      id: `data-union-claim-${nanoid(10)}`,
+      ...base,
+      role: "Participant",
+      receiptHash,
+      amountPc: amounts[index] ?? 0,
+      claimHash: hashJson({ ...base, role: "Participant", receiptHash, amountPc: amounts[index] ?? 0 })
+    }));
+  } else if (config.demoMode) {
+    const demoClaimants = await tx.dataUnionConsent.findMany({
+      where: { communityId, policyId, status: "Active", scope: "AggregateAnalytics" },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: product.cohortSize
+    });
+    const amounts = distributeDataUnionAmount(split.participantPoolPc, demoClaimants.length);
+    participantClaims = demoClaimants.map((consent, index) => ({
+      id: `data-union-claim-${nanoid(10)}`,
+      ...base,
+      role: "Participant",
+      claimantId: consent.userId,
+      amountPc: amounts[index] ?? 0,
+      claimHash: hashJson({ ...base, role: "Participant", demoClaimantId: consent.userId, amountPc: amounts[index] ?? 0 })
+    }));
+  }
+
+  const claims = [...directClaims, ...participantClaims].filter((claim) => (claim.amountPc ?? 0) > 0);
+  if (claims.length === 0) return [];
+  await tx.dataUnionClaim.createMany({ data: claims });
+  return tx.dataUnionClaim.findMany({
+    where: { settlementId },
+    orderBy: [{ role: "asc" }, { createdAt: "asc" }, { id: "asc" }]
+  });
 }
 
 function buildCredentialTrustPoliciesProtocol(communityId: string, policies: CommunityCredentialTrustPolicyView[]) {
@@ -9817,6 +10373,7 @@ function treasuryLedgerEntry(input: Omit<TreasuryLedgerEntry, "id">): TreasuryLe
       sourceType: input.sourceType,
       sourceId: input.sourceId,
       dataUnionAccessGrantId: input.dataUnionAccessGrantId,
+      dataUnionSettlementId: input.dataUnionSettlementId,
       accountId: input.accountId,
       entryType: input.entryType,
       amountPc: input.amountPc,
@@ -9995,6 +10552,9 @@ function buildCommunityExportProtocol(
   dataUnionConsents: DataUnionConsent[],
   dataUnionProducts: DataUnionProduct[],
   dataUnionAccessGrants: DataUnionAccessGrant[],
+  dataUnionBuyers: DataUnionBuyer[],
+  dataUnionSettlements: DataUnionSettlement[],
+  dataUnionClaims: DataUnionClaim[],
   moderationRecords: CommunityExportModerationRecordInput[],
   moderationAppeals: CommunityExportModerationAppealInput[],
   challengeAppeals: CommunityExportChallengeAppealInput[],
@@ -10057,7 +10617,10 @@ function buildCommunityExportProtocol(
       dataUnionConsentIds: dataUnionConsents.map((consent) => consent.id),
       dataUnionProductIds: dataUnionProducts.map((product) => product.id),
       dataUnionAccessGrantIds: dataUnionAccessGrants.map((grant) => grant.id),
-      dataUnionBuyerIds: uniqueStrings(dataUnionAccessGrants.map((grant) => grant.buyerId)),
+      dataUnionBuyerRecordIds: dataUnionBuyers.map((buyer) => buyer.id),
+      dataUnionBuyerIds: uniqueStrings([...dataUnionBuyers.map((buyer) => buyer.buyerId), ...dataUnionAccessGrants.map((grant) => grant.buyerId)]),
+      dataUnionSettlementIds: dataUnionSettlements.map((settlement) => settlement.id),
+      dataUnionClaimIds: dataUnionClaims.map((claim) => claim.id),
       policyIds: policies.map((policy) => policy.id),
       archiveRecordIds: archives.map((archive) => archive.id),
       eventIds: events.map((event) => event.id),
@@ -10105,6 +10668,9 @@ function buildCommunityExportProtocol(
       dataUnionProductHashes: dataUnionProducts.map((product) => product.dataProductHash),
       dataUnionProductPrivacyReportHashes: dataUnionProducts.map((product) => product.privacyReportHash),
       dataUnionAccessHashes: dataUnionAccessGrants.map((grant) => grant.accessHash),
+      dataUnionBuyerApprovalHashes: dataUnionBuyers.map((buyer) => buyer.approvalHash),
+      dataUnionSettlementHashes: dataUnionSettlements.map((settlement) => settlement.settlementHash),
+      dataUnionClaimHashes: dataUnionClaims.map((claim) => claim.claimHash),
       profileHashes: compactHashArray(profiles.map((profile) => profile.profileHash)),
       communityFollowHashes: communityFollows.map((follow) => follow.followHash),
       topicFollowHashes: topicFollows.map((follow) => follow.followHash),
@@ -10159,7 +10725,10 @@ function buildCommunityExportProtocol(
       activeDataUnionConsentCount: dataUnionConsents.filter((consent) => consent.status === "Active").length,
       dataUnionProductCount: dataUnionProducts.length,
       dataUnionAccessGrantCount: dataUnionAccessGrants.length,
-      dataUnionRevenuePc: dataUnionAccessGrants.reduce((sum, grant) => sum + grant.paymentPc, 0),
+      dataUnionBuyerCount: dataUnionBuyers.length,
+      dataUnionSettlementCount: dataUnionSettlements.length,
+      dataUnionSettledRevenuePc: dataUnionSettlements.filter((settlement) => settlement.status === "Settled").reduce((sum, settlement) => sum + settlement.settledPc, 0),
+      dataUnionClaimCount: dataUnionClaims.length,
       questionCount: questions.length,
       policyCount: policies.length,
       archiveCount: archives.length,
@@ -10310,6 +10879,9 @@ function collectCommunityExportArtifactReferences(
   dataUnionConsents: DataUnionConsent[] = [],
   dataUnionProducts: DataUnionProduct[] = [],
   dataUnionAccessGrants: DataUnionAccessGrant[] = [],
+  dataUnionBuyers: DataUnionBuyer[] = [],
+  dataUnionSettlements: DataUnionSettlement[] = [],
+  dataUnionClaims: DataUnionClaim[] = [],
   moderationRecords: CommunityExportModerationRecordInput[] = [],
   moderationAppeals: CommunityExportModerationAppealInput[] = [],
   challengeAppeals: CommunityExportChallengeAppealInput[] = [],
@@ -10376,6 +10948,18 @@ function collectCommunityExportArtifactReferences(
 
   for (const grant of dataUnionAccessGrants) {
     add("data-union-access-grant", grant.accessHash, "data-union-access-grant");
+  }
+
+  for (const buyer of dataUnionBuyers) {
+    add("data-union-buyer-approval", buyer.approvalHash, "data-union-buyer-approval");
+  }
+
+  for (const settlement of dataUnionSettlements) {
+    add("data-union-settlement", settlement.settlementHash, "data-union-settlement");
+  }
+
+  for (const claim of dataUnionClaims) {
+    add("data-union-claim-redemption", claim.redemptionHash, "data-union-claim-redemption");
   }
 
   for (const question of questions) {
@@ -11152,11 +11736,11 @@ async function credentialRegistryError(credential: CredentialRegistryCheckInput)
     prisma.credentialIssuer.findUnique({ where: { id: credential.issuerId } }),
     credential.id ? prisma.credentialRevocation.findUnique({ where: { credentialId: credential.id } }) : Promise.resolve(null)
   ]);
-  if (!schema || schema.status !== "Active") return "Credential schema is not active";
-  if (!issuer || issuer.status !== "Active") return "Credential issuer is not active";
-  if (!issuer.schemaIds.includes(credential.schemaId)) return "Credential issuer is not registered for this schema";
-  if (isCredentialExpired(credential, schema.expiresAfter)) return "Credential is expired";
-  if (revocation) return "Credential is revoked";
+  if (!schema || schema.status !== "Active") return "Voting pass type is not active";
+  if (!issuer || issuer.status !== "Active") return "Voting pass issuer is not active";
+  if (!issuer.schemaIds.includes(credential.schemaId)) return "Voting pass issuer is not approved for this pass type";
+  if (isCredentialExpired(credential, schema.expiresAfter)) return "Voting pass is expired";
+  if (revocation) return "Voting pass was revoked";
   return null;
 }
 
@@ -11171,7 +11755,7 @@ async function communityCredentialTrustError(communityId: string | null | undefi
     orderBy: [{ credentialSchemaId: "asc" }, { createdAt: "asc" }]
   });
   if (policies.length === 0) return null;
-  return policies.some((policy) => credentialTrustPolicyAllows(policy, credential)) ? null : "Credential issuer is not trusted by this community";
+  return policies.some((policy) => credentialTrustPolicyAllows(policy, credential)) ? null : "Voting pass issuer is not trusted by this community";
 }
 
 function credentialTrustPolicyAllows(policy: CommunityCredentialTrustPolicyView, credential: { schemaId: string; issuerId: string }) {
@@ -11195,15 +11779,15 @@ async function requireCommunitySteward(communityId: string, userId: string, repl
     return null;
   }
   if (!user) {
-    reply.code(404).send({ error: "Steward account not found" });
+    reply.code(404).send({ error: "Community guide account not found" });
     return null;
   }
   if (!membership || membership.status !== "Active") {
-    reply.code(403).send({ error: "Only active community stewards can change adoption policy" });
+    reply.code(403).send({ error: "Only active community guides can change next-step rules" });
     return null;
   }
   if (!["Owner", "Moderator"].includes(membership.role)) {
-    reply.code(403).send({ error: "Only community owners or moderators can change adoption policy" });
+    reply.code(403).send({ error: "Only community leads or guides can change next-step rules" });
     return null;
   }
   return { community, user, membership };
@@ -11223,11 +11807,11 @@ async function requireCommunityCurator(communityId: string | null, userId: strin
     return null;
   }
   if (!membership || membership.status !== "Active") {
-    reply.code(403).send({ error: "Only active community curators can curate registry items" });
+    reply.code(403).send({ error: "Only active community guides can review questions" });
     return null;
   }
   if (!CURATOR_ROLES.includes(membership.role)) {
-    reply.code(403).send({ error: "Only community owners or moderators can curate registry items" });
+    reply.code(403).send({ error: "Only community leads or guides can review questions" });
     return null;
   }
   return { community, membership };

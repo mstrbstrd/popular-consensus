@@ -3,7 +3,6 @@ import Link from "next/link";
 import { FlaskConical, Rss, UserPlus } from "lucide-react";
 import { AppFrame } from "../components/AppFrame";
 import { IconLabel } from "../components/IconLabel";
-import { siteCopy } from "../components/copy";
 import logoMark from "../src/logo2026_nobackground.png";
 
 export default function Page() {
@@ -19,10 +18,10 @@ export default function Page() {
           <p>Shape the questions that shape our world.</p>
           <div className="button-row">
             <Link className="button-link" href="/feed">
-              <IconLabel icon={Rss}>{siteCopy.actions.seeQuestions}</IconLabel>
+              <IconLabel icon={Rss}>Open feed</IconLabel>
             </Link>
             <Link className="button-link secondary" href="/signup">
-              <IconLabel icon={UserPlus}>{siteCopy.actions.joinCrowd}</IconLabel>
+              <IconLabel icon={UserPlus}>Create account</IconLabel>
             </Link>
           </div>
         </div>
@@ -31,10 +30,10 @@ export default function Page() {
         <Link className="home-tile" href="/feed">
           <span>01</span>
           <strong>
-            <IconLabel icon={Rss}>Feed</IconLabel>
+            <IconLabel icon={Rss}>Questions</IconLabel>
           </strong>
           <small>
-            See what communities are asking and vote when you are eligible
+            See what communities are asking and vote when it is your turn
           </small>
         </Link>
         <Link className="home-tile" href="/signup">
@@ -42,14 +41,14 @@ export default function Page() {
           <strong>
             <IconLabel icon={UserPlus}>Create account</IconLabel>
           </strong>
-          <small>Get a passkey or wallet account before joining in</small>
+          <small>Join with a passkey or wallet so your vote stays private</small>
         </Link>
         <Link className="home-tile" href="/testing">
           <span>03</span>
           <strong>
-            <IconLabel icon={FlaskConical}>Testing Lab</IconLabel>
+            <IconLabel icon={FlaskConical}>Try demo</IconLabel>
           </strong>
-          <small>Try the local vote and result flow</small>
+          <small>Walk through asking, voting, counting, and publishing a result</small>
         </Link>
       </section>
     </AppFrame>
