@@ -1,14 +1,14 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-external-review-index-v1",
-  "generatedAt": "2026-05-19T23:55:05.935Z",
+  "generatedAt": "2026-05-19T23:56:01.764Z",
   "command": "pnpm grant:external-review-index",
   "status": "ExternalReviewIndexReady",
   "formalSubmissionReady": false,
   "productionDeploymentReady": false,
   "sourceSnapshot": {
     "gitAvailable": true,
-    "headCommit": "de4fbb6e35237bf15d25ee641782192685874dfa",
+    "headCommit": "c547da70e6e0fe687bb0aab888a219a1881d60eb",
     "branch": "codex/north-star-roadmap",
     "dirty": false,
     "statusEntryCount": 0,

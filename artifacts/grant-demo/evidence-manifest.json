@@ -1,7 +1,7 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-evidence-manifest-v1",
-  "generatedAt": "2026-05-19T23:55:10.941Z",
+  "generatedAt": "2026-05-19T23:56:08.779Z",
   "command": "pnpm grant:evidence-manifest",
   "status": "ManifestReady",
   "entryCount": 104,
@@ -265,7 +265,7 @@
       "path": "artifacts/grant-demo/external-review-index.json",
       "kind": "report",
       "bytes": 5960,
-      "sha256": "sha256:066aacd4575c8392e0d5dd9c79c871857b4af4a2d846f0f5c405fff3ea8985c6"
+      "sha256": "sha256:b9d966dc6867aab30ffa0667a11dbd1f4c5d7f224a4349952bcbbfb478f9cf24"
     },
     {
       "path": "artifacts/grant-demo/api-replay-transcript.txt",
@@ -337,7 +337,7 @@
       "path": "artifacts/grant-demo/external-review-index.md",
       "kind": "transcript",
       "bytes": 2628,
-      "sha256": "sha256:288b5bdbe27d0d69ad35f641e8872f574841931f2d5d0696a7532604bd8bce79"
+      "sha256": "sha256:1bce83ea9cca2e9e7b5ce21e3342109bffb879063f1e96b9b7c2f3482d9e7078"
     },
     {
       "path": "artifacts/grant-demo/production-slice-export.json",
@@ -640,5 +640,5 @@
       "sha256": "sha256:596d119456d14eb7c50db1c9adf63b461ef3cca3731924223d85c02c5f5ace2b"
     }
   ],
-  "manifestHash": "sha256:062b0935316d946f5d18a61e5d9b519f998c8723243124043c2f12e05789872d"
+  "manifestHash": "sha256:a8548a72a03fa224cf48c6996c2904f1bb20f7ae8062dca606e183bfa4d574d1"
 }
