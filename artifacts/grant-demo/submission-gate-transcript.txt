@@ -4,7 +4,7 @@ Command: pnpm grant:submission-gate
 Status: SubmissionGateEvidenceReady
 Formal submission ready: false
 Production deployment ready: false
-Checks: 14/14
+Checks: 16/16
 
 Clean-run required before formal submission:
 - typecheck-command: `pnpm typecheck` is declared and must pass from the review checkout before formal submission.

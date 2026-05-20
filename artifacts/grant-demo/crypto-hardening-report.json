@@ -1,0 +1,183 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-crypto-hardening-report-v1",
+  "generatedAt": "2026-05-20T01:09:52.777Z",
+  "command": "pnpm grant:crypto-hardening",
+  "status": "CryptoHardeningEvidenceReady",
+  "formalSubmissionReady": false,
+  "productionDeploymentReady": false,
+  "checksPassed": 19,
+  "checksTotal": 19,
+  "failedChecks": [],
+  "primitives": [
+    "X25519 shared secret with HKDF-SHA256 key derivation",
+    "AES-256-GCM authenticated encryption with explicit associated data",
+    "poll/question/schema/tally-key context hash binding",
+    "threshold decryption-share signatures over tally setup and result-binding evidence"
+  ],
+  "productionNonClaims": [
+    "No external cryptography audit has been completed.",
+    "No production distributed key generation ceremony is claimed.",
+    "No production threshold decryption engine is claimed.",
+    "No production key custody or recovery runbook has been externally reviewed."
+  ],
+  "checks": [
+    {
+      "id": "v2-envelope-emitted",
+      "ok": true,
+      "detail": "Ballot encryption emits the v2 envelope.",
+      "expected": "pc-encrypted-ballot-v2",
+      "actual": "pc-encrypted-ballot-v2"
+    },
+    {
+      "id": "v2-suite-recorded",
+      "ok": true,
+      "detail": "The v2 envelope records the hardened suite.",
+      "expected": "X25519-HKDF-SHA256-AES-256-GCM",
+      "actual": "X25519-HKDF-SHA256-AES-256-GCM"
+    },
+    {
+      "id": "recipient-key-bound",
+      "ok": true,
+      "detail": "The envelope binds to the tally recipient key id.",
+      "expected": "sha256:13a59eab26b8a5ac01602ae314cb2cf4a37d0ddfa02f68e225a37f01a8d55a9b",
+      "actual": "sha256:13a59eab26b8a5ac01602ae314cb2cf4a37d0ddfa02f68e225a37f01a8d55a9b"
+    },
+    {
+      "id": "context-hash-bound",
+      "ok": true,
+      "detail": "The envelope binds poll/question/schema/tally-key context.",
+      "expected": "sha256:ed8011fd93a59147ec053b0be9c34e81691f17598f026487785c94eb79988e5d",
+      "actual": "sha256:ed8011fd93a59147ec053b0be9c34e81691f17598f026487785c94eb79988e5d"
+    },
+    {
+      "id": "context-decrypts",
+      "ok": true,
+      "detail": "The correct key and context decrypt the ballot."
+    },
+    {
+      "id": "wrong-key-rejected",
+      "ok": true,
+      "detail": "A wrong recipient key cannot decrypt the ballot."
+    },
+    {
+      "id": "wrong-context-rejected",
+      "ok": true,
+      "detail": "A wrong poll context is rejected before plaintext is returned."
+    },
+    {
+      "id": "aad-tamper-rejected",
+      "ok": true,
+      "detail": "AAD hash tampering is rejected."
+    },
+    {
+      "id": "ciphertext-tamper-rejected",
+      "ok": true,
+      "detail": "AES-GCM ciphertext tampering is rejected."
+    },
+    {
+      "id": "randomized-encryption",
+      "ok": true,
+      "detail": "The same response encrypts to different ciphertext and IV."
+    },
+    {
+      "id": "plaintext-not-exported",
+      "ok": true,
+      "detail": "The encrypted payload does not expose the plaintext ballot."
+    },
+    {
+      "id": "commitment-formed",
+      "ok": true,
+      "detail": "The ballot commitment is content-addressed and context-bound."
+    },
+    {
+      "id": "production-slice-v2-golden",
+      "ok": true,
+      "detail": "The production slice verifies with v2 encrypted payloads.",
+      "expected": "Verified",
+      "actual": "Verified"
+    },
+    {
+      "id": "production-slice-v2-checks-pass",
+      "ok": true,
+      "detail": "All production-slice replay checks pass.",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "id": "replay-rejects-v1-payload",
+      "ok": true,
+      "detail": "Replay fails closed for a malformed crypto/custody fixture.",
+      "expected": [
+        "ballot-ballot-1-encrypted-payload-version"
+      ],
+      "actual": [
+        "ballot-ballot-1-encrypted-payload-hash",
+        "ballot-ballot-1-encrypted-payload-version",
+        "ballot-ballot-1-encrypted-payload-suite",
+        "ballot-ballot-1-encrypted-payload-recipient",
+        "ballot-ballot-1-encrypted-payload-context",
+        "ballot-ballot-1-encrypted-payload-aad",
+        "ballot-ballot-1-commitment"
+      ]
+    },
+    {
+      "id": "replay-rejects-wrong-context",
+      "ok": true,
+      "detail": "Replay fails closed for a malformed crypto/custody fixture.",
+      "expected": [
+        "ballot-ballot-1-encrypted-payload-context",
+        "ballot-ballot-1-commitment"
+      ],
+      "actual": [
+        "ballot-ballot-1-encrypted-payload-hash",
+        "ballot-ballot-1-encrypted-payload-context",
+        "ballot-ballot-1-encrypted-payload-aad",
+        "ballot-ballot-1-commitment"
+      ]
+    },
+    {
+      "id": "replay-rejects-wrong-recipient",
+      "ok": true,
+      "detail": "Replay fails closed for a malformed crypto/custody fixture.",
+      "expected": [
+        "ballot-ballot-1-encrypted-payload-recipient",
+        "ballot-ballot-1-commitment"
+      ],
+      "actual": [
+        "ballot-ballot-1-encrypted-payload-hash",
+        "ballot-ballot-1-encrypted-payload-recipient",
+        "ballot-ballot-1-encrypted-payload-aad",
+        "ballot-ballot-1-commitment"
+      ]
+    },
+    {
+      "id": "replay-rejects-wrong-tally-setup-share",
+      "ok": true,
+      "detail": "Replay fails closed for a malformed crypto/custody fixture.",
+      "expected": [
+        "share-decryption-share-tally-member-1-tally-key-setup",
+        "share-decryption-share-tally-member-1-signature"
+      ],
+      "actual": [
+        "share-decryption-share-tally-member-1-hash",
+        "share-decryption-share-tally-member-1-tally-key-setup",
+        "share-decryption-share-tally-member-1-signature"
+      ]
+    },
+    {
+      "id": "replay-rejects-wrong-result-binding-share",
+      "ok": true,
+      "detail": "Replay fails closed for a malformed crypto/custody fixture.",
+      "expected": [
+        "share-decryption-share-tally-member-1-result-binding",
+        "share-decryption-share-tally-member-1-signature"
+      ],
+      "actual": [
+        "share-decryption-share-tally-member-1-hash",
+        "share-decryption-share-tally-member-1-result-binding",
+        "share-decryption-share-tally-member-1-signature"
+      ]
+    }
+  ]
+}

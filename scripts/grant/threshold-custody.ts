@@ -116,6 +116,24 @@ const cases: ThresholdCustodyCase[] = [
     mutate: (input) => {
       input.decryptionShares[0].aggregateCountsHash = "sha256:tampered-aggregate";
     }
+  },
+  {
+    id: "tampered-share-tally-setup-rejected",
+    detail: "A decryption share must bind to the active tally key setup hash.",
+    expectedStatus: "Mismatch",
+    expectedFailedChecks: ["share-decryption-share-tally-member-1-tally-key-setup"],
+    mutate: (input) => {
+      input.decryptionShares[0].tallyKeySetupHash = "sha256:tampered-tally-setup";
+    }
+  },
+  {
+    id: "tampered-share-result-binding-rejected",
+    detail: "A decryption share must bind to the result-publication evidence preimage.",
+    expectedStatus: "Mismatch",
+    expectedFailedChecks: ["share-decryption-share-tally-member-1-result-binding"],
+    mutate: (input) => {
+      input.decryptionShares[0].resultArtifactBindingHash = "sha256:tampered-result-binding";
+    }
   }
 ];
 
@@ -142,7 +160,7 @@ async function main() {
       "threshold committee metadata is public and private key material is rejected",
       "committee member ids and public keys must be unique",
       "member public keys must be valid Ed25519 keys",
-      "accepted shares must meet threshold, come from authorized members, have unique hashes, and bind to the published aggregate"
+      "accepted shares must meet threshold, come from authorized members, have unique hashes, and bind to the published aggregate, tally setup, and result evidence"
     ],
     productionNonClaims: [
       "No distributed key generation implementation is claimed by this report.",

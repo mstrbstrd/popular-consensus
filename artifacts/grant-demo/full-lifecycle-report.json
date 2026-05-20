@@ -13,18 +13,18 @@
     "archiveId": "archive-transit-priority"
   },
   "hashes": {
-    "resultArtifactHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
-    "archiveHash": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
-    "artifactManifestHash": "sha256:eaa3e1232e80eaaa0e4d3139faebf1b16d7ac7d2ba3e16f8fd3b5e8f0bb842c3",
-    "transactionStreamHash": "sha256:ccdd3f0db6316e74fe9e63f8396c8dda875e5ccec71089411d851d2492bc16bf",
-    "eventStreamHash": "sha256:65c7d04d248a85a70acbb6f53dbfafefb08cfba0cbbebbad247b18c81e55dc9d",
-    "communityExportHash": "sha256:4e5807d1bea4a42981dcb7a0675dac55be711c4efb0a1c71b72fabf97378eeb2"
+    "resultArtifactHash": "sha256:3684eb419dc2a275ad2e02be291e1ddf6a16d896cbdc22b0c950c266e698c3d3",
+    "archiveHash": "sha256:f07c5fa0771b892d2a092061edcd2a912f63aecaf4d045da0eea2e43d2f53371",
+    "artifactManifestHash": "sha256:46b160c1ab2389c4674372f55e354b5364e64f32fcffa3e536aee9db2342a6c1",
+    "transactionStreamHash": "sha256:e97c354b1734d209b44596866734a96b393bbd93be53e563fc8cec19e39a2d04",
+    "eventStreamHash": "sha256:717c90259a51fd81f568fb6712304a90318ebc7ba0d41609731b211723ba6e10",
+    "communityExportHash": "sha256:8d600a69c7172d0939d6ab43b84fa8edbc27efbea415df9542567439c2f054ac"
   },
   "replay": {
     "status": "Verified",
     "mode": "production-slice",
-    "checksPassed": 105,
-    "checksTotal": 105
+    "checksPassed": 127,
+    "checksTotal": 127
   },
   "bundleReplay": {
     "status": "Verified",
@@ -46,6 +46,8 @@
     "actualStatus": "Mismatch",
     "failedChecks": [
       "crypto-mode-v1",
+      "share-decryption-share-tally-member-1-result-binding",
+      "share-decryption-share-tally-member-2-result-binding",
       "result-artifact-present",
       "result-artifact-hash",
       "result-artifact-schema",
@@ -56,6 +58,7 @@
       "result-ballot-commitment-set",
       "result-ballot-commitment-set-hash",
       "result-tally-key-setup",
+      "result-artifact-binding",
       "result-decryption-share-set",
       "result-threshold-share-count",
       "result-tally-proof-hash",
@@ -68,7 +71,7 @@
     "challenges": 1,
     "threshold": 2,
     "acceptedDecryptionShares": 2,
-    "checks": 105,
+    "checks": 127,
     "failedChecks": 0
   },
   "files": {

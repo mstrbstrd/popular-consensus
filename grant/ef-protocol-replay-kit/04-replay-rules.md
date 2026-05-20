@@ -12,6 +12,7 @@ The replay verifier checks:
 - no private key material in exported input
 - duplicate nullifier rejection
 - encrypted ballot payload hashes
+- encrypted ballot v2 suite, context, AAD, and recipient-key binding
 - eligibility proof hash and signature
 - threshold decryption share count and signatures
 - result aggregate, ballot commitment, and tally proof hashes
@@ -29,6 +30,7 @@ pnpm grant:check
 pnpm grant:api-replay
 pnpm grant:chain-replay
 pnpm grant:crypto-review
+pnpm grant:crypto-hardening
 pnpm grant:threshold-custody
 pnpm grant:replay-test-vectors
 pnpm grant:contract-hardening
@@ -47,7 +49,7 @@ pnpm --filter @pc/replay exec node --import tsx src/cli.ts verify-chain --rpc-ur
 pnpm protocol:boundary:check
 ```
 
-`pnpm grant:check` is the external-review shortcut. It regenerates the demo report, writes crypto and threshold custody evidence, regenerates replay test vectors, writes review-readiness evidence, verifies the exported production slice, enforces the protocol/platform dependency boundary, and runs the replay package tests.
+`pnpm grant:check` is the external-review shortcut. It regenerates the demo report, writes crypto, crypto-hardening, and threshold custody evidence, regenerates replay test vectors, writes review-readiness evidence, verifies the exported production slice, enforces the protocol/platform dependency boundary, and runs the replay package tests.
 
 `verify-api` checks a public civic-record endpoint and its replay-check endpoint together. It validates the public response schemas, requires replay status `Verified`, requires all replay checks to pass, and compares question id, event stream hash, result artifact hash, and archive hash across the public record and rebuilt replay state.
 
@@ -60,6 +62,8 @@ The replay package is organized as standalone verifier modules: `verifyBundle.ts
 `pnpm grant:chain-replay` is the local-chain evidence path. It starts an ephemeral Anvil RPC, deploys the protocol modules, drives the lifecycle through contract calls, rejects a duplicate nullifier, and verifies emitted logs through `verify-chain`.
 
 `pnpm grant:crypto-review` is the cryptography evidence path. It checks nullifier scoping, ballot encryption randomization, wrong-key rejection, AES-GCM tamper rejection, aggregate-output privacy, and malformed Semaphore proof rejection. It also writes production non-claims so reviewers can distinguish evidence from still-open audit work.
+
+`pnpm grant:crypto-hardening` is the audit-ready crypto evidence path. It checks v2 ballot encryption context binding, wrong-context rejection, plaintext non-export, and replay fail-closed cases for malformed encrypted payloads and threshold-share binding.
 
 `pnpm grant:threshold-custody` is the threshold custody evidence path. It checks malformed committee/member/share cases against the replay verifier and writes production non-claims for DKG, ceremony, custody, and decryption-share proof review.
 

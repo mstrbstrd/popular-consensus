@@ -9,6 +9,7 @@ import {
   createProductionSliceFixture,
   createProductionSliceExport,
   productionSliceInputFromJson,
+  resultArtifactBindingHash,
   verifyProductionSlice,
   type ProductionSliceVerificationInput
 } from "./index";
@@ -48,6 +49,22 @@ describe("production protocol slice verifier", () => {
     input.ballots[0].encryptedPayload.ciphertext = "tampered-ciphertext";
 
     expect(failedCheckIds(input)).toContain("ballot-ballot-1-encrypted-payload-hash");
+  });
+
+  it("rejects encrypted payloads replayed under the wrong poll context", () => {
+    const input = fixtureInput();
+    if (input.ballots[0].encryptedPayload.version !== "pc-encrypted-ballot-v2") throw new Error("Expected v2 encrypted ballot fixture");
+    input.ballots[0].encryptedPayload.contextHash = "sha256:wrong-context";
+
+    expect(failedCheckIds(input)).toEqual(expect.arrayContaining(["ballot-ballot-1-encrypted-payload-context", "ballot-ballot-1-encrypted-payload-aad", "ballot-ballot-1-commitment"]));
+  });
+
+  it("rejects encrypted payloads bound to the wrong tally recipient", () => {
+    const input = fixtureInput();
+    if (input.ballots[0].encryptedPayload.version !== "pc-encrypted-ballot-v2") throw new Error("Expected v2 encrypted ballot fixture");
+    input.ballots[0].encryptedPayload.recipientPublicKeyId = "tally-key-wrong";
+
+    expect(failedCheckIds(input)).toEqual(expect.arrayContaining(["ballot-ballot-1-encrypted-payload-recipient", "ballot-ballot-1-encrypted-payload-aad", "ballot-ballot-1-commitment"]));
   });
 
   it("rejects invalid Semaphore proof verifier signatures", () => {
@@ -169,6 +186,27 @@ describe("production protocol slice verifier", () => {
     input.decryptionShares[0].signature = "tampered-signature";
 
     expect(failedCheckIds(input)).toContain("share-decryption-share-tally-member-1-signature");
+  });
+
+  it("rejects threshold shares bound to the wrong tally setup", () => {
+    const input = fixtureInput();
+    input.decryptionShares[0].tallyKeySetupHash = "sha256:wrong-setup";
+
+    expect(failedCheckIds(input)).toEqual(expect.arrayContaining(["share-decryption-share-tally-member-1-hash", "share-decryption-share-tally-member-1-tally-key-setup", "share-decryption-share-tally-member-1-signature"]));
+  });
+
+  it("rejects threshold shares bound to the wrong result artifact preimage", () => {
+    const input = fixtureInput();
+    input.decryptionShares[0].resultArtifactBindingHash = resultArtifactBindingHash({
+      pollId: input.poll.id,
+      questionId: input.question.id,
+      aggregateCountsHash: "sha256:wrong-aggregate",
+      acceptedBallotCommitmentsHash: "sha256:wrong-commitments",
+      tallyKeySetupHash: input.tallyKeySetup.ceremonyHash,
+      privacyReportHash: input.result.privacyReportHash
+    });
+
+    expect(failedCheckIds(input)).toEqual(expect.arrayContaining(["share-decryption-share-tally-member-1-hash", "share-decryption-share-tally-member-1-result-binding", "share-decryption-share-tally-member-1-signature"]));
   });
 
   it("rejects tampered replay event continuity", () => {

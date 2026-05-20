@@ -1,43 +1,43 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-external-review-index-v1",
-  "generatedAt": "2026-05-20T00:08:39.549Z",
+  "generatedAt": "2026-05-20T01:12:22.355Z",
   "command": "pnpm grant:external-review-index",
   "status": "ExternalReviewIndexReady",
   "formalSubmissionReady": false,
   "productionDeploymentReady": false,
   "sourceSnapshot": {
     "gitAvailable": true,
-    "headCommit": "42874136cf358744c82a950f8eafd55ebed4809f",
+    "headCommit": "6192a0e323d7922faf9f1e15a34a02b12ed6313a",
     "branch": "codex/north-star-roadmap",
     "dirty": true,
-    "statusEntryCount": 29,
+    "statusEntryCount": 56,
     "statusPreview": [
-      "M artifacts/grant-demo/contract-hardening-report.json",
+      "M apps/api/src/server.ts",
+      " M artifacts/grant-demo/api-replay-report.json",
+      " M artifacts/grant-demo/api-replay-transcript.txt",
+      " M artifacts/grant-demo/community-export.json",
+      " M artifacts/grant-demo/contract-hardening-report.json",
       " M artifacts/grant-demo/crypto-review-report.json",
+      " M artifacts/grant-demo/evidence-manifest-transcript.txt",
+      " M artifacts/grant-demo/evidence-manifest.json",
+      " M artifacts/grant-demo/external-review-index.json",
+      " M artifacts/grant-demo/external-review-index.md",
+      " M artifacts/grant-demo/full-lifecycle-report.json",
+      " M artifacts/grant-demo/negative-invariant-report.json",
       " M artifacts/grant-demo/packet-lint-report.json",
       " M artifacts/grant-demo/packet-lint-transcript.txt",
+      " M artifacts/grant-demo/production-slice-export.json",
       " M artifacts/grant-demo/protocol-publication-report.json",
       " M artifacts/grant-demo/replay-test-vectors-report.json",
       " M artifacts/grant-demo/repo-strategy-audit-report.json",
-      " M artifacts/grant-demo/repo-strategy-audit-transcript.txt",
+      " M artifacts/grant-demo/review-readiness-report.json",
+      " M artifacts/grant-demo/review-readiness-transcript.txt",
       " M artifacts/grant-demo/reviewer-handoff-report.json",
       " M artifacts/grant-demo/submission-gate-report.json",
-      " M artifacts/grant-demo/threshold-custody-report.json",
-      " M grant/ef-protocol-replay-kit/04-replay-rules.md",
-      " M grant/ef-protocol-replay-kit/08-review-readiness.md",
-      " M grant/ef-protocol-replay-kit/14-reviewer-handoff.md",
-      " M grant/ef-protocol-replay-kit/README.md",
-      " M package.json",
-      " M packages/replay/test/fixtures/clean-production-slice-export.json",
-      " M packages/replay/test/fixtures/reordered-events.json",
-      " M packages/replay/test/fixtures/tampered-result-hash.json",
-      " M scripts/grant/evidence-manifest.ts",
-      " M scripts/grant/external-review-index.ts",
-      " M scripts/grant/packet-lint.ts",
-      " M scripts/grant/repo-strategy-audit.ts",
-      " M scripts/grant/review-readiness.ts",
-      " M scripts/grant/reviewer-handoff.ts"
+      " M artifacts/grant-demo/submission-gate-transcript.txt",
+      " M artifacts/grant-demo/tampered-production-slice-export.json",
+      " M artifacts/grant-demo/threshold-custody-report.json"
     ]
   },
   "reviewerStartHere": [
@@ -57,6 +57,11 @@
       "purpose": "Deploy protocol modules locally and verify decoded Solidity logs through @pc/replay."
     },
     {
+      "command": "pnpm grant:crypto-hardening",
+      "dependencyMode": "no-local-services",
+      "purpose": "Regenerate v2 encrypted-ballot context binding and threshold-share fail-closed crypto evidence."
+    },
+    {
       "command": "pnpm grant:full-check",
       "dependencyMode": "local-postgres-and-ephemeral-anvil",
       "purpose": "Run typecheck, tests, contract build, API replay, chain replay, and the quick grant gate."
@@ -64,15 +69,15 @@
   ],
   "keyHashes": {
     "fullLifecycle": {
-      "resultArtifactHash": "sha256:8815c1675706ad00c30f87cc970c8dc548e4bc854fe55b5eee08e3687ea37642",
-      "archiveHash": "sha256:6ef6e252b7debfd60d948ffdf15d0b9d51e13734d522c7804894b74e2508de34",
-      "eventStreamHash": "sha256:65c7d04d248a85a70acbb6f53dbfafefb08cfba0cbbebbad247b18c81e55dc9d"
+      "resultArtifactHash": "sha256:3684eb419dc2a275ad2e02be291e1ddf6a16d896cbdc22b0c950c266e698c3d3",
+      "archiveHash": "sha256:f07c5fa0771b892d2a092061edcd2a912f63aecaf4d045da0eea2e43d2f53371",
+      "eventStreamHash": "sha256:717c90259a51fd81f568fb6712304a90318ebc7ba0d41609731b211723ba6e10"
     },
     "apiReplay": {
-      "questionId": "question-HO_vvpJvU3",
-      "resultArtifactHash": "sha256:7a4c5baa29d5e6cc18132e71c6122fcab651b7dff4a6871a83a2f72912e2cc13",
-      "archiveHash": "sha256:070c49b464b89931b796b79f293f0f1ffd89ccbe0af72b57a0b444bc32c500b3",
-      "eventStreamHash": "sha256:b0292761c06c0eb287f651c720117c3d0f68e0597b18b82ec1e558087f52a98b"
+      "questionId": "question-gMeAaQ26dS",
+      "resultArtifactHash": "sha256:5e99b8371a5fc000b99f290920d8717ecdc7f828ab0c9df8916d32c2c7f3e4db",
+      "archiveHash": "sha256:d2091ee29b23df208204064b089660f6aeed777cc144462ca6568d8cfbb619e2",
+      "eventStreamHash": "sha256:dd403cdb9721737c11d0a83c0c9f58f7c241bd00da81468be6388591d5f38759"
     },
     "chainReplay": {
       "deployment": "artifacts/grant-demo/chain-local-deployment.json",
@@ -87,8 +92,8 @@
       "expectedStatus": "Verified",
       "actualStatus": "Verified",
       "ok": true,
-      "checksPassed": 105,
-      "checksTotal": 105
+      "checksPassed": 127,
+      "checksTotal": 127
     },
     {
       "id": "api-replay",
@@ -118,13 +123,22 @@
       "checksTotal": 12
     },
     {
+      "id": "crypto-hardening",
+      "path": "artifacts/grant-demo/crypto-hardening-report.json",
+      "expectedStatus": "CryptoHardeningEvidenceReady",
+      "actualStatus": "CryptoHardeningEvidenceReady",
+      "ok": true,
+      "checksPassed": 19,
+      "checksTotal": 19
+    },
+    {
       "id": "threshold-custody",
       "path": "artifacts/grant-demo/threshold-custody-report.json",
       "expectedStatus": "ThresholdCustodyEvidenceReady",
       "actualStatus": "ThresholdCustodyEvidenceReady",
       "ok": true,
-      "checksPassed": 10,
-      "checksTotal": 10
+      "checksPassed": 12,
+      "checksTotal": 12
     },
     {
       "id": "replay-test-vectors",
@@ -150,8 +164,8 @@
       "expectedStatus": "PacketReady",
       "actualStatus": "PacketReady",
       "ok": true,
-      "checksPassed": 68,
-      "checksTotal": 68
+      "checksPassed": 71,
+      "checksTotal": 71
     },
     {
       "id": "reviewer-handoff",
@@ -177,8 +191,8 @@
       "expectedStatus": "SubmissionGateEvidenceReady",
       "actualStatus": "SubmissionGateEvidenceReady",
       "ok": true,
-      "checksPassed": 14,
-      "checksTotal": 14
+      "checksPassed": 16,
+      "checksTotal": 16
     },
     {
       "id": "protocol-publication",

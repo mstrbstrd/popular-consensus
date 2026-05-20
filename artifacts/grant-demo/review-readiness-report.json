@@ -1,12 +1,12 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-review-readiness-report-v1",
-  "generatedAt": "2026-05-20T00:08:40.330Z",
+  "generatedAt": "2026-05-20T01:12:22.334Z",
   "command": "pnpm grant:review-readiness",
   "status": "MachineEvidenceReady",
   "formalSubmissionReady": false,
-  "checksPassed": 135,
-  "checksTotal": 135,
+  "checksPassed": 141,
+  "checksTotal": 141,
   "failedChecks": [],
   "humanBlockers": [
     "External cryptography review and production threshold ceremony evidence are not complete.",
@@ -21,6 +21,7 @@
     "pnpm grant:api-replay",
     "pnpm grant:chain-replay",
     "pnpm grant:crypto-review",
+    "pnpm grant:crypto-hardening",
     "pnpm grant:threshold-custody",
     "pnpm grant:replay-test-vectors",
     "pnpm grant:contract-hardening",
@@ -193,6 +194,12 @@
       "evidence": "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md"
     },
     {
+      "id": "file-grant-ef-protocol-replay-kit-23-crypto-hardening-evidence-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/23-crypto-hardening-evidence.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/23-crypto-hardening-evidence.md"
+    },
+    {
       "id": "file-grant-ef-protocol-replay-kit-license-cc-by-4-0-md",
       "ok": true,
       "detail": "grant/ef-protocol-replay-kit/LICENSE-CC-BY-4.0.md exists and is non-empty",
@@ -239,6 +246,12 @@
       "ok": true,
       "detail": "artifacts/grant-demo/crypto-review-report.json exists and is non-empty",
       "evidence": "artifacts/grant-demo/crypto-review-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-crypto-hardening-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/crypto-hardening-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/crypto-hardening-report.json"
     },
     {
       "id": "file-artifacts-grant-demo-threshold-custody-report-json",
@@ -505,6 +518,12 @@
       "evidence": "scripts/grant/crypto-review.ts"
     },
     {
+      "id": "file-scripts-grant-crypto-hardening-ts",
+      "ok": true,
+      "detail": "scripts/grant/crypto-hardening.ts exists and is non-empty",
+      "evidence": "scripts/grant/crypto-hardening.ts"
+    },
+    {
       "id": "file-scripts-grant-threshold-custody-ts",
       "ok": true,
       "detail": "scripts/grant/threshold-custody.ts exists and is non-empty",
@@ -635,6 +654,24 @@
       "ok": true,
       "detail": "Crypto review report includes external-audit non-claim",
       "evidence": "artifacts/grant-demo/crypto-review-report.json"
+    },
+    {
+      "id": "crypto-hardening-evidence-ready",
+      "ok": true,
+      "detail": "Crypto hardening evidence is CryptoHardeningEvidenceReady",
+      "evidence": "artifacts/grant-demo/crypto-hardening-report.json"
+    },
+    {
+      "id": "crypto-hardening-checks-pass",
+      "ok": true,
+      "detail": "All crypto hardening checks pass",
+      "evidence": "artifacts/grant-demo/crypto-hardening-report.json"
+    },
+    {
+      "id": "crypto-hardening-production-nonclaim",
+      "ok": true,
+      "detail": "Crypto hardening report does not claim production deployment or formal submission readiness",
+      "evidence": "artifacts/grant-demo/crypto-hardening-report.json"
     },
     {
       "id": "threshold-custody-evidence-ready",

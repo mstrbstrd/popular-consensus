@@ -22,7 +22,7 @@ type GateCriterion = {
 
 type JsonRecord = Record<string, unknown>;
 
-const requiredScripts = ["typecheck", "test", "contracts:build", "grant:demo", "replay:verify"];
+const requiredScripts = ["typecheck", "test", "contracts:build", "grant:demo", "grant:crypto-hardening", "replay:verify"];
 
 main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : error);
@@ -36,6 +36,7 @@ async function main() {
   const scripts = isRecord(packageJson.scripts) ? packageJson.scripts : {};
   const replayBin = isRecord(replayPackageJson.bin) ? replayPackageJson.bin : {};
   const fullLifecycle = await readJson("artifacts/grant-demo/full-lifecycle-report.json");
+  const cryptoHardening = await readJson("artifacts/grant-demo/crypto-hardening-report.json");
   const packetLint = await readJson("artifacts/grant-demo/packet-lint-report.json");
   const checks: GateCheck[] = [];
 
@@ -84,6 +85,7 @@ async function main() {
     )
   );
   checks.push(check("packet-ready", packetLint.status === "PacketReady", "Grant packet lint is PacketReady", "artifacts/grant-demo/packet-lint-report.json"));
+  checks.push(check("crypto-hardening-ready", cryptoHardening.status === "CryptoHardeningEvidenceReady" && cryptoHardening.productionDeploymentReady === false, "Crypto hardening evidence is ready without production deployment claims", "artifacts/grant-demo/crypto-hardening-report.json"));
 
   const scopeBoundary = await readText("grant/ef-protocol-replay-kit/scope-boundary.md");
   checks.push(
@@ -124,6 +126,7 @@ async function main() {
     criterion("grant-demo", fullLifecycle.status === "Verified" ? "evidence-ready" : "human-blocked", "artifacts/grant-demo/full-lifecycle-report.json", "Full lifecycle replay demo status."),
     criterion("pc-replay-verify-bundle", replayBin["pc-replay"] === "src/cli.ts" ? "evidence-ready" : "human-blocked", "packages/replay/package.json", "CLI entrypoint exists for external bundle replay."),
     criterion("tampered-bundle-fails", get(fullLifecycle, "tamper.actualStatus") === "Mismatch" ? "evidence-ready" : "human-blocked", "artifacts/grant-demo/full-lifecycle-report.json", "Tampered replay must fail with Mismatch."),
+    criterion("crypto-hardening", cryptoHardening.status === "CryptoHardeningEvidenceReady" ? "evidence-ready" : "human-blocked", "artifacts/grant-demo/crypto-hardening-report.json", "V2 encrypted-ballot context binding and threshold-share fail-closed evidence."),
     criterion("grant-packet", packetLint.status === "PacketReady" ? "evidence-ready" : "human-blocked", "artifacts/grant-demo/packet-lint-report.json", "Packet lint proves grant docs are present and scoped."),
     criterion("scope-excludes-product-monetization", "evidence-ready", "grant/ef-protocol-replay-kit/scope-boundary.md", "Scope excludes product monetization and token launch claims."),
     criterion("license-plan", "evidence-ready", "LICENSE-BOUNDARY.md", "License plan is scoped to protocol/package/docs/artifact surfaces."),

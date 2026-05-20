@@ -1,7 +1,7 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-crypto-review-report-v1",
-  "generatedAt": "2026-05-20T00:08:35.660Z",
+  "generatedAt": "2026-05-20T01:09:52.301Z",
   "command": "pnpm grant:crypto-review",
   "status": "EvidenceReady",
   "checksPassed": 12,

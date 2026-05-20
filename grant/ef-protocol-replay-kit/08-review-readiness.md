@@ -15,6 +15,7 @@ This checklist is the hostile-review pass for the grant-facing protocol slice. I
 | Live local-chain replay evidence | Pass locally | `pnpm grant:chain-replay`, `artifacts/grant-demo/chain-replay-report.json`, `artifacts/grant-demo/chain-replay-transcript.txt` |
 | Contract event alignment | Pass for full grant-critical Solidity lifecycle log assertions | `testFullProtocolLifecycleEmitsReplayableEvents`, `pnpm --filter @pc/contracts test` |
 | Cryptography evidence inventory | Pass for local evidence checks plus explicit production non-claims | `pnpm grant:crypto-review`, `artifacts/grant-demo/crypto-review-report.json`, `grant/ef-protocol-replay-kit/11-cryptography-review.md` |
+| Crypto hardening evidence | Pass for v2 encrypted-ballot context binding, wrong-context rejection, and threshold-share binding replay failures | `pnpm grant:crypto-hardening`, `artifacts/grant-demo/crypto-hardening-report.json`, `grant/ef-protocol-replay-kit/23-crypto-hardening-evidence.md` |
 | Threshold custody hardening | Pass for threshold committee/share malformed-case evidence plus production DKG non-claims | `pnpm grant:threshold-custody`, `artifacts/grant-demo/threshold-custody-report.json`, `grant/ef-protocol-replay-kit/15-threshold-custody-hardening.md` |
 | Replay test vectors | Pass for checked clean and tampered JSON fixtures | `pnpm grant:replay-test-vectors`, `packages/replay/test/fixtures/*.json`, `artifacts/grant-demo/replay-test-vectors-report.json` |
 | Contract access control | Pass for split modules, steward guards, unauthorized-call tests, and production custody non-claims | `pnpm grant:contract-hardening`, `testStewardGuardsRejectUnauthorizedCoordinatorActions`, `artifacts/grant-demo/contract-hardening-report.json`, `grant/ef-protocol-replay-kit/13-contract-hardening-status.md` |
@@ -55,6 +56,7 @@ pnpm grant:check
 pnpm grant:api-replay
 pnpm grant:chain-replay
 pnpm grant:crypto-review
+pnpm grant:crypto-hardening
 pnpm grant:threshold-custody
 pnpm grant:replay-test-vectors
 pnpm grant:contract-hardening

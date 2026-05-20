@@ -1,7 +1,7 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-negative-invariant-audit-v1",
-  "generatedAt": "2026-05-20T00:08:38.759Z",
+  "generatedAt": "2026-05-20T01:09:55.709Z",
   "command": "pnpm grant:negative-invariants",
   "status": "NegativeInvariantsPreserved",
   "formalSubmissionReady": false,
@@ -102,6 +102,7 @@
         "artifacts/grant-demo/submission-gate-report.json",
         "artifacts/grant-demo/external-review-index.json",
         "artifacts/grant-demo/contract-hardening-report.json",
+        "artifacts/grant-demo/crypto-hardening-report.json",
         "artifacts/grant-demo/threshold-custody-report.json",
         "grant/ef-protocol-replay-kit/11-cryptography-review.md",
         "grant/ef-protocol-replay-kit/15-threshold-custody-hardening.md"

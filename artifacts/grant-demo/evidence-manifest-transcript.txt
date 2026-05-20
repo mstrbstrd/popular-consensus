@@ -2,14 +2,14 @@ Popular Consensus Protocol Replay Kit evidence manifest
 
 Command: pnpm grant:evidence-manifest
 Status: ManifestReady
-Entries: 108
-Manifest hash: sha256:061036c972ecc6de38c63ff1c3e18807945696be9d6e757dfef3913923748e22
+Entries: 112
+Manifest hash: sha256:34fdccf5ca3d5c7b35202f00dece716df6d70963143e75eb7c1d74ae178d3d22
 
 Counts by kind:
 - license: 4
-- doc: 26
-- report: 14
-- transcript: 13
+- doc: 27
+- report: 15
+- transcript: 14
 - export: 3
 - test: 9
-- source: 39
+- source: 40

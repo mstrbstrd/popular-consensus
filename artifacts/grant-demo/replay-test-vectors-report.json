@@ -1,7 +1,7 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-test-vector-report-v1",
-  "generatedAt": "2026-05-20T00:08:36.721Z",
+  "generatedAt": "2026-05-20T01:09:53.831Z",
   "command": "pnpm grant:replay-test-vectors",
   "status": "ReplayTestVectorsReady",
   "fixtureDirectory": "packages/replay/test/fixtures",
@@ -15,8 +15,8 @@
       "mode": "production-slice",
       "expectedStatus": "Verified",
       "actualStatus": "Verified",
-      "checksPassed": 105,
-      "checksTotal": 105,
+      "checksPassed": 127,
+      "checksTotal": 127,
       "failedChecks": []
     },
     {
@@ -35,10 +35,12 @@
       "mode": "production-slice",
       "expectedStatus": "Mismatch",
       "actualStatus": "Mismatch",
-      "checksPassed": 90,
-      "checksTotal": 105,
+      "checksPassed": 109,
+      "checksTotal": 127,
       "failedChecks": [
         "crypto-mode-v1",
+        "share-decryption-share-tally-member-1-result-binding",
+        "share-decryption-share-tally-member-2-result-binding",
         "result-artifact-present",
         "result-artifact-hash",
         "result-artifact-schema",
@@ -49,6 +51,7 @@
         "result-ballot-commitment-set",
         "result-ballot-commitment-set-hash",
         "result-tally-key-setup",
+        "result-artifact-binding",
         "result-decryption-share-set",
         "result-threshold-share-count",
         "result-tally-proof-hash",
@@ -73,8 +76,8 @@
       "mode": "production-slice",
       "expectedStatus": "Mismatch",
       "actualStatus": "Mismatch",
-      "checksPassed": 104,
-      "checksTotal": 105,
+      "checksPassed": 126,
+      "checksTotal": 127,
       "failedChecks": [
         "event-previous-hash-continuity"
       ]

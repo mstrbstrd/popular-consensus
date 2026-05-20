@@ -42,6 +42,7 @@ const requiredFiles = [
   "grant/ef-protocol-replay-kit/20-submission-gate.md",
   "grant/ef-protocol-replay-kit/21-protocol-package-publication.md",
   "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md",
+  "grant/ef-protocol-replay-kit/23-crypto-hardening-evidence.md",
   "grant/ef-protocol-replay-kit/LICENSE-CC-BY-4.0.md",
   "grant/ef-protocol-replay-kit/office-hours-brief.md",
   "grant/ef-protocol-replay-kit/scope-boundary.md",
@@ -50,6 +51,7 @@ const requiredFiles = [
   "artifacts/grant-demo/api-replay-report.json",
   "artifacts/grant-demo/chain-replay-report.json",
   "artifacts/grant-demo/crypto-review-report.json",
+  "artifacts/grant-demo/crypto-hardening-report.json",
   "artifacts/grant-demo/threshold-custody-report.json",
   "artifacts/grant-demo/replay-test-vectors-report.json",
   "artifacts/grant-demo/contract-hardening-report.json",
@@ -94,6 +96,7 @@ const requiredFiles = [
   "scripts/grant/api-replay-demo.ts",
   "scripts/grant/chain-replay-demo.ts",
   "scripts/grant/crypto-review.ts",
+  "scripts/grant/crypto-hardening.ts",
   "scripts/grant/threshold-custody.ts",
   "scripts/grant/replay-test-vectors.ts",
   "scripts/grant/contract-hardening.ts",
@@ -194,6 +197,25 @@ async function main() {
       JSON.stringify(cryptoReview.productionNonClaims ?? []).includes("No external cryptography audit has been completed"),
       "Crypto review report includes external-audit non-claim",
       "artifacts/grant-demo/crypto-review-report.json"
+    )
+  );
+
+  const cryptoHardening = await readJson("artifacts/grant-demo/crypto-hardening-report.json");
+  checks.push(check("crypto-hardening-evidence-ready", cryptoHardening.status === "CryptoHardeningEvidenceReady", "Crypto hardening evidence is CryptoHardeningEvidenceReady", "artifacts/grant-demo/crypto-hardening-report.json"));
+  checks.push(
+    check(
+      "crypto-hardening-checks-pass",
+      numeric(cryptoHardening.checksPassed) === numeric(cryptoHardening.checksTotal),
+      "All crypto hardening checks pass",
+      "artifacts/grant-demo/crypto-hardening-report.json"
+    )
+  );
+  checks.push(
+    check(
+      "crypto-hardening-production-nonclaim",
+      cryptoHardening.productionDeploymentReady === false && cryptoHardening.formalSubmissionReady === false,
+      "Crypto hardening report does not claim production deployment or formal submission readiness",
+      "artifacts/grant-demo/crypto-hardening-report.json"
     )
   );
 
@@ -474,6 +496,7 @@ async function main() {
       "pnpm grant:api-replay",
       "pnpm grant:chain-replay",
       "pnpm grant:crypto-review",
+      "pnpm grant:crypto-hardening",
       "pnpm grant:threshold-custody",
       "pnpm grant:replay-test-vectors",
       "pnpm grant:contract-hardening",

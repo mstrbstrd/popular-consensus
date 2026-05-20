@@ -1,0 +1,16 @@
+Popular Consensus Protocol Replay Kit crypto hardening evidence
+
+Command: pnpm grant:crypto-hardening
+Status: CryptoHardeningEvidenceReady
+Formal submission ready: false
+Production deployment ready: false
+Checks: 19/19
+
+Production non-claims:
+- No external cryptography audit has been completed.
+- No production distributed key generation ceremony is claimed.
+- No production threshold decryption engine is claimed.
+- No production key custody or recovery runbook has been externally reviewed.
+
+Failed checks:
+- none

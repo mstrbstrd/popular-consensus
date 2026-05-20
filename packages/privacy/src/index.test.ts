@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { BuiltInAnswerSchemas, getAnswerSchema, type BallotResponse } from "@pc/shared";
 import {
   ballotCommitment,
+  ballotEncryptionContextHash,
   anonymousBallotProofHash,
   anonymousPollScope,
+  createBallotEncryptionContext,
   createCoordinatorKeypair,
   createParticipationReceipt,
   decryptBallot,
@@ -15,6 +17,13 @@ import {
   verifyAnonymousBallotProof,
   verifyDemoCredential
 } from "./index";
+
+const ballotContext = createBallotEncryptionContext({
+  pollId: "poll-1",
+  questionId: "question-1",
+  credentialSchemaId: "resident-vancouver",
+  tallyPublicKeyId: "tally-key-1"
+});
 
 const privacyCases: Array<{
   schemaId: string;
@@ -91,11 +100,13 @@ describe("MACI-derived privacy helpers", () => {
     const coordinator = createCoordinatorKeypair();
     const credential = issueDemoCredential("demo-resident", "resident-vancouver", "issuer-demo");
     const nullifier = deriveNullifier(credential.secret, "poll-1", credential.schemaId);
-    const payload = encryptBallot("support", coordinator.publicKeyPem);
+    const payload = encryptBallot("support", { publicKeyPem: coordinator.publicKeyPem, publicKeyId: ballotContext.tallyPublicKeyId }, ballotContext);
 
     expect(verifyDemoCredential(credential.secret, credential.secretHash)).toBe(true);
     expect(nullifier).toEqual(deriveNullifier(credential.secret, "poll-1", credential.schemaId));
-    expect(ballotCommitment(payload, nullifier)).toContain("sha256:");
+    expect(ballotCommitment(payload, nullifier, ballotContext)).toContain("sha256:");
+    expect(payload.version).toBe("pc-encrypted-ballot-v2");
+    expect(payload.contextHash).toBe(ballotEncryptionContextHash(ballotContext));
 
     const tally = tallyEncryptedBallots([payload], coordinator.privateKeyPem, getAnswerSchema("answer-binary-support-oppose"));
     expect(tally.counts.support).toBe(1);
@@ -157,6 +168,29 @@ describe("MACI-derived privacy helpers", () => {
     expect(() => decryptBallot(payload, wrongCoordinator.privateKeyPem)).toThrow();
     expect(() => decryptBallot({ ...payload, ciphertext: tamperedCiphertext }, coordinator.privateKeyPem)).toThrow();
     expect(() => decryptBallot({ ...payload, authTag: Buffer.alloc(16).toString("base64") }, coordinator.privateKeyPem)).toThrow();
+  });
+
+  it("binds v2 encrypted ballots to poll context and associated data", () => {
+    const coordinator = createCoordinatorKeypair();
+    const wrongContext = createBallotEncryptionContext({
+      ...ballotContext,
+      pollId: "poll-2"
+    });
+    const payload = encryptBallot("support", { publicKeyPem: coordinator.publicKeyPem, publicKeyId: ballotContext.tallyPublicKeyId }, ballotContext);
+
+    expect(decryptBallot(payload, coordinator.privateKeyPem, ballotContext)).toMatchObject({ type: "single_choice", choice: "support" });
+    expect(() => decryptBallot(payload, coordinator.privateKeyPem, wrongContext)).toThrow();
+    expect(() => decryptBallot({ ...payload, contextHash: ballotEncryptionContextHash(wrongContext) }, coordinator.privateKeyPem)).toThrow();
+    expect(() => ballotCommitment(payload, "sha256:nullifier", wrongContext)).toThrow();
+  });
+
+  it("does not expose plaintext ballot data in the v2 envelope", () => {
+    const coordinator = createCoordinatorKeypair();
+    const payload = encryptBallot({ type: "free_text", text: "Keep this private" }, { publicKeyPem: coordinator.publicKeyPem, publicKeyId: ballotContext.tallyPublicKeyId }, ballotContext);
+
+    expect(JSON.stringify(payload)).not.toContain("Keep this private");
+    expect(payload.aadHash).toMatch(/^sha256:/);
+    expect(payload.recipientPublicKeyId).toBe(ballotContext.tallyPublicKeyId);
   });
 
   it("keeps nullifiers poll-scoped and schema-scoped", () => {

@@ -29,10 +29,12 @@ The report checks that:
 - unauthorized accepted shares are rejected
 - duplicate accepted share hashes are rejected
 - decryption shares must bind to the published aggregate counts hash
+- decryption shares must bind to the tally key setup hash
+- decryption shares must bind to the result-publication evidence preimage
 
 ## Replay Boundary
 
-The verifier treats threshold evidence as public replay data. It checks that the published result artifact is supported by accepted decryption-share hashes from the active committee and that those shares are signed by the committee public keys.
+The verifier treats threshold evidence as public replay data. It checks that the published result artifact is supported by accepted decryption-share hashes from the active committee and that those shares are signed by the committee public keys. The hardened share payload also binds to the tally setup hash and a result-artifact binding hash so shares cannot be replayed across tally setup or result-publication context.
 
 This is enough for grant-review evidence that the replay path does not blindly trust an application tally. It is not enough for a production privacy claim.
 

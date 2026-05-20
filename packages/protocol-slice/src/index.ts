@@ -10,7 +10,14 @@ import {
   type ArtifactManifest,
   type ArtifactReference
 } from "@pc/artifacts";
-import type { EncryptedBallotPayload } from "@pc/privacy";
+import {
+  BALLOT_ENCRYPTION_V2_SUITE,
+  ballotEncryptionAadHash,
+  ballotEncryptionContextHash,
+  createBallotEncryptionContext,
+  type EncryptedBallotPayload,
+  type EncryptedBallotPayloadV2
+} from "@pc/privacy";
 import { getAnswerSchema, tallyBallotResponses, type BallotResponse } from "@pc/shared";
 
 export const PRODUCTION_SLICE_SCHEMA_VERSION = "production-slice-verification-v1";
@@ -130,9 +137,11 @@ export type ProductionSliceTallyDecryptionShare = {
   id: string;
   pollId: string;
   tallyKeySetupId: string;
+  tallyKeySetupHash: string;
   memberId: string;
   ballotCommitmentsHash: string;
   aggregateCountsHash: string;
+  resultArtifactBindingHash: string;
   shareHash: string;
   proofHash: string;
   signature: string;
@@ -152,6 +161,7 @@ export type ProductionSliceResultArtifact = {
   acceptedBallotCommitments: string[];
   acceptedBallotCommitmentsHash: string;
   tallyKeySetupHash: string;
+  resultArtifactBindingHash: string;
   decryptionShareHashes: string[];
   decryptionShareSetHash: string;
   acceptedDecryptionShareCount: number;
@@ -400,6 +410,7 @@ export function createProductionSliceFixture(): ProductionSliceFixture {
       groupId,
       groupRoot,
       scope: proofScope,
+      tallyPublicKeyId: tallyKeySetup.publicKeyId,
       response,
       submittedAt: poll.openedAt + index + 1
     })
@@ -410,13 +421,24 @@ export function createProductionSliceFixture(): ProductionSliceFixture {
   const aggregateCountsHash = hashJson(counts);
   const acceptedBallotCommitments = sortedStrings(ballots.map((ballot) => ballot.ballotCommitment));
   const acceptedBallotCommitmentsHash = hashJson(acceptedBallotCommitments);
+  const privacyReportHash = hashJson({ protocol: "pc-privacy-report-v1", pollId, turnout: ballots.length, threshold: 1 });
+  const resultArtifactBinding = resultArtifactBindingHash({
+    pollId,
+    questionId,
+    aggregateCountsHash,
+    acceptedBallotCommitmentsHash,
+    tallyKeySetupHash: tallyKeySetup.ceremonyHash,
+    privacyReportHash
+  });
   const decryptionShares = TALLY_MEMBER_KEYS.slice(0, 2).map((member, index) =>
     createFixtureDecryptionShare({
       member,
       pollId,
       tallyKeySetupId: tallyKeySetup.id,
+      tallyKeySetupHash: tallyKeySetup.ceremonyHash,
       aggregateCountsHash,
       ballotCommitmentsHash: acceptedBallotCommitmentsHash,
+      resultArtifactBindingHash: resultArtifactBinding,
       submittedAt: poll.closedAt + index + 1
     })
   );
@@ -439,11 +461,12 @@ export function createProductionSliceFixture(): ProductionSliceFixture {
     acceptedBallotCommitments,
     acceptedBallotCommitmentsHash,
     tallyKeySetupHash: tallyKeySetup.ceremonyHash,
+    resultArtifactBindingHash: resultArtifactBinding,
     decryptionShareHashes,
     decryptionShareSetHash,
     acceptedDecryptionShareCount: decryptionShares.length,
     tallyProofHash,
-    privacyReportHash: hashJson({ protocol: "pc-privacy-report-v1", pollId, turnout: ballots.length, threshold: 1 }),
+    privacyReportHash,
     turnout: ballots.length,
     invalidBallots: 0,
     publishedAt: generatedAt + 3_900_000,
@@ -625,6 +648,17 @@ export function verifyProductionSlice(input: ProductionSliceVerificationInput): 
   const acceptedShares = input.decryptionShares.filter((share) => share.status === "Accepted");
   const acceptedShareHashes = sortedStrings(acceptedShares.map((share) => share.shareHash));
   const expectedShareSetHash = hashJson(acceptedShareHashes);
+  const expectedResultArtifactBindingHash =
+    resultArtifact && typeof resultArtifact.privacyReportHash === "string"
+      ? resultArtifactBindingHash({
+          pollId: input.poll.id,
+          questionId: input.question.id,
+          aggregateCountsHash: input.result.aggregateCountsHash,
+          acceptedBallotCommitmentsHash: expectedCommitmentsHash,
+          tallyKeySetupHash: input.tallyKeySetup.ceremonyHash,
+          privacyReportHash: resultArtifact.privacyReportHash
+        })
+      : null;
   const tallyMemberIds = input.tallyKeySetup.members.map((member) => member.memberId);
   const tallyMemberPublicKeys = input.tallyKeySetup.members.map((member) => normalizePem(member.publicKeyPem));
   const uniqueTallyMemberIds = new Set(tallyMemberIds);
@@ -663,12 +697,33 @@ export function verifyProductionSlice(input: ProductionSliceVerificationInput): 
 
   for (const ballot of input.ballots) {
     const eligibilityProofArtifact = artifactByHash.get(ballot.eligibilityProofArtifactHash);
+    const encryptedPayload = ballot.encryptedPayload;
+    const expectedBallotContext = createBallotEncryptionContext({
+      pollId: input.poll.id,
+      questionId: input.question.id,
+      credentialSchemaId: input.credentialSchema.id,
+      tallyPublicKeyId: input.tallyKeySetup.publicKeyId
+    });
+    const expectedBallotContextHash = ballotEncryptionContextHash(expectedBallotContext);
+    const expectedAadHash =
+      encryptedPayload.version === "pc-encrypted-ballot-v2"
+        ? ballotEncryptionAadHash({
+            suite: BALLOT_ENCRYPTION_V2_SUITE,
+            recipientPublicKeyId: encryptedPayload.recipientPublicKeyId,
+            contextHash: encryptedPayload.contextHash
+          })
+        : null;
     addCheck(`ballot-${ballot.id}-poll`, ballot.pollId === input.poll.id && ballot.questionId === input.question.id, { pollId: input.poll.id, questionId: input.question.id }, { pollId: ballot.pollId, questionId: ballot.questionId });
     addCheck(`ballot-${ballot.id}-trusted-issuer`, ballot.credentialSchemaId === input.credentialSchema.id && ballot.issuerId === input.credentialIssuer.id, { schemaId: input.credentialSchema.id, issuerId: input.credentialIssuer.id }, { schemaId: ballot.credentialSchemaId, issuerId: ballot.issuerId });
     addCheck(`ballot-${ballot.id}-proof-system`, ballot.proofSystem === PRODUCTION_SLICE_PROOF_SYSTEM && ballot.proofHash === ballot.eligibilityProof.proofHash, PRODUCTION_SLICE_PROOF_SYSTEM, { proofSystem: ballot.proofSystem, proofHash: ballot.proofHash, eligibilityProofHash: ballot.eligibilityProof.proofHash });
     addCheck(`ballot-${ballot.id}-proof-artifact`, Boolean(eligibilityProofArtifact && eligibilityProofArtifact.hash === hashJson(eligibilityProofArtifact.value)), ballot.eligibilityProofArtifactHash, eligibilityProofArtifact?.hash ?? null);
     addCheck(`ballot-${ballot.id}-proof-artifact-value`, isRecord(eligibilityProofArtifact?.value) && eligibilityProofArtifact.value.proofHash === ballot.eligibilityProof.proofHash, ballot.eligibilityProof.proofHash, isRecord(eligibilityProofArtifact?.value) ? eligibilityProofArtifact.value.proofHash : null);
     addCheck(`ballot-${ballot.id}-encrypted-payload-hash`, ballot.encryptedPayloadHash === hashJson(ballot.encryptedPayload), ballot.encryptedPayloadHash, hashJson(ballot.encryptedPayload));
+    addCheck(`ballot-${ballot.id}-encrypted-payload-version`, encryptedPayload.version === "pc-encrypted-ballot-v2", "pc-encrypted-ballot-v2", encryptedPayload.version);
+    addCheck(`ballot-${ballot.id}-encrypted-payload-suite`, encryptedPayload.version === "pc-encrypted-ballot-v2" && encryptedPayload.suite === BALLOT_ENCRYPTION_V2_SUITE, BALLOT_ENCRYPTION_V2_SUITE, encryptedPayload.version === "pc-encrypted-ballot-v2" ? encryptedPayload.suite : null);
+    addCheck(`ballot-${ballot.id}-encrypted-payload-recipient`, encryptedPayload.version === "pc-encrypted-ballot-v2" && encryptedPayload.recipientPublicKeyId === input.tallyKeySetup.publicKeyId, input.tallyKeySetup.publicKeyId, encryptedPayload.version === "pc-encrypted-ballot-v2" ? encryptedPayload.recipientPublicKeyId : null);
+    addCheck(`ballot-${ballot.id}-encrypted-payload-context`, encryptedPayload.version === "pc-encrypted-ballot-v2" && encryptedPayload.contextHash === expectedBallotContextHash, expectedBallotContextHash, encryptedPayload.version === "pc-encrypted-ballot-v2" ? encryptedPayload.contextHash : null);
+    addCheck(`ballot-${ballot.id}-encrypted-payload-aad`, encryptedPayload.version === "pc-encrypted-ballot-v2" && encryptedPayload.aadHash === expectedAadHash, expectedAadHash, encryptedPayload.version === "pc-encrypted-ballot-v2" ? encryptedPayload.aadHash : null);
     addCheck(`ballot-${ballot.id}-proof-signal`, ballot.eligibilityProof.signal === ballot.ballotCommitment, ballot.ballotCommitment, ballot.eligibilityProof.signal);
     addCheck(`ballot-${ballot.id}-proof-nullifier`, ballot.eligibilityProof.nullifier === ballot.nullifier, ballot.nullifier, ballot.eligibilityProof.nullifier);
     addCheck(`ballot-${ballot.id}-proof-scope`, ballot.eligibilityProof.scope === productionSliceAnonymousProofScope(input.poll.id, input.credentialSchema.id), productionSliceAnonymousProofScope(input.poll.id, input.credentialSchema.id), ballot.eligibilityProof.scope);
@@ -692,8 +747,11 @@ export function verifyProductionSlice(input: ProductionSliceVerificationInput): 
     const member = input.tallyKeySetup.members.find((candidate) => candidate.memberId === share.memberId);
     addCheck(`share-${share.id}-authorized-member`, Boolean(member && authorizedMemberIds.has(share.memberId)), Array.from(authorizedMemberIds), share.memberId);
     addCheck(`share-${share.id}-hash`, share.shareHash === decryptionShareHash(share), decryptionShareHash(share), share.shareHash);
+    addCheck(`share-${share.id}-poll`, share.pollId === input.poll.id, input.poll.id, share.pollId);
+    addCheck(`share-${share.id}-tally-key-setup`, share.tallyKeySetupId === input.tallyKeySetup.id && share.tallyKeySetupHash === input.tallyKeySetup.ceremonyHash, { id: input.tallyKeySetup.id, ceremonyHash: input.tallyKeySetup.ceremonyHash }, { id: share.tallyKeySetupId, ceremonyHash: share.tallyKeySetupHash });
     addCheck(`share-${share.id}-ballot-commitments`, share.ballotCommitmentsHash === expectedCommitmentsHash, expectedCommitmentsHash, share.ballotCommitmentsHash);
     addCheck(`share-${share.id}-aggregate`, share.aggregateCountsHash === input.result.aggregateCountsHash, input.result.aggregateCountsHash, share.aggregateCountsHash);
+    addCheck(`share-${share.id}-result-binding`, Boolean(expectedResultArtifactBindingHash && share.resultArtifactBindingHash === expectedResultArtifactBindingHash), expectedResultArtifactBindingHash, share.resultArtifactBindingHash);
     const shareSignatureValid = Boolean(member && verifyEd25519(member.publicKeyPem, decryptionShareSignaturePayload(share), share.signature));
     addCheck(`share-${share.id}-signature`, shareSignatureValid, true, shareSignatureValid);
   }
@@ -708,6 +766,7 @@ export function verifyProductionSlice(input: ProductionSliceVerificationInput): 
   addCheck("result-ballot-commitment-set", sameJson(resultArtifact?.acceptedBallotCommitments ?? [], expectedCommitments), expectedCommitments, resultArtifact?.acceptedBallotCommitments ?? null);
   addCheck("result-ballot-commitment-set-hash", resultArtifact?.acceptedBallotCommitmentsHash === expectedCommitmentsHash, expectedCommitmentsHash, resultArtifact?.acceptedBallotCommitmentsHash ?? null);
   addCheck("result-tally-key-setup", resultArtifact?.tallyKeySetupHash === input.tallyKeySetup.ceremonyHash, input.tallyKeySetup.ceremonyHash, resultArtifact?.tallyKeySetupHash ?? null);
+  addCheck("result-artifact-binding", resultArtifact?.resultArtifactBindingHash === expectedResultArtifactBindingHash, expectedResultArtifactBindingHash, resultArtifact?.resultArtifactBindingHash ?? null);
   addCheck("result-decryption-share-set", sameJson(resultArtifact?.decryptionShareHashes ?? [], acceptedShareHashes) && resultArtifact?.decryptionShareSetHash === expectedShareSetHash, { decryptionShareHashes: acceptedShareHashes, decryptionShareSetHash: expectedShareSetHash }, { decryptionShareHashes: resultArtifact?.decryptionShareHashes ?? null, decryptionShareSetHash: resultArtifact?.decryptionShareSetHash ?? null });
   addCheck("result-threshold-share-count", resultArtifact?.acceptedDecryptionShareCount === acceptedShares.length && acceptedShares.length >= input.tallyKeySetup.threshold, { accepted: acceptedShares.length, threshold: input.tallyKeySetup.threshold }, resultArtifact?.acceptedDecryptionShareCount ?? null);
   addCheck("result-tally-proof-hash", input.result.tallyProofHash === resultArtifact?.tallyProofHash && resultArtifact?.tallyProofHash === tallyPublicationProofHash({ pollId: input.poll.id, aggregateCountsHash: input.result.aggregateCountsHash, acceptedBallotCommitmentsHash: expectedCommitmentsHash, tallyKeySetupHash: input.tallyKeySetup.ceremonyHash, decryptionShareHashes: acceptedShareHashes }), input.result.tallyProofHash, resultArtifact?.tallyProofHash ?? null);
@@ -815,19 +874,48 @@ export function tallyKeySetupHash(setup: Omit<ProductionSliceTallyKeySetup, "cer
 }
 
 export function ballotCommitmentHash(ballot: Pick<ProductionSliceBallot, "nullifier" | "encryptedPayload">): string {
+  if (ballot.encryptedPayload.version === "pc-encrypted-ballot-v2") {
+    return hashJson({
+      protocol: "pc-ballot-commitment-v2",
+      encryptedPayloadHash: hashJson(ballot.encryptedPayload),
+      nullifier: ballot.nullifier,
+      contextHash: ballot.encryptedPayload.contextHash
+    });
+  }
   return hashJson({ payload: ballot.encryptedPayload, nullifier: ballot.nullifier });
 }
 
-export function decryptionShareHash(share: Pick<ProductionSliceTallyDecryptionShare, "pollId" | "tallyKeySetupId" | "memberId" | "ballotCommitmentsHash" | "aggregateCountsHash" | "proofHash" | "status">): string {
+export function decryptionShareHash(share: Pick<ProductionSliceTallyDecryptionShare, "pollId" | "tallyKeySetupId" | "tallyKeySetupHash" | "memberId" | "ballotCommitmentsHash" | "aggregateCountsHash" | "resultArtifactBindingHash" | "proofHash" | "status">): string {
   return hashJson({
     protocol: "pc-threshold-decryption-share-v1",
     pollId: share.pollId,
     tallyKeySetupId: share.tallyKeySetupId,
+    tallyKeySetupHash: share.tallyKeySetupHash,
     memberId: share.memberId,
     ballotCommitmentsHash: share.ballotCommitmentsHash,
     aggregateCountsHash: share.aggregateCountsHash,
+    resultArtifactBindingHash: share.resultArtifactBindingHash,
     proofHash: share.proofHash,
     status: share.status
+  });
+}
+
+export function resultArtifactBindingHash(input: {
+  pollId: string;
+  questionId: string;
+  aggregateCountsHash: string;
+  acceptedBallotCommitmentsHash: string;
+  tallyKeySetupHash: string;
+  privacyReportHash: string;
+}): string {
+  return hashJson({
+    protocol: "pc-result-artifact-binding-v1",
+    pollId: input.pollId,
+    questionId: input.questionId,
+    aggregateCountsHash: input.aggregateCountsHash,
+    acceptedBallotCommitmentsHash: input.acceptedBallotCommitmentsHash,
+    tallyKeySetupHash: input.tallyKeySetupHash,
+    privacyReportHash: input.privacyReportHash
   });
 }
 
@@ -873,13 +961,25 @@ function createFixtureBallot(input: {
   groupId: string;
   groupRoot: string;
   scope: string;
+  tallyPublicKeyId: string;
   response: BallotResponse;
   submittedAt: number;
 }): ProductionSliceBallot {
   const responseCommitment = hashJson({ protocol: "private-fixture-response-v1", response: input.response });
-  const encryptedPayload: EncryptedBallotPayload = {
-    version: "pc-encrypted-ballot-v1",
+  const encryptionContext = createBallotEncryptionContext({
+    pollId: input.pollId,
+    questionId: input.questionId,
+    credentialSchemaId: input.credentialSchemaId,
+    tallyPublicKeyId: input.tallyPublicKeyId
+  });
+  const contextHash = ballotEncryptionContextHash(encryptionContext);
+  const encryptedPayload: EncryptedBallotPayloadV2 = {
+    version: "pc-encrypted-ballot-v2",
+    suite: BALLOT_ENCRYPTION_V2_SUITE,
     ephemeralPublicKeyPem: `fixture-ephemeral-public-key-${input.index}`,
+    recipientPublicKeyId: input.tallyPublicKeyId,
+    contextHash,
+    aadHash: ballotEncryptionAadHash({ suite: BALLOT_ENCRYPTION_V2_SUITE, recipientPublicKeyId: input.tallyPublicKeyId, contextHash }),
     iv: hashJson({ field: "iv", index: input.index }).slice(7, 31),
     authTag: hashJson({ field: "auth-tag", index: input.index }).slice(7, 39),
     ciphertext: hashJson({ field: "ciphertext", responseCommitment })
@@ -891,7 +991,7 @@ function createFixtureBallot(input: {
     credentialSchemaId: input.credentialSchemaId,
     identityIndex: input.index
   });
-  const ballotCommitment = hashJson({ payload: encryptedPayload, nullifier });
+  const ballotCommitment = ballotCommitmentHash({ encryptedPayload, nullifier });
   const proofWithoutSignature: Omit<ProductionSliceEligibilityProof, "proofHash" | "verifierSignature"> = {
     protocol: "popular-consensus",
     schemaVersion: "production-slice-eligibility-proof-v1",
@@ -942,24 +1042,30 @@ function createFixtureDecryptionShare(input: {
   member: TestKeypair & { memberId: string };
   pollId: string;
   tallyKeySetupId: string;
+  tallyKeySetupHash: string;
   aggregateCountsHash: string;
   ballotCommitmentsHash: string;
+  resultArtifactBindingHash: string;
   submittedAt: number;
 }): ProductionSliceTallyDecryptionShare {
   const withoutHash = {
     id: `decryption-share-${input.member.memberId}`,
     pollId: input.pollId,
     tallyKeySetupId: input.tallyKeySetupId,
+    tallyKeySetupHash: input.tallyKeySetupHash,
     memberId: input.member.memberId,
     ballotCommitmentsHash: input.ballotCommitmentsHash,
     aggregateCountsHash: input.aggregateCountsHash,
+    resultArtifactBindingHash: input.resultArtifactBindingHash,
     proofHash: hashJson({
       protocol: "pc-threshold-decryption-share-proof-v1",
       pollId: input.pollId,
       tallyKeySetupId: input.tallyKeySetupId,
+      tallyKeySetupHash: input.tallyKeySetupHash,
       memberId: input.member.memberId,
       ballotCommitmentsHash: input.ballotCommitmentsHash,
-      aggregateCountsHash: input.aggregateCountsHash
+      aggregateCountsHash: input.aggregateCountsHash,
+      resultArtifactBindingHash: input.resultArtifactBindingHash
     }),
     status: "Accepted" as const
   };
@@ -1043,14 +1149,16 @@ export function eligibilityProofVerificationPayload(proof: Omit<ProductionSliceE
   });
 }
 
-export function decryptionShareSignaturePayload(share: Pick<ProductionSliceTallyDecryptionShare, "pollId" | "tallyKeySetupId" | "memberId" | "ballotCommitmentsHash" | "aggregateCountsHash" | "shareHash" | "proofHash" | "status">): string {
+export function decryptionShareSignaturePayload(share: Pick<ProductionSliceTallyDecryptionShare, "pollId" | "tallyKeySetupId" | "tallyKeySetupHash" | "memberId" | "ballotCommitmentsHash" | "aggregateCountsHash" | "resultArtifactBindingHash" | "shareHash" | "proofHash" | "status">): string {
   return hashJson({
     protocol: "pc-threshold-decryption-share-signature-v1",
     pollId: share.pollId,
     tallyKeySetupId: share.tallyKeySetupId,
+    tallyKeySetupHash: share.tallyKeySetupHash,
     memberId: share.memberId,
     ballotCommitmentsHash: share.ballotCommitmentsHash,
     aggregateCountsHash: share.aggregateCountsHash,
+    resultArtifactBindingHash: share.resultArtifactBindingHash,
     shareHash: share.shareHash,
     proofHash: share.proofHash,
     status: share.status

@@ -1,13 +1,13 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-submission-gate-v1",
-  "generatedAt": "2026-05-20T00:08:38.058Z",
+  "generatedAt": "2026-05-20T01:09:55.039Z",
   "command": "pnpm grant:submission-gate",
   "status": "SubmissionGateEvidenceReady",
   "formalSubmissionReady": false,
   "productionDeploymentReady": false,
-  "checksPassed": 14,
-  "checksTotal": 14,
+  "checksPassed": 16,
+  "checksTotal": 16,
   "failedChecks": [],
   "criteria": [
     {
@@ -45,6 +45,12 @@
       "status": "evidence-ready",
       "evidence": "artifacts/grant-demo/full-lifecycle-report.json",
       "note": "Tampered replay must fail with Mismatch."
+    },
+    {
+      "id": "crypto-hardening",
+      "status": "evidence-ready",
+      "evidence": "artifacts/grant-demo/crypto-hardening-report.json",
+      "note": "V2 encrypted-ballot context binding and threshold-share fail-closed evidence."
     },
     {
       "id": "grant-packet",
@@ -105,6 +111,12 @@
       "evidence": "package.json"
     },
     {
+      "id": "script-grant:crypto-hardening",
+      "ok": true,
+      "detail": "grant:crypto-hardening is declared in package.json",
+      "evidence": "package.json"
+    },
+    {
       "id": "script-replay:verify",
       "ok": true,
       "detail": "replay:verify is declared in package.json",
@@ -145,6 +157,12 @@
       "ok": true,
       "detail": "Grant packet lint is PacketReady",
       "evidence": "artifacts/grant-demo/packet-lint-report.json"
+    },
+    {
+      "id": "crypto-hardening-ready",
+      "ok": true,
+      "detail": "Crypto hardening evidence is ready without production deployment claims",
+      "evidence": "artifacts/grant-demo/crypto-hardening-report.json"
     },
     {
       "id": "scope-excludes-product-monetization",

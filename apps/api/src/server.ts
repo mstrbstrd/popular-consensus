@@ -122,6 +122,7 @@ import {
   anonymousBallotProofHash,
   anonymousPollScope,
   ballotCommitment,
+  createBallotEncryptionContext,
   createCoordinatorKeypair,
   createCredentialMembershipProof,
   credentialIdForDemoCredential,
@@ -149,6 +150,7 @@ import {
   eligibilityProofPublicInputsHash,
   eligibilityProofVerificationPayload,
   questionVersionHash as productionSliceQuestionVersionHash,
+  resultArtifactBindingHash as productionSliceResultArtifactBindingHash,
   signEd25519,
   tallyKeySetupHash as productionSliceTallyKeySetupHash,
   tallyPublicationProofHash as productionSliceTallyPublicationProofHash,
@@ -3101,7 +3103,18 @@ export function buildServer() {
 
       const nullifier = input.anonymousProof.nullifier;
       const scope = anonymousPollScope(pollId, poll.credentialSchemaId);
-      const commitment = ballotCommitment(input.encryptedPayload as EncryptedBallotPayload, nullifier);
+      const ballotEncryptionContext = createBallotEncryptionContext({
+        pollId,
+        questionId: poll.questionId,
+        credentialSchemaId: poll.credentialSchemaId,
+        tallyPublicKeyId: poll.tallyPublicKeyId
+      });
+      let commitment: string;
+      try {
+        commitment = ballotCommitment(input.encryptedPayload as EncryptedBallotPayload, nullifier, ballotEncryptionContext);
+      } catch {
+        return reply.code(400).send({ error: "Encrypted ballot context does not match this poll" });
+      }
       if (commitment !== input.ballotCommitment) return reply.code(400).send({ error: "Ballot commitment does not match encrypted payload and nullifier" });
       if (input.anonymousProof.signal !== commitment) return reply.code(400).send({ error: "Anonymous proof signal must be the ballot commitment" });
       if (input.anonymousProof.scope !== scope) return reply.code(400).send({ error: "Anonymous proof scope does not match this poll" });
@@ -3233,8 +3246,14 @@ export function buildServer() {
     const answerSchema = getAnswerSchema(poll.question.answerSchemaId);
     const response = validateBallotResponse(answerSchema, demoInput.response ?? choiceToBallotResponse(demoInput.choice ?? "abstain"));
     const nullifier = membershipProof.nullifier;
-    const payload = encryptBallot(response, poll.tallyPublicKeyPem);
-    const commitment = ballotCommitment(payload, nullifier);
+    const ballotEncryptionContext = createBallotEncryptionContext({
+      pollId,
+      questionId: poll.questionId,
+      credentialSchemaId: poll.credentialSchemaId,
+      tallyPublicKeyId: poll.tallyPublicKeyId
+    });
+    const payload = encryptBallot(response, { publicKeyPem: poll.tallyPublicKeyPem, publicKeyId: poll.tallyPublicKeyId }, ballotEncryptionContext);
+    const commitment = ballotCommitment(payload, nullifier, ballotEncryptionContext);
     const encryptedPayloadHash = hashJson(payload);
     const proofHash = hashJson({
       membershipProofHash: membershipProof.proofHash,
@@ -3412,14 +3431,25 @@ export function buildServer() {
     if (input.productionAttestation && input.productionAttestation.ballotCommitmentsHash !== ballotCommitmentsHash) {
       return reply.code(400).send({ error: "Production decryption share ballot commitment set does not match this poll" });
     }
+    const productionTallyKeySetup = input.productionAttestation
+      ? await productionSliceTallyKeySetupFromRecord(artifactStore, pollId, tallyKeySetup)
+      : null;
+    if (input.productionAttestation && !productionTallyKeySetup) {
+      return reply.code(409).send({ error: "Tally key setup does not include production member public keys" });
+    }
+    if (input.productionAttestation && input.productionAttestation.tallyKeySetupHash !== productionTallyKeySetup!.ceremonyHash) {
+      return reply.code(400).send({ error: "Production decryption share tally key setup hash does not match this poll" });
+    }
     const productionProofHash = input.productionAttestation
       ? hashJson({
           protocol: "pc-threshold-decryption-share-proof-v1",
           pollId,
           keySetupId: tallyKeySetup.id,
+          tallyKeySetupHash: input.productionAttestation.tallyKeySetupHash,
           memberId: input.memberId,
           ballotCommitmentsHash: input.productionAttestation.ballotCommitmentsHash,
           aggregateCountsHash: input.productionAttestation.aggregateCountsHash,
+          resultArtifactBindingHash: input.productionAttestation.resultArtifactBindingHash,
           proof: input.proof
         })
       : null;
@@ -3427,9 +3457,11 @@ export function buildServer() {
       ? productionSliceDecryptionShareHash({
           pollId,
           tallyKeySetupId: tallyKeySetup.id,
+          tallyKeySetupHash: input.productionAttestation.tallyKeySetupHash,
           memberId: input.memberId,
           ballotCommitmentsHash: input.productionAttestation.ballotCommitmentsHash,
           aggregateCountsHash: input.productionAttestation.aggregateCountsHash,
+          resultArtifactBindingHash: input.productionAttestation.resultArtifactBindingHash,
           proofHash: productionProofHash!,
           status: "Accepted"
         })
@@ -3442,9 +3474,11 @@ export function buildServer() {
         decryptionShareSignaturePayload({
           pollId,
           tallyKeySetupId: tallyKeySetup.id,
+          tallyKeySetupHash: input.productionAttestation.tallyKeySetupHash,
           memberId: input.memberId,
           ballotCommitmentsHash: input.productionAttestation.ballotCommitmentsHash,
           aggregateCountsHash: input.productionAttestation.aggregateCountsHash,
+          resultArtifactBindingHash: input.productionAttestation.resultArtifactBindingHash,
           shareHash: productionShareHash!,
           proofHash: productionProofHash!,
           status: "Accepted"
@@ -3489,6 +3523,8 @@ export function buildServer() {
               schemaVersion: "production-slice-decryption-share-v1",
               ballotCommitmentsHash: input.productionAttestation.ballotCommitmentsHash,
               aggregateCountsHash: input.productionAttestation.aggregateCountsHash,
+              tallyKeySetupHash: input.productionAttestation.tallyKeySetupHash,
+              resultArtifactBindingHash: input.productionAttestation.resultArtifactBindingHash,
               signature: input.productionAttestation.signature
             }
           : null,
@@ -3567,7 +3603,13 @@ export function buildServer() {
           : "Non-demo mode does not allow single-coordinator tallying"
       });
     }
-    const tally = tallyEncryptedBallots(payloads, poll.tallyPrivateKeyPem, answerSchema);
+    const ballotEncryptionContext = createBallotEncryptionContext({
+      pollId,
+      questionId: poll.questionId,
+      credentialSchemaId: poll.credentialSchemaId,
+      tallyPublicKeyId: poll.tallyPublicKeyId
+    });
+    const tally = tallyEncryptedBallots(payloads, poll.tallyPrivateKeyPem, answerSchema, ballotEncryptionContext);
     const aggregateCountsHash = hashJson(tally.counts);
     const individualResult = {
       resultMode: normalizePollResultMode(poll.question.resultMode),
@@ -12685,6 +12727,7 @@ type ProductionSliceResultPublication = {
     | "acceptedBallotCommitments"
     | "acceptedBallotCommitmentsHash"
     | "tallyKeySetupHash"
+    | "resultArtifactBindingHash"
     | "decryptionShareHashes"
     | "decryptionShareSetHash"
     | "acceptedDecryptionShareCount"
@@ -12764,12 +12807,22 @@ async function buildProductionSliceResultPublication(input: {
   if (!question) return null;
   const tallyKeySetup = await productionSliceTallyKeySetupFromRecord(input.artifactStore, input.poll.id, input.poll.tallyKeySetup);
   if (!tallyKeySetup) return null;
+  const expectedResultArtifactBindingHash = productionSliceResultArtifactBindingHash({
+    pollId: input.poll.id,
+    questionId: input.poll.question.id,
+    aggregateCountsHash: input.aggregateCountsHash,
+    acceptedBallotCommitmentsHash: input.acceptedBallotCommitmentsHash,
+    tallyKeySetupHash: tallyKeySetup.ceremonyHash,
+    privacyReportHash: input.privacyReportHash
+  });
   const acceptedShares: ProductionSliceTallyDecryptionShare[] = [];
   for (const share of input.poll.decryptionShares.filter((candidate) => candidate.status === "Accepted")) {
     const productionShare = await productionSliceDecryptionShareFromRecord(input.artifactStore, share);
     if (!productionShare) return null;
     if (productionShare.ballotCommitmentsHash !== input.acceptedBallotCommitmentsHash) return null;
     if (productionShare.aggregateCountsHash !== input.aggregateCountsHash) return null;
+    if (productionShare.tallyKeySetupHash !== tallyKeySetup.ceremonyHash) return null;
+    if (productionShare.resultArtifactBindingHash !== expectedResultArtifactBindingHash) return null;
     acceptedShares.push(productionShare);
   }
   if (acceptedShares.length < tallyKeySetup.threshold) return null;
@@ -12792,6 +12845,7 @@ async function buildProductionSliceResultPublication(input: {
       acceptedBallotCommitments: sortedStrings(input.poll.ballots.map((ballot) => ballot.ballotCommitment)),
       acceptedBallotCommitmentsHash: input.acceptedBallotCommitmentsHash,
       tallyKeySetupHash: tallyKeySetup.ceremonyHash,
+      resultArtifactBindingHash: expectedResultArtifactBindingHash,
       decryptionShareHashes,
       decryptionShareSetHash,
       acceptedDecryptionShareCount: acceptedShares.length,
@@ -13029,15 +13083,19 @@ async function productionSliceDecryptionShareFromRecord(
   if (!productionSlice) return null;
   const ballotCommitmentsHash = optionalString(productionSlice.ballotCommitmentsHash);
   const aggregateCountsHash = optionalString(productionSlice.aggregateCountsHash);
+  const tallyKeySetupHash = optionalString(productionSlice.tallyKeySetupHash);
+  const resultArtifactBindingHash = optionalString(productionSlice.resultArtifactBindingHash);
   const signature = optionalString(productionSlice.signature);
-  if (!ballotCommitmentsHash || !aggregateCountsHash || !signature) return null;
+  if (!ballotCommitmentsHash || !aggregateCountsHash || !tallyKeySetupHash || !resultArtifactBindingHash || !signature) return null;
   return {
     id: share.id,
     pollId: share.pollId,
     tallyKeySetupId: share.keySetupId,
+    tallyKeySetupHash,
     memberId: share.memberId,
     ballotCommitmentsHash,
     aggregateCountsHash,
+    resultArtifactBindingHash,
     shareHash: share.shareHash,
     proofHash: share.proofHash,
     signature,

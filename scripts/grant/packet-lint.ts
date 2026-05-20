@@ -39,6 +39,7 @@ const packetDocs = [
   "20-submission-gate.md",
   "21-protocol-package-publication.md",
   "22-negative-invariant-audit.md",
+  "23-crypto-hardening-evidence.md",
   "office-hours-brief.md",
   "scope-boundary.md"
 ];
@@ -98,6 +99,14 @@ async function main() {
       "readme-reviewer-handoff-command",
       readme.includes("pnpm grant:reviewer-handoff"),
       "README exposes reviewer handoff command",
+      relativePacket("README.md")
+    )
+  );
+  checks.push(
+    check(
+      "readme-crypto-hardening-command",
+      readme.includes("pnpm grant:crypto-hardening"),
+      "README exposes crypto hardening evidence command",
       relativePacket("README.md")
     )
   );

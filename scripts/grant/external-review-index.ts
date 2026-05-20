@@ -26,6 +26,7 @@ const evidenceReports = [
   { id: "api-replay", path: "artifacts/grant-demo/api-replay-report.json", expectedStatus: "Verified" },
   { id: "chain-replay", path: "artifacts/grant-demo/chain-replay-report.json", expectedStatus: "Verified" },
   { id: "crypto-review", path: "artifacts/grant-demo/crypto-review-report.json", expectedStatus: "EvidenceReady" },
+  { id: "crypto-hardening", path: "artifacts/grant-demo/crypto-hardening-report.json", expectedStatus: "CryptoHardeningEvidenceReady" },
   { id: "threshold-custody", path: "artifacts/grant-demo/threshold-custody-report.json", expectedStatus: "ThresholdCustodyEvidenceReady" },
   { id: "replay-test-vectors", path: "artifacts/grant-demo/replay-test-vectors-report.json", expectedStatus: "ReplayTestVectorsReady" },
   { id: "contract-hardening", path: "artifacts/grant-demo/contract-hardening-report.json", expectedStatus: "ContractHardeningEvidenceReady" },
@@ -93,6 +94,11 @@ async function main() {
         command: "pnpm grant:chain-replay",
         dependencyMode: "ephemeral-anvil",
         purpose: "Deploy protocol modules locally and verify decoded Solidity logs through @pc/replay."
+      },
+      {
+        command: "pnpm grant:crypto-hardening",
+        dependencyMode: "no-local-services",
+        purpose: "Regenerate v2 encrypted-ballot context binding and threshold-share fail-closed crypto evidence."
       },
       {
         command: "pnpm grant:full-check",

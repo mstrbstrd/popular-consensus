@@ -3176,6 +3176,8 @@ export const SubmitTallyDecryptionShareRequestSchema = z.object({
     .object({
       ballotCommitmentsHash: z.string().min(1),
       aggregateCountsHash: z.string().min(1),
+      tallyKeySetupHash: z.string().min(1),
+      resultArtifactBindingHash: z.string().min(1),
       signature: z.string().min(1)
     })
     .optional()
@@ -3339,13 +3341,27 @@ export const CredentialProofRequestSchema = z.object({
   membershipProof: CredentialMembershipProofSchema.optional()
 });
 
-export const EncryptedBallotPayloadSchema = z.object({
+export const EncryptedBallotPayloadV1Schema = z.object({
   version: z.literal("pc-encrypted-ballot-v1"),
   ephemeralPublicKeyPem: z.string().min(1),
   iv: z.string().min(1),
   authTag: z.string().min(1),
   ciphertext: z.string().min(1)
 });
+
+export const EncryptedBallotPayloadV2Schema = z.object({
+  version: z.literal("pc-encrypted-ballot-v2"),
+  suite: z.literal("X25519-HKDF-SHA256-AES-256-GCM"),
+  ephemeralPublicKeyPem: z.string().min(1),
+  recipientPublicKeyId: z.string().min(1),
+  contextHash: z.string().min(1),
+  aadHash: z.string().min(1),
+  iv: z.string().min(1),
+  authTag: z.string().min(1),
+  ciphertext: z.string().min(1)
+});
+
+export const EncryptedBallotPayloadSchema = z.union([EncryptedBallotPayloadV1Schema, EncryptedBallotPayloadV2Schema]);
 
 export const AnonymousBallotProofSchema = z.object({
   protocol: z.literal("popular-consensus"),

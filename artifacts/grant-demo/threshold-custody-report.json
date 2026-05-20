@@ -1,18 +1,18 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-threshold-custody-report-v1",
-  "generatedAt": "2026-05-20T00:08:36.103Z",
+  "generatedAt": "2026-05-20T01:09:53.230Z",
   "command": "pnpm grant:threshold-custody",
   "status": "ThresholdCustodyEvidenceReady",
   "productionDeploymentReady": false,
-  "checksPassed": 10,
-  "checksTotal": 10,
+  "checksPassed": 12,
+  "checksTotal": 12,
   "failedChecks": [],
   "evidenceScope": [
     "threshold committee metadata is public and private key material is rejected",
     "committee member ids and public keys must be unique",
     "member public keys must be valid Ed25519 keys",
-    "accepted shares must meet threshold, come from authorized members, have unique hashes, and bind to the published aggregate"
+    "accepted shares must meet threshold, come from authorized members, have unique hashes, and bind to the published aggregate, tally setup, and result evidence"
   ],
   "productionNonClaims": [
     "No distributed key generation implementation is claimed by this report.",
@@ -167,6 +167,36 @@
       "actualFailedChecks": [
         "share-decryption-share-tally-member-1-hash",
         "share-decryption-share-tally-member-1-aggregate",
+        "share-decryption-share-tally-member-1-signature"
+      ]
+    },
+    {
+      "id": "tampered-share-tally-setup-rejected",
+      "ok": true,
+      "detail": "A decryption share must bind to the active tally key setup hash.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "share-decryption-share-tally-member-1-tally-key-setup"
+      ],
+      "actualFailedChecks": [
+        "share-decryption-share-tally-member-1-hash",
+        "share-decryption-share-tally-member-1-tally-key-setup",
+        "share-decryption-share-tally-member-1-signature"
+      ]
+    },
+    {
+      "id": "tampered-share-result-binding-rejected",
+      "ok": true,
+      "detail": "A decryption share must bind to the result-publication evidence preimage.",
+      "expectedStatus": "Mismatch",
+      "actualStatus": "Mismatch",
+      "expectedFailedChecks": [
+        "share-decryption-share-tally-member-1-result-binding"
+      ],
+      "actualFailedChecks": [
+        "share-decryption-share-tally-member-1-hash",
+        "share-decryption-share-tally-member-1-result-binding",
         "share-decryption-share-tally-member-1-signature"
       ]
     }

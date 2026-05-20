@@ -36,6 +36,7 @@ const requiredTextFiles = [
   "grant/ef-protocol-replay-kit/20-submission-gate.md",
   "grant/ef-protocol-replay-kit/21-protocol-package-publication.md",
   "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md",
+  "grant/ef-protocol-replay-kit/23-crypto-hardening-evidence.md",
   "grant/ef-protocol-replay-kit/scope-boundary.md",
   "packages/replay/README.md",
   "scripts/check-protocol-boundaries.ts"
@@ -46,6 +47,7 @@ const requiredJsonFiles = [
   "artifacts/grant-demo/api-replay-report.json",
   "artifacts/grant-demo/chain-replay-report.json",
   "artifacts/grant-demo/crypto-review-report.json",
+  "artifacts/grant-demo/crypto-hardening-report.json",
   "artifacts/grant-demo/threshold-custody-report.json",
   "artifacts/grant-demo/replay-test-vectors-report.json",
   "artifacts/grant-demo/contract-hardening-report.json",
@@ -139,9 +141,11 @@ const requirements: StrategyRequirement[] = [
   {
     id: "crypto-nonclaims-and-threshold-custody",
     requirement: "Strengthen cryptography evidence without overstating production readiness.",
-    evidence: ["artifacts/grant-demo/crypto-review-report.json", "artifacts/grant-demo/threshold-custody-report.json"],
+    evidence: ["artifacts/grant-demo/crypto-review-report.json", "artifacts/grant-demo/crypto-hardening-report.json", "artifacts/grant-demo/threshold-custody-report.json"],
     verify: (context) =>
       jsonValue(context, "artifacts/grant-demo/crypto-review-report.json", "status") === "EvidenceReady" &&
+      jsonValue(context, "artifacts/grant-demo/crypto-hardening-report.json", "status") === "CryptoHardeningEvidenceReady" &&
+      jsonValue(context, "artifacts/grant-demo/crypto-hardening-report.json", "productionDeploymentReady") === false &&
       jsonValue(context, "artifacts/grant-demo/threshold-custody-report.json", "status") === "ThresholdCustodyEvidenceReady" &&
       jsonValue(context, "artifacts/grant-demo/threshold-custody-report.json", "productionDeploymentReady") === false
   },

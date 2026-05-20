@@ -13,6 +13,7 @@ The check command runs:
 
 - `pnpm grant:demo`
 - `pnpm grant:crypto-review`
+- `pnpm grant:crypto-hardening`
 - `pnpm grant:threshold-custody`
 - `pnpm grant:replay-test-vectors`
 - `pnpm grant:contract-hardening`
@@ -38,6 +39,7 @@ Expected result:
 - replay package tests pass
 - decoded grant-critical onchain event names fail closed when unsupported
 - crypto review evidence is written with explicit production non-claims
+- crypto hardening evidence verifies v2 ballot encryption context binding and fail-closed replay checks
 - threshold custody hardening evidence rejects malformed committee/share cases without claiming production DKG
 - replay test vectors are regenerated for clean and tampered bundle/export cases
 - contract access-control assumptions are checked without claiming production readiness
@@ -95,6 +97,14 @@ pnpm grant:crypto-review
 ```
 
 This checks ballot encryption tamper rejection, wrong-key rejection, nullifier scoping, aggregate-output privacy, malformed Semaphore proof rejection, and writes a report with explicit production non-claims.
+
+For audit-ready crypto hardening evidence, run:
+
+```bash
+pnpm grant:crypto-hardening
+```
+
+This checks `pc-encrypted-ballot-v2` envelopes, X25519/HKDF-SHA256/AES-256-GCM context binding, wrong-key/wrong-context rejection, plaintext non-export, replay rejection for malformed encrypted payloads, and threshold-share binding to tally setup and result evidence. It writes `artifacts/grant-demo/crypto-hardening-report.json` with `productionDeploymentReady: false`.
 
 For threshold custody hardening evidence, run:
 
@@ -223,6 +233,7 @@ It is not yet a public-chain deployment or an externally reviewed production cry
 - `20-submission-gate.md` documents the machine-readable pre-submit evidence gate.
 - `21-protocol-package-publication.md` explains source reuse versus npm publication readiness.
 - `22-negative-invariant-audit.md` documents the hostile-review negative invariant gate.
+- `23-crypto-hardening-evidence.md` documents v2 ballot encryption and replay crypto-hardening evidence.
 - `office-hours-brief.md` is the short EF alignment brief.
 - `scope-boundary.md` states what is in and out of grant scope.
 

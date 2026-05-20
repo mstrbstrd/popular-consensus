@@ -8,9 +8,9 @@ Production deployment ready: false
 
 Git available: true
 Branch: codex/north-star-roadmap
-HEAD: 42874136cf358744c82a950f8eafd55ebed4809f
+HEAD: 6192a0e323d7922faf9f1e15a34a02b12ed6313a
 Dirty worktree: true
-Status entries: 29
+Status entries: 56
 
 ## Reviewer Commands
 
@@ -19,23 +19,25 @@ Status entries: 29
 | `pnpm grant:check` | `no-local-services` | Regenerate the deterministic protocol slice, machine evidence, reviewer handoff, strategy audit, manifest, and replay tests. |
 | `pnpm grant:api-replay` | `local-postgres` | Drive the public API lifecycle and verify civic-record/replay-check endpoints through @pc/replay. |
 | `pnpm grant:chain-replay` | `ephemeral-anvil` | Deploy protocol modules locally and verify decoded Solidity logs through @pc/replay. |
+| `pnpm grant:crypto-hardening` | `no-local-services` | Regenerate v2 encrypted-ballot context binding and threshold-share fail-closed crypto evidence. |
 | `pnpm grant:full-check` | `local-postgres-and-ephemeral-anvil` | Run typecheck, tests, contract build, API replay, chain replay, and the quick grant gate. |
 
 ## Evidence Reports
 
 | Evidence | Status | Checks | Path |
 | --- | --- | ---: | --- |
-| full-lifecycle | Verified | 105/105 | `artifacts/grant-demo/full-lifecycle-report.json` |
+| full-lifecycle | Verified | 127/127 | `artifacts/grant-demo/full-lifecycle-report.json` |
 | api-replay | Verified | 10/10 | `artifacts/grant-demo/api-replay-report.json` |
 | chain-replay | Verified | 31/31 | `artifacts/grant-demo/chain-replay-report.json` |
 | crypto-review | EvidenceReady | 12/12 | `artifacts/grant-demo/crypto-review-report.json` |
-| threshold-custody | ThresholdCustodyEvidenceReady | 10/10 | `artifacts/grant-demo/threshold-custody-report.json` |
+| crypto-hardening | CryptoHardeningEvidenceReady | 19/19 | `artifacts/grant-demo/crypto-hardening-report.json` |
+| threshold-custody | ThresholdCustodyEvidenceReady | 12/12 | `artifacts/grant-demo/threshold-custody-report.json` |
 | replay-test-vectors | ReplayTestVectorsReady | 5/5 | `artifacts/grant-demo/replay-test-vectors-report.json` |
 | contract-hardening | ContractHardeningEvidenceReady | 57/57 | `artifacts/grant-demo/contract-hardening-report.json` |
-| packet-lint | PacketReady | 68/68 | `artifacts/grant-demo/packet-lint-report.json` |
+| packet-lint | PacketReady | 71/71 | `artifacts/grant-demo/packet-lint-report.json` |
 | reviewer-handoff | ReviewerHandoffReady | 12/12 | `artifacts/grant-demo/reviewer-handoff-report.json` |
 | repo-strategy-audit | RepoStrategyEvidenceReady | 16/16 | `artifacts/grant-demo/repo-strategy-audit-report.json` |
-| submission-gate | SubmissionGateEvidenceReady | 14/14 | `artifacts/grant-demo/submission-gate-report.json` |
+| submission-gate | SubmissionGateEvidenceReady | 16/16 | `artifacts/grant-demo/submission-gate-report.json` |
 | protocol-publication | ProtocolPackagePublicationEvidenceReady | 36/36 | `artifacts/grant-demo/protocol-publication-report.json` |
 | negative-invariants | NegativeInvariantsPreserved | 10/10 | `artifacts/grant-demo/negative-invariant-report.json` |
 

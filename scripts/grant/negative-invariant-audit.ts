@@ -250,6 +250,7 @@ async function productionNonClaimsCheck(): Promise<NegativeInvariantCheck> {
     "artifacts/grant-demo/submission-gate-report.json",
     "artifacts/grant-demo/external-review-index.json",
     "artifacts/grant-demo/contract-hardening-report.json",
+    "artifacts/grant-demo/crypto-hardening-report.json",
     "artifacts/grant-demo/threshold-custody-report.json"
   ];
   const violations: string[] = [];

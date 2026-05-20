@@ -3,7 +3,7 @@ Popular Consensus Protocol Replay Kit threshold custody evidence
 Command: pnpm grant:threshold-custody
 Status: ThresholdCustodyEvidenceReady
 Production deployment ready: false
-Checks: 10/10
+Checks: 12/12
 
 Production non-claims:
 - No distributed key generation implementation is claimed by this report.
@@ -22,3 +22,5 @@ Cases:
 - PASS unauthorized-accepted-share-rejected: Mismatch
 - PASS duplicate-accepted-share-hashes-rejected: Mismatch
 - PASS tampered-share-aggregate-rejected: Mismatch
+- PASS tampered-share-tally-setup-rejected: Mismatch
+- PASS tampered-share-result-binding-rejected: Mismatch

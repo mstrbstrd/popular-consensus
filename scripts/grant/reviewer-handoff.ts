@@ -35,11 +35,12 @@ const reviewerCommands: ReviewerCommand[] = [
     command: "pnpm grant:check",
     packageScript: "grant:check",
     dependencyMode: "no-local-services",
-    purpose: "Regenerate the backend lifecycle fixture, replay bundle evidence, grant packet lint, crypto inventory, threshold custody hardening, replay test vectors, contract-hardening evidence, repo strategy audit, submission gate, protocol publication status, negative invariant audit, external review index, manifest, readiness report, and replay tests.",
+    purpose: "Regenerate the backend lifecycle fixture, replay bundle evidence, grant packet lint, crypto inventory, crypto hardening, threshold custody hardening, replay test vectors, contract-hardening evidence, repo strategy audit, submission gate, protocol publication status, negative invariant audit, external review index, manifest, readiness report, and replay tests.",
     expectedStatus: "All machine checks pass while formalSubmissionReady remains false.",
     outputs: [
       "artifacts/grant-demo/full-lifecycle-report.json",
       "artifacts/grant-demo/crypto-review-report.json",
+      "artifacts/grant-demo/crypto-hardening-report.json",
       "artifacts/grant-demo/threshold-custody-report.json",
       "artifacts/grant-demo/replay-test-vectors-report.json",
       "artifacts/grant-demo/contract-hardening-report.json",

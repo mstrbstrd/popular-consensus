@@ -21,11 +21,12 @@ The command writes:
 
 The report checks that:
 
-- `pnpm typecheck`, `pnpm test`, `pnpm contracts:build`, and `pnpm grant:demo` are declared.
+- `pnpm typecheck`, `pnpm test`, `pnpm contracts:build`, `pnpm grant:demo`, and `pnpm grant:crypto-hardening` are declared.
 - The full lifecycle demo report is `Verified`.
 - `pc-replay verify-bundle` is exposed through the replay package.
 - Clean bundle replay is `Verified`.
 - Tampered replay returns `Mismatch`.
+- Crypto hardening evidence is `CryptoHardeningEvidenceReady` without production deployment claims.
 - The grant packet passes packet lint.
 - The grant scope excludes product monetization and token launch claims.
 - The repo has a scoped public-good license plan.

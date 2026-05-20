@@ -1,17 +1,17 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-packet-lint-report-v1",
-  "generatedAt": "2026-05-20T00:08:37.351Z",
+  "generatedAt": "2026-05-20T01:09:54.454Z",
   "command": "pnpm grant:packet-lint",
   "status": "PacketReady",
-  "checksPassed": 68,
-  "checksTotal": 68,
+  "checksPassed": 71,
+  "checksTotal": 71,
   "failedChecks": [],
   "checks": [
     {
       "id": "packet-doc-short-readme-md",
       "ok": true,
-      "detail": "README.md has 1302 words and must stay under 1500",
+      "detail": "README.md has 1371 words and must stay under 1500",
       "evidence": "grant/ef-protocol-replay-kit/README.md"
     },
     {
@@ -71,7 +71,7 @@
     {
       "id": "packet-doc-short-04-replay-rules-md",
       "ok": true,
-      "detail": "04-replay-rules.md has 720 words and must stay under 1500",
+      "detail": "04-replay-rules.md has 763 words and must stay under 1500",
       "evidence": "grant/ef-protocol-replay-kit/04-replay-rules.md"
     },
     {
@@ -119,7 +119,7 @@
     {
       "id": "packet-doc-short-08-review-readiness-md",
       "ok": true,
-      "detail": "08-review-readiness.md has 845 words and must stay under 1500",
+      "detail": "08-review-readiness.md has 871 words and must stay under 1500",
       "evidence": "grant/ef-protocol-replay-kit/08-review-readiness.md"
     },
     {
@@ -155,7 +155,7 @@
     {
       "id": "packet-doc-short-11-cryptography-review-md",
       "ok": true,
-      "detail": "11-cryptography-review.md has 299 words and must stay under 1500",
+      "detail": "11-cryptography-review.md has 350 words and must stay under 1500",
       "evidence": "grant/ef-protocol-replay-kit/11-cryptography-review.md"
     },
     {
@@ -203,7 +203,7 @@
     {
       "id": "packet-doc-short-15-threshold-custody-hardening-md",
       "ok": true,
-      "detail": "15-threshold-custody-hardening.md has 297 words and must stay under 1500",
+      "detail": "15-threshold-custody-hardening.md has 345 words and must stay under 1500",
       "evidence": "grant/ef-protocol-replay-kit/15-threshold-custody-hardening.md"
     },
     {
@@ -263,7 +263,7 @@
     {
       "id": "packet-doc-short-20-submission-gate-md",
       "ok": true,
-      "detail": "20-submission-gate.md has 246 words and must stay under 1500",
+      "detail": "20-submission-gate.md has 258 words and must stay under 1500",
       "evidence": "grant/ef-protocol-replay-kit/20-submission-gate.md"
     },
     {
@@ -295,6 +295,18 @@
       "ok": true,
       "detail": "22-negative-invariant-audit.md includes a reusable-builder section",
       "evidence": "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md"
+    },
+    {
+      "id": "packet-doc-short-23-crypto-hardening-evidence-md",
+      "ok": true,
+      "detail": "23-crypto-hardening-evidence.md has 189 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/23-crypto-hardening-evidence.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-23-crypto-hardening-evidence-md",
+      "ok": true,
+      "detail": "23-crypto-hardening-evidence.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/23-crypto-hardening-evidence.md"
     },
     {
       "id": "packet-doc-short-office-hours-brief-md",
@@ -366,6 +378,12 @@
       "id": "readme-reviewer-handoff-command",
       "ok": true,
       "detail": "README exposes reviewer handoff command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readme-crypto-hardening-command",
+      "ok": true,
+      "detail": "README exposes crypto hardening evidence command",
       "evidence": "grant/ef-protocol-replay-kit/README.md"
     },
     {

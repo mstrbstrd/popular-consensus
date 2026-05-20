@@ -4,6 +4,7 @@ import {
   createHash,
   diffieHellman,
   generateKeyPairSync,
+  hkdfSync,
   randomBytes,
   createPublicKey,
   createPrivateKey
@@ -33,12 +34,52 @@ export type DemoCredential = {
   secretHash: string;
 };
 
-export type EncryptedBallotPayload = {
+export const BALLOT_ENCRYPTION_V2_SUITE = "X25519-HKDF-SHA256-AES-256-GCM";
+
+export type BallotEncryptionContext = {
+  protocol: "popular-consensus";
+  schemaVersion: "ballot-encryption-context-v1";
+  pollId: string;
+  questionId: string;
+  credentialSchemaId: string;
+  tallyPublicKeyId: string;
+};
+
+export type TallyRecipientPublicKey = {
+  publicKeyPem: string;
+  publicKeyId?: string;
+};
+
+export type EncryptedBallotPayloadV1 = {
   version: "pc-encrypted-ballot-v1";
   ephemeralPublicKeyPem: string;
   iv: string;
   authTag: string;
   ciphertext: string;
+};
+
+export type EncryptedBallotPayloadV2 = {
+  version: "pc-encrypted-ballot-v2";
+  suite: typeof BALLOT_ENCRYPTION_V2_SUITE;
+  ephemeralPublicKeyPem: string;
+  recipientPublicKeyId: string;
+  contextHash: string;
+  aadHash: string;
+  iv: string;
+  authTag: string;
+  ciphertext: string;
+};
+
+export type EncryptedBallotPayload = EncryptedBallotPayloadV1 | EncryptedBallotPayloadV2;
+
+export type CryptoEvidenceReport = {
+  protocol: "popular-consensus";
+  schemaVersion: string;
+  status: "EvidenceReady" | "Mismatch";
+  checksPassed: number;
+  checksTotal: number;
+  failedChecks: string[];
+  productionDeploymentReady: false;
 };
 
 export type AnonymousBallotProof = {
@@ -92,6 +133,58 @@ export function tallyPublicKeyId(publicKeyPem: string): string {
 
 export function normalizeTallyPublicKeyPem(publicKeyPem: string): string {
   return createPublicKey(publicKeyPem).export({ type: "spki", format: "pem" }).toString();
+}
+
+export function createBallotEncryptionContext(input: {
+  pollId: string;
+  questionId: string;
+  credentialSchemaId: string;
+  tallyPublicKeyId: string;
+}): BallotEncryptionContext {
+  return {
+    protocol: "popular-consensus",
+    schemaVersion: "ballot-encryption-context-v1",
+    pollId: input.pollId,
+    questionId: input.questionId,
+    credentialSchemaId: input.credentialSchemaId,
+    tallyPublicKeyId: input.tallyPublicKeyId
+  };
+}
+
+export function defaultBallotEncryptionContext(tallyPublicKeyId = "legacy-compatible-tally-key"): BallotEncryptionContext {
+  return createBallotEncryptionContext({
+    pollId: "legacy-compatible-poll",
+    questionId: "legacy-compatible-question",
+    credentialSchemaId: "legacy-compatible-credential-schema",
+    tallyPublicKeyId
+  });
+}
+
+export function ballotEncryptionContextHash(context: BallotEncryptionContext): string {
+  return hashJson({
+    protocol: "pc-ballot-encryption-context-v1",
+    pollId: context.pollId,
+    questionId: context.questionId,
+    credentialSchemaId: context.credentialSchemaId,
+    tallyPublicKeyId: context.tallyPublicKeyId
+  });
+}
+
+export function ballotEncryptionAadHash(input: {
+  suite: typeof BALLOT_ENCRYPTION_V2_SUITE;
+  recipientPublicKeyId: string;
+  contextHash: string;
+}): string {
+  return hashJson({
+    protocol: "pc-ballot-encryption-aad-v1",
+    suite: input.suite,
+    recipientPublicKeyId: input.recipientPublicKeyId,
+    contextHash: input.contextHash
+  });
+}
+
+export function encryptedBallotContextMatches(payload: EncryptedBallotPayload, context: BallotEncryptionContext): boolean {
+  return payload.version === "pc-encrypted-ballot-v2" && payload.contextHash === ballotEncryptionContextHash(context);
 }
 
 export function issueDemoCredential(holderAlias: string, schemaId: string, issuerId: string): DemoCredential {
@@ -220,36 +313,59 @@ export function participationReceiptHash(receiptSecret: string): string {
   return hashJson({ protocol: "pc-private-participation-receipt-v1", receiptSecret });
 }
 
-export function encryptBallot(response: BallotResponse | string, coordinatorPublicKeyPem: string): EncryptedBallotPayload {
+export function encryptBallot(
+  response: BallotResponse | string,
+  recipient: string | TallyRecipientPublicKey,
+  context?: BallotEncryptionContext
+): EncryptedBallotPayloadV2 {
+  const coordinatorPublicKeyPem = typeof recipient === "string" ? recipient : recipient.publicKeyPem;
+  const recipientPublicKeyId = typeof recipient === "string" ? tallyPublicKeyId(coordinatorPublicKeyPem) : (recipient.publicKeyId ?? tallyPublicKeyId(coordinatorPublicKeyPem));
+  const encryptionContext = context ?? defaultBallotEncryptionContext(recipientPublicKeyId);
+  const contextHash = ballotEncryptionContextHash(encryptionContext);
+  const aadHash = ballotEncryptionAadHash({
+    suite: BALLOT_ENCRYPTION_V2_SUITE,
+    recipientPublicKeyId,
+    contextHash
+  });
   const ephemeral = generateKeyPairSync("x25519");
   const sharedSecret = diffieHellman({
     privateKey: ephemeral.privateKey,
     publicKey: createPublicKey(coordinatorPublicKeyPem)
   });
-  const key = createHash("sha256").update(sharedSecret).digest();
+  const key = deriveBallotAeadKey(sharedSecret, contextHash, recipientPublicKeyId);
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
+  cipher.setAAD(ballotAadBuffer({ suite: BALLOT_ENCRYPTION_V2_SUITE, recipientPublicKeyId, contextHash, aadHash }));
   const normalizedResponse = typeof response === "string" ? choiceToBallotResponse(response) : response;
   const plaintext = Buffer.from(JSON.stringify(normalizedResponse), "utf8");
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
   return {
-    version: "pc-encrypted-ballot-v1",
+    version: "pc-encrypted-ballot-v2",
+    suite: BALLOT_ENCRYPTION_V2_SUITE,
     ephemeralPublicKeyPem: ephemeral.publicKey.export({ type: "spki", format: "pem" }).toString(),
+    recipientPublicKeyId,
+    contextHash,
+    aadHash,
     iv: iv.toString("base64"),
     authTag: authTag.toString("base64"),
     ciphertext: ciphertext.toString("base64")
   };
 }
 
-export function decryptBallot(payload: EncryptedBallotPayload, coordinatorPrivateKeyPem: string): BallotResponse {
+export function decryptBallot(payload: EncryptedBallotPayload, coordinatorPrivateKeyPem: string, context?: BallotEncryptionContext): BallotResponse {
+  if (payload.version === "pc-encrypted-ballot-v1") return decryptBallotV1(payload, coordinatorPrivateKeyPem);
+  if (context && payload.contextHash !== ballotEncryptionContextHash(context)) throw new Error("Encrypted ballot context does not match");
+  if (payload.suite !== BALLOT_ENCRYPTION_V2_SUITE) throw new Error("Unsupported encrypted ballot suite");
+  if (payload.aadHash !== ballotEncryptionAadHash(payload)) throw new Error("Encrypted ballot AAD hash does not match");
   const sharedSecret = diffieHellman({
     privateKey: createPrivateKey(coordinatorPrivateKeyPem),
     publicKey: createPublicKey(payload.ephemeralPublicKeyPem)
   });
-  const key = createHash("sha256").update(sharedSecret).digest();
+  const key = deriveBallotAeadKey(sharedSecret, payload.contextHash, payload.recipientPublicKeyId);
   const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(payload.iv, "base64"));
+  decipher.setAAD(ballotAadBuffer(payload));
   decipher.setAuthTag(Buffer.from(payload.authTag, "base64"));
   const plaintext = Buffer.concat([
     decipher.update(Buffer.from(payload.ciphertext, "base64")),
@@ -258,21 +374,29 @@ export function decryptBallot(payload: EncryptedBallotPayload, coordinatorPrivat
   return JSON.parse(plaintext) as BallotResponse;
 }
 
-export function ballotCommitment(payload: EncryptedBallotPayload, nullifier: string): string {
-  return hashJson({ payload, nullifier });
+export function ballotCommitment(payload: EncryptedBallotPayload, nullifier: string, context?: BallotEncryptionContext): string {
+  if (payload.version === "pc-encrypted-ballot-v1") return hashJson({ payload, nullifier });
+  if (context && payload.contextHash !== ballotEncryptionContextHash(context)) throw new Error("Encrypted ballot context does not match");
+  return hashJson({
+    protocol: "pc-ballot-commitment-v2",
+    encryptedPayloadHash: hashJson(payload),
+    nullifier,
+    contextHash: payload.contextHash
+  });
 }
 
 export function tallyEncryptedBallots(
   payloads: EncryptedBallotPayload[],
   coordinatorPrivateKeyPem: string,
-  answerSchema: AnswerSchema
+  answerSchema: AnswerSchema,
+  context?: BallotEncryptionContext
 ): TallySummary {
   const responses: BallotResponse[] = [];
   let invalidBallots = 0;
 
   for (const payload of payloads) {
     try {
-      responses.push(validateBallotResponse(answerSchema, decryptBallot(payload, coordinatorPrivateKeyPem)));
+      responses.push(validateBallotResponse(answerSchema, decryptBallot(payload, coordinatorPrivateKeyPem, context)));
     } catch {
       invalidBallots += 1;
     }
@@ -287,6 +411,51 @@ export function tallyEncryptedBallots(
     invalidBallots,
     proofReference: hashJson({ aggregate, invalidBallots, turnout: aggregate.turnout, protocol: "pc-maci-derived-v1" })
   };
+}
+
+function decryptBallotV1(payload: EncryptedBallotPayloadV1, coordinatorPrivateKeyPem: string): BallotResponse {
+  const sharedSecret = diffieHellman({
+    privateKey: createPrivateKey(coordinatorPrivateKeyPem),
+    publicKey: createPublicKey(payload.ephemeralPublicKeyPem)
+  });
+  const key = createHash("sha256").update(sharedSecret).digest();
+  const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(payload.iv, "base64"));
+  decipher.setAuthTag(Buffer.from(payload.authTag, "base64"));
+  const plaintext = Buffer.concat([
+    decipher.update(Buffer.from(payload.ciphertext, "base64")),
+    decipher.final()
+  ]).toString("utf8");
+  return JSON.parse(plaintext) as BallotResponse;
+}
+
+function deriveBallotAeadKey(sharedSecret: Buffer, contextHash: string, recipientPublicKeyId: string): Buffer {
+  return Buffer.from(
+    hkdfSync(
+      "sha256",
+      sharedSecret,
+      Buffer.from(contextHash, "utf8"),
+      Buffer.from(`pc-ballot-encryption-v2:${recipientPublicKeyId}`, "utf8"),
+      32
+    )
+  );
+}
+
+function ballotAadBuffer(input: {
+  suite: typeof BALLOT_ENCRYPTION_V2_SUITE;
+  recipientPublicKeyId: string;
+  contextHash: string;
+  aadHash: string;
+}): Buffer {
+  return Buffer.from(
+    JSON.stringify({
+      protocol: "pc-ballot-encryption-aad-v1",
+      suite: input.suite,
+      recipientPublicKeyId: input.recipientPublicKeyId,
+      contextHash: input.contextHash,
+      aadHash: input.aadHash
+    }),
+    "utf8"
+  );
 }
 
 function sha256(value: string): string {

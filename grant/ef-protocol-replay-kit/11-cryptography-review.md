@@ -28,6 +28,19 @@ The report currently checks 12 privacy and integrity properties:
 - anonymous proof hashes are content-addressed
 - malformed Semaphore proofs are rejected rather than accepted as hash-only claims
 
+Audit-ready hardening has a separate evidence command:
+
+```bash
+pnpm grant:crypto-hardening
+```
+
+It writes:
+
+- `artifacts/grant-demo/crypto-hardening-report.json`
+- `artifacts/grant-demo/crypto-hardening-transcript.txt`
+
+That report checks `pc-encrypted-ballot-v2`, X25519/HKDF-SHA256/AES-256-GCM suite declaration, recipient key binding, poll/question/schema/tally-key context binding, wrong-context rejection, plaintext non-export, and replay fail-closed cases for malformed encrypted payloads and threshold-share binding.
+
 Threshold custody hardening has a separate evidence command:
 
 ```bash
@@ -44,6 +57,7 @@ That report checks threshold committee/member uniqueness, valid Ed25519 public k
 ## Primitives In Scope
 
 - X25519 key agreement for demo coordinator ballot encryption
+- HKDF-SHA256 key derivation for `pc-encrypted-ballot-v2`
 - AES-256-GCM authenticated encryption for ballot payloads
 - SHA-256 content-addressed commitments and nullifiers
 - Semaphore V4 verification path for anonymous ballot proofs
