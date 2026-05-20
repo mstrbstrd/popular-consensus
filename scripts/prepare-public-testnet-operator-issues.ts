@@ -104,7 +104,7 @@ Options:
   --roster <path>  Roster markdown file to inspect.
   --out <path>     Markdown draft output path. Use '-' for stdout.
   --body-dir <path>
-                   Also write one issue body file per slot plus a gh command README.
+                   Also write issue body files for slots that still need issues plus a gh command README.
   --github-repo <owner/repo>
                    Include an explicit gh --repo target in generated issue commands.
   --check          Verify generated files are up to date without writing.
@@ -255,13 +255,13 @@ Regenerate them with:
 pnpm testnet:operator-issue-drafts
 \`\`\`
 
-Generate one body file per issue for GitHub CLI usage with:
+Generate GitHub CLI body files only for slots that still need tracking issues with:
 
 \`\`\`sh
 pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies
 \`\`\`
 
-The body files can also be used for manual issue creation when the GitHub CLI \`gh\` is unavailable.
+If \`gh\` is unavailable, use the generated README table and any generated body files for manual issue creation. When no slots are open, no per-slot body files are expected.
 
 Generate machine-readable issue drafts for authenticated GitHub connector usage with:
 
@@ -283,7 +283,7 @@ If this workspace has no Git remote or GitHub default repository, generate comma
 pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies --github-repo <owner/repo>
 \`\`\`
 
-Create one public issue per operator slot that still has no tracking issue, then record the resulting issue URL or number with \`pnpm testnet:update-roster-slot -- --slot <slot> --tracking-issue <issue-url-or-number>\`.
+Create public issues only for operator slots listed in the generated README, then record the resulting issue URL or number with \`pnpm testnet:update-roster-slot -- --slot <slot> --tracking-issue <issue-url-or-number>\`.
 
 ${draftSections}`;
 }
@@ -374,22 +374,28 @@ function renderBodyFilesReadme(bodyDir: string, drafts: IssueDraft[], githubRepo
     ? drafts
         .map((draft) => `| ${draft.slot} | ${draft.title} | ${draft.labels.join(", ")} | ${path.join(bodyDir, `${fileStemForSlot(draft.slot)}.md`)} |`)
         .join("\n")
-    : "| none | No slots currently need new tracking issues. | none | none |";
+    : "| none | All eligible slots already have tracking issues recorded on the roster. | none | roster |";
   const recordCommands = drafts.map((draft) => `pnpm testnet:update-roster-slot -- --slot ${draft.slot} --tracking-issue <${draft.slot}-issue-url-or-number>`).join("\n");
   const commandBlock = commands || "# No gh issue create commands are needed because every eligible slot already has a tracking issue.";
   const recordCommandBlock = recordCommands || "# No roster tracking commands are needed because every eligible slot already has a tracking issue.";
+  const issueCreationNote = drafts.length > 0
+    ? "The commands below require the GitHub CLI `gh`. If `gh` is unavailable, create the listed issues manually from the table and generated body files."
+    : "No per-slot body files are expected in this directory while every eligible slot already has a tracking issue recorded on the roster.";
+  const rosterTrackingNote = drafts.length > 0
+    ? "After creating each issue, replace the placeholder with the public issue URL or number and record it on the roster:"
+    : "No roster tracking commands are needed unless a future slot returns to `open`.";
   const repoNote = githubRepo
     ? `These commands target \`${githubRepo}\` explicitly.`
     : "If this workspace has no Git remote or GitHub default repository, regenerate with `pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies --github-repo <owner/repo>` or add `--repo <owner/repo>` to each command.";
-  return `# Public Testnet Operator Issue Body Files
+  return `# Public Testnet Operator Issue Body Drafts
 
-These files are generated from \`${DEFAULT_ROSTER_PATH}\` for GitHub CLI usage. They do not create issues, publish evidence, or complete the final public-testnet gate.
+This directory is generated from \`${DEFAULT_ROSTER_PATH}\` for GitHub CLI usage. It contains one body file per unassigned slot whose \`Tracking Issue\` is still \`open\`. It does not create issues, publish evidence, or complete the final public-testnet gate.
 
 Create issues after a Git remote, GitHub default repository, or explicit \`--repo\` target is available and a maintainer approves the public action:
 
 ${repoNote}
 
-The commands below require the GitHub CLI \`gh\`. If \`gh\` is unavailable, create the issues manually from these body files.
+${issueCreationNote}
 
 ## Authenticated GitHub Connector Payloads
 
@@ -405,7 +411,7 @@ For each \`drafts[]\` entry, use \`repository_full_name\` from the approved repo
 
 Use this table when creating issues through the GitHub web UI or another issue tracker:
 
-| Slot | Title | Labels | Body file |
+| Slot | Title | Labels | Body file or source |
 | --- | --- | --- | --- |
 ${manualRows}
 
@@ -417,7 +423,7 @@ ${commandBlock}
 
 ## Roster Tracking Commands
 
-After creating each issue, replace the placeholder with the public issue URL or number and record it on the roster:
+${rosterTrackingNote}
 
 \`\`\`sh
 ${recordCommandBlock}

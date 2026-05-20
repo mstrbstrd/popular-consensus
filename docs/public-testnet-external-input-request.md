@@ -20,7 +20,7 @@ Repository: <owner/repo>
 Approval: I approve creating the eight public-testnet operator issues in <owner/repo>.
 ```
 
-Codex can only create externally visible public issues after both values are supplied and the action is explicitly approved. If the GitHub CLI is unavailable, Codex may use an authenticated GitHub connector when one is available; otherwise maintainers should create the issues manually from `docs/public-testnet-operator-issue-bodies`.
+Codex can only create externally visible public issues after both values are supplied and the action is explicitly approved. If the GitHub CLI is unavailable, Codex may use an authenticated GitHub connector when one is available; otherwise maintainers should create only the still-open issues from `docs/public-testnet-operator-issue-bodies/README.md` and any generated per-slot body files.
 
 ## Option 2: Created Issue URLs
 

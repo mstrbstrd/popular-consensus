@@ -440,8 +440,10 @@ function buildNextActions(
     if (publicTestnetOutreach.status !== "Ready" && publicTestnetRoster.status !== "Ready") {
       if (publicTestnetOutreach.identifiedSlots.actual < publicTestnetOutreach.identifiedSlots.required) {
         actions.push("Identify candidate routes in docs/public-testnet-operator-outreach-log.md, then run pnpm testnet:audit-outreach.");
+      } else if (publicTestnetRoster.trackingIssueSlots.actual >= publicTestnetRoster.trackingIssueSlots.required) {
+        actions.push("Public tracking issue URLs are already recorded in docs/public-testnet-operator-roster.md. Fill the repo and issue URLs in docs/public-testnet-operator-send-packets.md, send first-wave outreach, record contacted rows with pnpm testnet:record-outreach -- --tracking-issue-from-roster, then run pnpm testnet:audit-outreach.");
       } else {
-        actions.push("Follow docs/public-testnet-maintainer-checklist.md to create public tracking issues from docs/public-testnet-operator-issue-bodies, using pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies --github-repo <owner/repo> when no Git remote is configured, using an authenticated GitHub connector after explicit approval when available, or creating issues manually from the body files when gh is unavailable; collect issue URLs in docs/public-testnet-operator-issue-url-intake.md, validate them with pnpm testnet:record-issue-urls -- --dry-run, record them with pnpm testnet:record-issue-urls, fill the repo and issue URLs in docs/public-testnet-operator-send-packets.md, send first-wave outreach, record contacted rows with pnpm testnet:record-outreach -- --tracking-issue-from-roster, then run pnpm testnet:audit-outreach.");
+        actions.push("Follow docs/public-testnet-maintainer-checklist.md to confirm public tracking issues. If the roster already has tracking issue URLs for all slots, skip issue creation and continue to outreach. If any slot still has Tracking Issue set to open, regenerate drafts with pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies --github-repo <owner/repo> when no Git remote is configured, use an authenticated GitHub connector after explicit approval when available, or create only the still-open issues manually from the README table and any generated body files when gh is unavailable; collect issue URLs in docs/public-testnet-operator-issue-url-intake.md, validate them with pnpm testnet:record-issue-urls -- --dry-run, record them with pnpm testnet:record-issue-urls, fill the repo and issue URLs in docs/public-testnet-operator-send-packets.md, send first-wave outreach, record contacted rows with pnpm testnet:record-outreach -- --tracking-issue-from-roster, then run pnpm testnet:audit-outreach.");
       }
     }
     if (publicTestnetRoster.status !== "Ready") {
@@ -483,7 +485,7 @@ async function readWorkspaceWarnings() {
       maxBuffer: 1024 * 1024
     });
   } catch {
-    warnings.push("GitHub CLI gh is not available; use an authenticated GitHub connector after explicit approval, create public operator issues manually from docs/public-testnet-operator-issue-bodies, or install gh before using generated commands");
+    warnings.push("GitHub CLI gh is not available; use an authenticated GitHub connector after explicit approval, create only still-open public operator issues from docs/public-testnet-operator-issue-bodies/README.md and any generated body files, or install gh before using generated commands");
   }
 
   return warnings;

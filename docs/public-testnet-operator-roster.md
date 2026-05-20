@@ -25,7 +25,7 @@ Use `docs/public-testnet-operator-assignment-intake.md` when recording a real op
 
 If GitHub Issues are being used, create one issue per operator with `.github/ISSUE_TEMPLATE/public-testnet-operator.yml`.
 
-Generate local per-slot issue drafts with `pnpm testnet:operator-issue-drafts`; the output file is `docs/public-testnet-operator-issue-drafts.md`. For GitHub CLI body files, run `pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies`. The generator only drafts unassigned slots whose tracking issue is still `open`, so record created issue URLs with `pnpm testnet:update-roster-slot -- --slot <slot-id> --tracking-issue <issue-url-or-number>` before regenerating.
+Generate local per-slot issue drafts with `pnpm testnet:operator-issue-drafts`; the output file is `docs/public-testnet-operator-issue-drafts.md`. If any unassigned slot still has `Tracking Issue` set to `open` and you need GitHub CLI body files, run `pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies`. The generator only drafts unassigned slots whose tracking issue is still `open`, so record created issue URLs with `pnpm testnet:update-roster-slot -- --slot <slot-id> --tracking-issue <issue-url-or-number>` before regenerating.
 
 Record accepted or invited operators with `pnpm testnet:update-roster-slot -- --slot <slot-id> --tracking-issue <issue> --operator-id <id> --contact <contact> --organization <organization> --status invited`, then rerun `pnpm testnet:audit-roster`.
 

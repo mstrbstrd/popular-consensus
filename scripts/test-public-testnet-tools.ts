@@ -239,7 +239,7 @@ async function generatesOperatorIssueDrafts(tempRoot: string) {
   const drafts = await readFile(draftPath, "utf8");
   assert.match(drafts, /# Public Testnet Operator Issue Drafts/);
   assert.match(drafts, /````markdown/);
-  assert.match(drafts, /manual issue creation when the GitHub CLI `gh` is unavailable/);
+  assert.match(drafts, /generated README table and any generated body files for manual issue creation/);
   assert.match(drafts, /machine-readable issue drafts for authenticated GitHub connector usage/);
   assert.match(drafts, /--github-repo <owner\/repo>/);
   assert.match(drafts, /\[Public testnet operator\]: deployer-1 deployer/);
@@ -265,10 +265,11 @@ async function generatesOperatorIssueDrafts(tempRoot: string) {
   assert.match(indexerBody, /--api-base-url needs-api-base-url/);
   assert.match(bodyReadme, /gh issue create --title "\[Public testnet operator\]: deployer-1 deployer"/);
   assert.match(bodyReadme, /--github-repo <owner\/repo>/);
-  assert.match(bodyReadme, /The commands below require the GitHub CLI `gh`/);
+  assert.match(bodyReadme, /If `gh` is unavailable, create the listed issues manually from the table and generated body files/);
   assert.match(bodyReadme, /## Authenticated GitHub Connector Payloads/);
   assert.match(bodyReadme, /repository_full_name/);
   assert.match(bodyReadme, /## Manual Issue Creation/);
+  assert.match(bodyReadme, /\| Body file or source \|/);
   assert.match(bodyReadme, /\| deployer-1 \| \[Public testnet operator\]: deployer-1 deployer \| public-testnet, operator \| .*deployer-1\.md \|/);
   assert.match(bodyReadme, /## Roster Tracking Commands/);
   assert.match(bodyReadme, /pnpm testnet:update-roster-slot -- --slot deployer-1 --tracking-issue <deployer-1-issue-url-or-number>/);
@@ -312,7 +313,8 @@ async function generatesOperatorIssueDrafts(tempRoot: string) {
   const trackedDrafts = await readFile(trackedDraftPath, "utf8");
   const trackedReadme = await readFile(path.join(trackedBodyDir, "README.md"), "utf8");
   assert.match(trackedDrafts, /No unassigned operator slots with `Tracking Issue` set to `open` need new issue drafts\./);
-  assert.match(trackedReadme, /No slots currently need new tracking issues\./);
+  assert.match(trackedReadme, /All eligible slots already have tracking issues recorded on the roster\./);
+  assert.match(trackedReadme, /No per-slot body files are expected in this directory/);
   assert.match(trackedReadme, /No gh issue create commands are needed/);
   assert.match(trackedReadme, /No roster tracking commands are needed/);
 
@@ -454,11 +456,11 @@ ${rows}
     "MVP audit should route maintainers through the public testnet checklist"
   );
   assert.ok(
-    parsed.nextActions.some((action) => action.includes("creating issues manually from the body files when gh is unavailable")),
+    parsed.nextActions.some((action) => action.includes("create only the still-open issues manually from the README table and any generated body files when gh is unavailable")),
     "MVP audit should include the manual issue-creation fallback"
   );
   assert.ok(
-    parsed.nextActions.some((action) => action.includes("using an authenticated GitHub connector after explicit approval when available")),
+    parsed.nextActions.some((action) => action.includes("use an authenticated GitHub connector after explicit approval when available")),
     "MVP audit should include the authenticated GitHub connector fallback"
   );
   assert.ok(

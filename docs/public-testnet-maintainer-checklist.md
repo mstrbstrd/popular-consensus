@@ -6,22 +6,13 @@ This file is not completion evidence. The gate remains open until independent op
 
 If handing this work to another maintainer or back to Codex, use `docs/public-testnet-external-input-request.md` for the exact external inputs needed next.
 
-## 1. Create Public Operator Issues
+## 1. Confirm Public Operator Issues
 
 Pick the public GitHub repository operators should use for tracking.
 
-If asking Codex to create the public issues, provide the repository as `owner/repo` and explicitly approve issue creation. Without that target and approval, keep this step local and use the generated commands as a maintainer handoff.
+First inspect `docs/public-testnet-operator-roster.md`. If every required slot already has a public `Tracking Issue` URL, skip issue creation and continue to outreach.
 
-The generated issue commands require the GitHub CLI `gh`. If `gh` is unavailable, Codex can use an authenticated GitHub connector after the repository and explicit issue-creation approval are supplied; otherwise create the issues manually from the table and body files in `docs/public-testnet-operator-issue-bodies`.
-
-For authenticated GitHub connector creation after explicit approval:
-
-1. Run `pnpm testnet:operator-issue-drafts -- --json`.
-2. For each `drafts[]` entry, call the connector issue-create action with `repository_full_name` set to the approved repository, plus the entry's `title`, `body`, and `labels`.
-3. Copy each returned public issue URL into `docs/public-testnet-operator-issue-url-intake.md`.
-4. Validate the intake rows with `pnpm testnet:record-issue-urls -- --dry-run`, then record them with `pnpm testnet:record-issue-urls`.
-
-If this workspace has a Git remote or GitHub default repository, regenerate the issue body files with:
+If any unassigned slot still has `Tracking Issue` set to `open`, regenerate issue drafts before creating new issues:
 
 ```sh
 pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies
@@ -33,24 +24,26 @@ If this workspace has no Git remote, generate commands with an explicit reposito
 pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies --github-repo <owner/repo>
 ```
 
-Verify the generated issue draft and body files are current:
+Verify the generated issue draft and body directory are current:
 
 ```sh
 pnpm testnet:operator-issue-drafts:check
 ```
 
-Create one public issue per slot from `docs/public-testnet-operator-issue-bodies/README.md`:
+Create issues only for slots listed in `docs/public-testnet-operator-issue-bodies/README.md`. If that README says no slots currently need new tracking issues, do not create duplicate issues.
 
-- `deployer-1`
-- `indexer-1`
-- `indexer-2`
-- `replay-1`
-- `replay-2`
-- `replay-3`
-- `steward-1`
-- `steward-2`
+If asking Codex to create public issues, provide the repository as `owner/repo` and explicitly approve issue creation. Without that target and approval, keep this step local and use the generated commands as a maintainer handoff.
 
-Use `docs/public-testnet-operator-issue-url-intake.md` to collect the eight issue URLs, validate them with `pnpm testnet:record-issue-urls -- --dry-run`, then run `pnpm testnet:record-issue-urls` to record non-`open` intake rows on the roster.
+The generated issue commands require the GitHub CLI `gh`. If `gh` is unavailable, Codex can use an authenticated GitHub connector after the repository and explicit issue-creation approval are supplied; otherwise create issues manually from the README table and any generated per-slot body files.
+
+For authenticated GitHub connector creation after explicit approval:
+
+1. Run `pnpm testnet:operator-issue-drafts -- --json`.
+2. For each `drafts[]` entry, call the connector issue-create action with `repository_full_name` set to the approved repository, plus the entry's `title`, `body`, and `labels`.
+3. Copy each returned public issue URL into `docs/public-testnet-operator-issue-url-intake.md`.
+4. Validate the intake rows with `pnpm testnet:record-issue-urls -- --dry-run`, then record them with `pnpm testnet:record-issue-urls`.
+
+If you are recording newly created issues in bulk, use `docs/public-testnet-operator-issue-url-intake.md` to collect the issue URLs, validate them with `pnpm testnet:record-issue-urls -- --dry-run`, then run `pnpm testnet:record-issue-urls` to record non-`open` intake rows on the roster.
 
 After each issue exists, use the generated per-slot commands in `docs/public-testnet-operator-issue-bodies/README.md`, or record the issue URL or number on the roster while the slot is still unassigned:
 

@@ -32,7 +32,7 @@ Source links were checked on 2026-05-09.
 
 For each row:
 
-1. Create or reuse a public tracking issue from `docs/public-testnet-operator-issue-bodies/<slot>.md`.
+1. Confirm the slot has a public tracking issue recorded in `docs/public-testnet-operator-roster.md`; if it is still `open`, regenerate issue drafts and create a tracking issue first.
 2. Send the matching message from `docs/public-testnet-operator-send-packets.md`.
 3. Record the attempt with `pnpm testnet:record-outreach` and `status` set to `contacted`.
 4. Audit the prospect log with `pnpm testnet:audit-outreach`.

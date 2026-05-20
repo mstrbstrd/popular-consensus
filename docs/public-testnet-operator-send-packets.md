@@ -6,8 +6,8 @@ This file is not completion evidence. It does not assign operators, prove indepe
 
 Before sending any packet:
 
-1. Create or identify a public tracking issue from `docs/public-testnet-operator-issue-bodies/<slot>.md`.
-2. Record the issue URL on `docs/public-testnet-operator-roster.md` with the per-slot commands in `docs/public-testnet-operator-issue-bodies/README.md`.
+1. Confirm the slot has a public tracking issue recorded in `docs/public-testnet-operator-roster.md`.
+2. If a slot still has `Tracking Issue` set to `open`, regenerate issue drafts with `pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies`, create a tracking issue from `docs/public-testnet-operator-issue-bodies/README.md`, then record the URL on the roster.
 3. Replace `<public repo URL>` with the repository URL that operators can access.
 4. Replace `<tracking issue URL>` with the public tracking issue for the slot.
 5. Record the send with `pnpm testnet:record-outreach`.

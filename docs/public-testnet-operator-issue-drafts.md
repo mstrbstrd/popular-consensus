@@ -8,13 +8,13 @@ Regenerate them with:
 pnpm testnet:operator-issue-drafts
 ```
 
-Generate one body file per issue for GitHub CLI usage with:
+Generate GitHub CLI body files only for slots that still need tracking issues with:
 
 ```sh
 pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies
 ```
 
-The body files can also be used for manual issue creation when the GitHub CLI `gh` is unavailable.
+If `gh` is unavailable, use the generated README table and any generated body files for manual issue creation. When no slots are open, no per-slot body files are expected.
 
 Generate machine-readable issue drafts for authenticated GitHub connector usage with:
 
@@ -36,6 +36,6 @@ If this workspace has no Git remote or GitHub default repository, generate comma
 pnpm testnet:operator-issue-drafts -- --body-dir docs/public-testnet-operator-issue-bodies --github-repo <owner/repo>
 ```
 
-Create one public issue per operator slot that still has no tracking issue, then record the resulting issue URL or number with `pnpm testnet:update-roster-slot -- --slot <slot> --tracking-issue <issue-url-or-number>`.
+Create public issues only for operator slots listed in the generated README, then record the resulting issue URL or number with `pnpm testnet:update-roster-slot -- --slot <slot> --tracking-issue <issue-url-or-number>`.
 
 No unassigned operator slots with `Tracking Issue` set to `open` need new issue drafts.

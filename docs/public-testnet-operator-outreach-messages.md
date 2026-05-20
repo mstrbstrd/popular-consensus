@@ -51,7 +51,7 @@ Would you be willing to run an API/indexer or replay-checker role?
 
 Requested role: api-indexer or replay checker (`replay-verifier` role id)
 Roster slot: slot-id-here
-Issue body: `docs/public-testnet-operator-issue-bodies/slot-id-here.md`
+Tracking issue: use the public issue recorded for `slot-id-here` in `docs/public-testnet-operator-roster.md`
 
 The key output is a `public-testnet-operator-attestation-v0` JSON evidence file. Replay checkers should independently report matching transaction and event stream hashes for the same testnet window. API/indexer operators should expose a public API base URL and publish replay hashes.
 
@@ -62,5 +62,5 @@ After the candidate accepts:
 1. Capture the real assignment fields with `docs/public-testnet-operator-assignment-intake.md`.
 2. Update the roster with `pnpm testnet:update-roster-slot`.
 3. Run `pnpm testnet:audit-roster`.
-4. Share the role-specific issue body or command reference.
+4. Share the tracking issue and role-specific command reference.
 5. Do not mark the slot reviewed until a valid evidence file exists and maintainer independence review passes.
