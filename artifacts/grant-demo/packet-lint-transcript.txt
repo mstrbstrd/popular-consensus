@@ -2,7 +2,7 @@ Popular Consensus Protocol Replay Kit packet lint
 
 Command: pnpm grant:packet-lint
 Status: PacketReady
-Checks: 65/65
+Checks: 68/68
 
 Failed checks:
 - none

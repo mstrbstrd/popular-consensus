@@ -35,6 +35,7 @@ const requiredTextFiles = [
   "grant/ef-protocol-replay-kit/19-grant-track-issue.md",
   "grant/ef-protocol-replay-kit/20-submission-gate.md",
   "grant/ef-protocol-replay-kit/21-protocol-package-publication.md",
+  "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md",
   "grant/ef-protocol-replay-kit/scope-boundary.md",
   "packages/replay/README.md",
   "scripts/check-protocol-boundaries.ts"
@@ -53,6 +54,7 @@ const requiredJsonFiles = [
   "artifacts/grant-demo/review-readiness-report.json",
   "artifacts/grant-demo/submission-gate-report.json",
   "artifacts/grant-demo/protocol-publication-report.json",
+  "artifacts/grant-demo/negative-invariant-report.json",
   "artifacts/grant-demo/evidence-manifest.json"
 ];
 
@@ -169,6 +171,16 @@ const requirements: StrategyRequirement[] = [
       text(context, "grant/ef-protocol-replay-kit/01-protocol-boundary.md").includes("It must not be the source of protocol truth") &&
       text(context, "grant/ef-protocol-replay-kit/README.md").includes("without trusting the application database") &&
       numeric(jsonValue(context, "artifacts/grant-demo/evidence-manifest.json", "entryCount")) !== null
+  },
+  {
+    id: "negative-invariants-preserved",
+    requirement: "Preserve negative invariants against platform imports, product-scope creep, token pitch, production overclaims, license blur, and client demo dependencies.",
+    evidence: ["artifacts/grant-demo/negative-invariant-report.json", "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md"],
+    verify: (context) =>
+      jsonValue(context, "artifacts/grant-demo/negative-invariant-report.json", "status") === "NegativeInvariantsPreserved" &&
+      jsonValue(context, "artifacts/grant-demo/negative-invariant-report.json", "formalSubmissionReady") === false &&
+      jsonValue(context, "artifacts/grant-demo/negative-invariant-report.json", "productionDeploymentReady") === false &&
+      text(context, "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md").includes("must not do")
   },
   {
     id: "license-boundary-scoped",

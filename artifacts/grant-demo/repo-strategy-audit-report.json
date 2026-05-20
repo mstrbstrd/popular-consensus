@@ -1,13 +1,13 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-repo-strategy-audit-v1",
-  "generatedAt": "2026-05-19T23:53:01.079Z",
+  "generatedAt": "2026-05-20T00:08:39.119Z",
   "command": "pnpm grant:repo-strategy-audit",
   "status": "RepoStrategyEvidenceReady",
   "formalSubmissionReady": false,
   "productionDeploymentReady": false,
-  "checksPassed": 15,
-  "checksTotal": 15,
+  "checksPassed": 16,
+  "checksTotal": 16,
   "failedChecks": [],
   "remainingHumanBlockers": [
     "External cryptography review has not been completed.",
@@ -137,6 +137,15 @@
         "grant/ef-protocol-replay-kit/01-protocol-boundary.md",
         "artifacts/grant-demo/evidence-manifest.json",
         "pnpm protocol:boundary:check"
+      ]
+    },
+    {
+      "id": "negative-invariants-preserved",
+      "ok": true,
+      "requirement": "Preserve negative invariants against platform imports, product-scope creep, token pitch, production overclaims, license blur, and client demo dependencies.",
+      "evidence": [
+        "artifacts/grant-demo/negative-invariant-report.json",
+        "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md"
       ]
     },
     {

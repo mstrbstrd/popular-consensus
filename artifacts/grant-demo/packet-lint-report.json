@@ -1,17 +1,17 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-packet-lint-report-v1",
-  "generatedAt": "2026-05-19T23:53:00.176Z",
+  "generatedAt": "2026-05-20T00:08:37.351Z",
   "command": "pnpm grant:packet-lint",
   "status": "PacketReady",
-  "checksPassed": 65,
-  "checksTotal": 65,
+  "checksPassed": 68,
+  "checksTotal": 68,
   "failedChecks": [],
   "checks": [
     {
       "id": "packet-doc-short-readme-md",
       "ok": true,
-      "detail": "README.md has 1223 words and must stay under 1500",
+      "detail": "README.md has 1302 words and must stay under 1500",
       "evidence": "grant/ef-protocol-replay-kit/README.md"
     },
     {
@@ -71,7 +71,7 @@
     {
       "id": "packet-doc-short-04-replay-rules-md",
       "ok": true,
-      "detail": "04-replay-rules.md has 673 words and must stay under 1500",
+      "detail": "04-replay-rules.md has 720 words and must stay under 1500",
       "evidence": "grant/ef-protocol-replay-kit/04-replay-rules.md"
     },
     {
@@ -119,7 +119,7 @@
     {
       "id": "packet-doc-short-08-review-readiness-md",
       "ok": true,
-      "detail": "08-review-readiness.md has 813 words and must stay under 1500",
+      "detail": "08-review-readiness.md has 845 words and must stay under 1500",
       "evidence": "grant/ef-protocol-replay-kit/08-review-readiness.md"
     },
     {
@@ -191,7 +191,7 @@
     {
       "id": "packet-doc-short-14-reviewer-handoff-md",
       "ok": true,
-      "detail": "14-reviewer-handoff.md has 414 words and must stay under 1500",
+      "detail": "14-reviewer-handoff.md has 417 words and must stay under 1500",
       "evidence": "grant/ef-protocol-replay-kit/14-reviewer-handoff.md"
     },
     {
@@ -283,6 +283,18 @@
       "ok": true,
       "detail": "21-protocol-package-publication.md includes a reusable-builder section",
       "evidence": "grant/ef-protocol-replay-kit/21-protocol-package-publication.md"
+    },
+    {
+      "id": "packet-doc-short-22-negative-invariant-audit-md",
+      "ok": true,
+      "detail": "22-negative-invariant-audit.md has 276 words and must stay under 1500",
+      "evidence": "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md"
+    },
+    {
+      "id": "packet-doc-reuse-section-22-negative-invariant-audit-md",
+      "ok": true,
+      "detail": "22-negative-invariant-audit.md includes a reusable-builder section",
+      "evidence": "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md"
     },
     {
       "id": "packet-doc-short-office-hours-brief-md",
@@ -390,6 +402,12 @@
       "id": "readme-protocol-publication-command",
       "ok": true,
       "detail": "README exposes protocol publication status command",
+      "evidence": "grant/ef-protocol-replay-kit/README.md"
+    },
+    {
+      "id": "readme-negative-invariant-command",
+      "ok": true,
+      "detail": "README exposes negative invariant audit command",
       "evidence": "grant/ef-protocol-replay-kit/README.md"
     },
     {

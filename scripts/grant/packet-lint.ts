@@ -38,6 +38,7 @@ const packetDocs = [
   "19-grant-track-issue.md",
   "20-submission-gate.md",
   "21-protocol-package-publication.md",
+  "22-negative-invariant-audit.md",
   "office-hours-brief.md",
   "scope-boundary.md"
 ];
@@ -145,6 +146,14 @@ async function main() {
       "readme-protocol-publication-command",
       readme.includes("pnpm grant:protocol-publication"),
       "README exposes protocol publication status command",
+      relativePacket("README.md")
+    )
+  );
+  checks.push(
+    check(
+      "readme-negative-invariant-command",
+      readme.includes("pnpm grant:negative-invariants"),
+      "README exposes negative invariant audit command",
       relativePacket("README.md")
     )
   );

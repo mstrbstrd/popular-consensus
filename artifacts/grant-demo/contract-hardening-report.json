@@ -1,7 +1,7 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-contract-hardening-report-v1",
-  "generatedAt": "2026-05-19T23:52:59.806Z",
+  "generatedAt": "2026-05-20T00:08:37.026Z",
   "command": "pnpm grant:contract-hardening",
   "status": "ContractHardeningEvidenceReady",
   "productionDeploymentReady": false,

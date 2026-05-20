@@ -1,0 +1,14 @@
+Popular Consensus Protocol Replay Kit negative invariant audit
+
+Command: pnpm grant:negative-invariants
+Status: NegativeInvariantsPreserved
+Formal submission ready: false
+Production deployment ready: false
+Checks: 10/10
+
+Failed checks:
+- none
+
+Notes:
+- Legacy data-union schema code may exist elsewhere in the monorepo; this audit checks that grant evidence and replay-kit artifacts do not rely on it.
+- The audit checks negative-space constraints for grant review and does not replace external cryptography or EF review.

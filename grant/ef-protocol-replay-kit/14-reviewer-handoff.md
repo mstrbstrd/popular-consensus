@@ -8,7 +8,7 @@ This handoff gives an external reviewer the shortest reliable path from a clean 
 
 | Command | Dependency mode | What it proves | Expected result |
 | --- | --- | --- | --- |
-| `pnpm grant:check` | `no-local-services` | Backend lifecycle fixture, clean replay, tamper mismatch, crypto evidence inventory, threshold custody hardening, replay test vectors, contract-hardening evidence, packet lint, repo strategy audit, submission gate, protocol publication status, external review index, manifest, readiness report, replay tests, and protocol boundary check | Machine checks pass; formal submission remains blocked on human review |
+| `pnpm grant:check` | `no-local-services` | Backend lifecycle fixture, clean replay, tamper mismatch, crypto evidence inventory, threshold custody hardening, replay test vectors, contract-hardening evidence, packet lint, repo strategy audit, submission gate, protocol publication status, negative invariant audit, external review index, manifest, readiness report, replay tests, and protocol boundary check | Machine checks pass; formal submission remains blocked on human review |
 | `pnpm grant:api-replay` | `local-postgres` | Public civic-record API export and replay-check endpoints can be verified by `pc-replay verify-api` | `Verified` |
 | `pnpm grant:chain-replay` | `ephemeral-anvil` | Local deployed contract logs can be decoded, mapped to canonical events, and replayed by `pc-replay verify-chain` | `Verified` |
 | `pnpm grant:full-check` | `local-postgres-and-ephemeral-anvil` | Typecheck, repo tests, contract build, API replay, chain replay, and quick machine evidence all pass together | Machine evidence ready; formal submission remains blocked on human review |

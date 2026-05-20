@@ -41,6 +41,7 @@ const requiredFiles = [
   "grant/ef-protocol-replay-kit/19-grant-track-issue.md",
   "grant/ef-protocol-replay-kit/20-submission-gate.md",
   "grant/ef-protocol-replay-kit/21-protocol-package-publication.md",
+  "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md",
   "grant/ef-protocol-replay-kit/LICENSE-CC-BY-4.0.md",
   "grant/ef-protocol-replay-kit/office-hours-brief.md",
   "grant/ef-protocol-replay-kit/scope-boundary.md",
@@ -57,6 +58,7 @@ const requiredFiles = [
   "artifacts/grant-demo/repo-strategy-audit-report.json",
   "artifacts/grant-demo/submission-gate-report.json",
   "artifacts/grant-demo/protocol-publication-report.json",
+  "artifacts/grant-demo/negative-invariant-report.json",
   "artifacts/grant-demo/external-review-index.json",
   "artifacts/grant-demo/evidence-manifest.json",
   "artifacts/grant-demo/production-slice-export.json",
@@ -100,6 +102,7 @@ const requiredFiles = [
   "scripts/grant/repo-strategy-audit.ts",
   "scripts/grant/submission-gate.ts",
   "scripts/grant/protocol-publication.ts",
+  "scripts/grant/negative-invariant-audit.ts",
   "scripts/grant/external-review-index.ts",
   "scripts/grant/evidence-manifest.ts"
 ];
@@ -366,6 +369,24 @@ async function main() {
     )
   );
 
+  const negativeInvariants = await readJson("artifacts/grant-demo/negative-invariant-report.json");
+  checks.push(
+    check(
+      "negative-invariants-preserved",
+      negativeInvariants.status === "NegativeInvariantsPreserved",
+      "Negative invariant audit report is NegativeInvariantsPreserved",
+      "artifacts/grant-demo/negative-invariant-report.json"
+    )
+  );
+  checks.push(
+    check(
+      "negative-invariants-keep-nonclaims",
+      negativeInvariants.formalSubmissionReady === false && negativeInvariants.productionDeploymentReady === false,
+      "Negative invariant audit keeps formal submission and production deployment non-claims explicit",
+      "artifacts/grant-demo/negative-invariant-report.json"
+    )
+  );
+
   const externalReviewIndex = await readJson("artifacts/grant-demo/external-review-index.json");
   checks.push(
     check(
@@ -461,6 +482,7 @@ async function main() {
       "pnpm grant:repo-strategy-audit",
       "pnpm grant:submission-gate",
       "pnpm grant:protocol-publication",
+      "pnpm grant:negative-invariants",
       "pnpm grant:external-review-index",
       "pnpm grant:evidence-manifest",
       "pnpm grant:review-readiness",

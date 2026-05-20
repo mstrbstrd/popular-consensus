@@ -1,18 +1,18 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-evidence-manifest-v1",
-  "generatedAt": "2026-05-19T23:56:08.779Z",
+  "generatedAt": "2026-05-20T00:08:39.962Z",
   "command": "pnpm grant:evidence-manifest",
   "status": "ManifestReady",
-  "entryCount": 104,
+  "entryCount": 108,
   "countsByKind": {
     "license": 4,
-    "doc": 25,
-    "report": 13,
-    "transcript": 12,
+    "doc": 26,
+    "report": 14,
+    "transcript": 13,
     "export": 3,
     "test": 9,
-    "source": 38
+    "source": 39
   },
   "entries": [
     {
@@ -42,8 +42,8 @@
     {
       "path": "grant/ef-protocol-replay-kit/README.md",
       "kind": "doc",
-      "bytes": 10547,
-      "sha256": "sha256:6bb715aab6e1da7d5fc03f262b222752279aeb71930b30c9fe54ba19885a748b"
+      "bytes": 11229,
+      "sha256": "sha256:35f194912e97d953459dc6a4ecb5c7ca36c71712724336ff236a406558ae96ee"
     },
     {
       "path": "grant/ef-protocol-replay-kit/00-abstract.md",
@@ -72,8 +72,8 @@
     {
       "path": "grant/ef-protocol-replay-kit/04-replay-rules.md",
       "kind": "doc",
-      "bytes": 5470,
-      "sha256": "sha256:ca186f1fdc2074ee5b568348f279fefe28c01d3207d4715e1c48e9f868bf0266"
+      "bytes": 5855,
+      "sha256": "sha256:5850f8e6db447b9a1482d44b7a81a8dae4099eac87d55f2e7bfd52a63bd94534"
     },
     {
       "path": "grant/ef-protocol-replay-kit/05-threat-model.md",
@@ -96,8 +96,8 @@
     {
       "path": "grant/ef-protocol-replay-kit/08-review-readiness.md",
       "kind": "doc",
-      "bytes": 7374,
-      "sha256": "sha256:76c84d62e8d117d92f827664b4d6796fb22c39e0ed2abf2ea51ba5b559a45fb6"
+      "bytes": 7751,
+      "sha256": "sha256:94a008acbfc0b6ebb15ad39d8f66eb7a1d5008655440677ca413763eba6aeee6"
     },
     {
       "path": "grant/ef-protocol-replay-kit/09-license-plan.md",
@@ -132,8 +132,8 @@
     {
       "path": "grant/ef-protocol-replay-kit/14-reviewer-handoff.md",
       "kind": "doc",
-      "bytes": 3036,
-      "sha256": "sha256:e09a786b89686b4982525afbca2a9475a4a7388ee72dddb002b6f1efc78bee83"
+      "bytes": 3062,
+      "sha256": "sha256:a99164f16a04a5f7d8337f955006292a3e578e203ecc93b3e201864f064ca684"
     },
     {
       "path": "grant/ef-protocol-replay-kit/15-threshold-custody-hardening.md",
@@ -178,6 +178,12 @@
       "sha256": "sha256:e7a9958270a74d4d1711fc34bbf408ac9fb328483aced6049f2b3128a5e78743"
     },
     {
+      "path": "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md",
+      "kind": "doc",
+      "bytes": 1996,
+      "sha256": "sha256:b0c465549401ab9724e5f61254b60b7ecf9b9222d1799c882be1ddc80b4b17cb"
+    },
+    {
       "path": "grant/ef-protocol-replay-kit/office-hours-brief.md",
       "kind": "doc",
       "bytes": 2687,
@@ -211,61 +217,67 @@
       "path": "artifacts/grant-demo/crypto-review-report.json",
       "kind": "report",
       "bytes": 2641,
-      "sha256": "sha256:08ae873a5855d509e9dc1086d63d5a736130c73f9308cb03e21854219b64c933"
+      "sha256": "sha256:e3bb010a1fcde224b766ff9d8e22740302b452f50a9ebfc534c2cb85b0622a0c"
     },
     {
       "path": "artifacts/grant-demo/threshold-custody-report.json",
       "kind": "report",
       "bytes": 6190,
-      "sha256": "sha256:ffcc32a7d1cf2805e4229f840a0db4d6a05d27a2c1a23fa08d5ccb12600c7c10"
+      "sha256": "sha256:e62eabe23f9ed99fddad979dad68161b50d56be49862b59df547419b13ce17c6"
     },
     {
       "path": "artifacts/grant-demo/replay-test-vectors-report.json",
       "kind": "report",
       "bytes": 2529,
-      "sha256": "sha256:d91e090e9ae2c78ef07c499d14b62b2300e4a8d85cfc313a89a06e064ff08fa4"
+      "sha256": "sha256:ddfd701a75f303d0d1b46f27d062f2304c5ae444c481595376a7dc6178dbdab6"
     },
     {
       "path": "artifacts/grant-demo/contract-hardening-report.json",
       "kind": "report",
       "bytes": 15181,
-      "sha256": "sha256:44509bc8411a6884dbbfcad50a1981b85a54a7affd075b3097a7c55a42d92210"
+      "sha256": "sha256:7f2061a71b51d5542d4ce7890c338c4963c50b3517ec36956d585f94833c6353"
     },
     {
       "path": "artifacts/grant-demo/packet-lint-report.json",
       "kind": "report",
-      "bytes": 15532,
-      "sha256": "sha256:70cb1da2b85463dd2e6e05da4d58cd29cfa8c7334b5bceb9434203319bfb8670"
+      "bytes": 16269,
+      "sha256": "sha256:eb715f2e3a85c78d7a7fe37d3262f8a4ab93c7d7240c00975a8807d7614af89d"
     },
     {
       "path": "artifacts/grant-demo/reviewer-handoff-report.json",
       "kind": "report",
-      "bytes": 5955,
-      "sha256": "sha256:532a084ec17e626cfedc26fc34a8c42e4cdad0eccf73045a1650f6035bc99ddc"
+      "bytes": 6044,
+      "sha256": "sha256:8fd34fc41d94bd10033b22c9303ca94bc2a02465d4d88e0433a562c460f62298"
     },
     {
       "path": "artifacts/grant-demo/repo-strategy-audit-report.json",
       "kind": "report",
-      "bytes": 5793,
-      "sha256": "sha256:7a42e6ba39d1e0d530218e4968c32629dacd5ed092e99fee9e38988d186b8c82"
+      "bytes": 6210,
+      "sha256": "sha256:3c347242f337824693311a733f6f932e657849201dfb3c84f2feced9c3126926"
     },
     {
       "path": "artifacts/grant-demo/submission-gate-report.json",
       "kind": "report",
       "bytes": 5629,
-      "sha256": "sha256:9fc658083e77bbf43bc1311285ef169bc1270fa9a2f7d0895766aff818528849"
+      "sha256": "sha256:759d02bf5546ebb1dcab43b2ac351cb2de2f6bdb6871a68c73d2cc8ac11a8350"
     },
     {
       "path": "artifacts/grant-demo/protocol-publication-report.json",
       "kind": "report",
       "bytes": 9953,
-      "sha256": "sha256:874dc61f8bb380136e2b361d71d47b259ac2e26fb1781c3aee1059fe2c11e670"
+      "sha256": "sha256:4c6e54cb8f2abbe4b0565ee8bc9d8e42b92e57f078f4057aa8b31a9e57fb1132"
+    },
+    {
+      "path": "artifacts/grant-demo/negative-invariant-report.json",
+      "kind": "report",
+      "bytes": 5999,
+      "sha256": "sha256:f866529f41e5f7f44fa5b3bfd3a2e58ed5962b65962cb358435c7e4d0c60e970"
     },
     {
       "path": "artifacts/grant-demo/external-review-index.json",
       "kind": "report",
-      "bytes": 5960,
-      "sha256": "sha256:b9d966dc6867aab30ffa0667a11dbd1f4c5d7f224a4349952bcbbfb478f9cf24"
+      "bytes": 7699,
+      "sha256": "sha256:3deaae7d7624d2df2ef266ced10a69f4a112690a91fb085148049935013972f1"
     },
     {
       "path": "artifacts/grant-demo/api-replay-transcript.txt",
@@ -307,7 +319,7 @@
       "path": "artifacts/grant-demo/packet-lint-transcript.txt",
       "kind": "transcript",
       "bytes": 140,
-      "sha256": "sha256:8ec3b1f4357d29b2c57f14d6cf2e998730c9fa2bd26866027289cd207f836d5a"
+      "sha256": "sha256:f3af313090b6e391fc1569ca2237c2f9a647b0865d88914a6a5640c65f1dcb94"
     },
     {
       "path": "artifacts/grant-demo/reviewer-handoff-transcript.txt",
@@ -319,7 +331,7 @@
       "path": "artifacts/grant-demo/repo-strategy-audit-transcript.txt",
       "kind": "transcript",
       "bytes": 468,
-      "sha256": "sha256:61041f85292ec8a4a7c0f0d2c123b969475e79caf77688927b21a1fbc2ed9106"
+      "sha256": "sha256:fc1580782a49cee2eafaf6b3d37414248e1428e045dc81c8489630aaec5196a3"
     },
     {
       "path": "artifacts/grant-demo/submission-gate-transcript.txt",
@@ -334,10 +346,16 @@
       "sha256": "sha256:7eece7b331c30c0c108c0ce4390e4e34fa2653b441c189b292d13f6086ae1939"
     },
     {
+      "path": "artifacts/grant-demo/negative-invariant-transcript.txt",
+      "kind": "transcript",
+      "bytes": 522,
+      "sha256": "sha256:3535300cbb99a180640fb0cfb7653fc14edebe52f1f53d0556355f9450496846"
+    },
+    {
       "path": "artifacts/grant-demo/external-review-index.md",
       "kind": "transcript",
-      "bytes": 2628,
-      "sha256": "sha256:1bce83ea9cca2e9e7b5ce21e3342109bffb879063f1e96b9b7c2f3482d9e7078"
+      "bytes": 2746,
+      "sha256": "sha256:ce9a040f169bbfdb3fac61c6963782162dbce406f18e37382d617284404cdbd2"
     },
     {
       "path": "artifacts/grant-demo/production-slice-export.json",
@@ -361,7 +379,7 @@
       "path": "packages/replay/test/fixtures/clean-production-slice-export.json",
       "kind": "test",
       "bytes": 97752,
-      "sha256": "sha256:c80a58b970191bc85709389a862436c3ad55afa5b2fdbb942f4a0444326ef7d9"
+      "sha256": "sha256:979274b54596bb2e7cb32acdbccea75ad3c01c533fa10a8b0f2bb743fc2b28c5"
     },
     {
       "path": "packages/replay/test/fixtures/clean-community-export.json",
@@ -373,7 +391,7 @@
       "path": "packages/replay/test/fixtures/tampered-result-hash.json",
       "kind": "test",
       "bytes": 97752,
-      "sha256": "sha256:4bc14eb0a8dc4fb929ee3afcc2c66abb3e8f17cf38bb5eb11c7a2e59a87df839"
+      "sha256": "sha256:8232f272b4677694118e8ad6e72c9036434943f9b0ac804c2ecb68c728ad1497"
     },
     {
       "path": "packages/replay/test/fixtures/missing-archive-artifact.json",
@@ -385,7 +403,7 @@
       "path": "packages/replay/test/fixtures/reordered-events.json",
       "kind": "test",
       "bytes": 97752,
-      "sha256": "sha256:df0ad3a2dfd0383250d2ded9a34fda989b32a06c907ffe7296d7000d09db62e4"
+      "sha256": "sha256:e968775211d20a8df1bcd6546fd5d7ab87eb6909187645c708368bfb92130ed4"
     },
     {
       "path": "packages/replay/src/index.ts",
@@ -594,20 +612,20 @@
     {
       "path": "scripts/grant/packet-lint.ts",
       "kind": "source",
-      "bytes": 7237,
-      "sha256": "sha256:e49ce8d7b5deff46a383705135dc522699a4983425a790b96eefda9fa057acf3"
+      "bytes": 7501,
+      "sha256": "sha256:12fc077bde603a7cdeb206ed33b1d20520d86695c7c1ba75bb383e0cc8bfb917"
     },
     {
       "path": "scripts/grant/reviewer-handoff.ts",
       "kind": "source",
-      "bytes": 8864,
-      "sha256": "sha256:114362622132490c76684c8f4b3af70cb13a554b332e2495d091ff6e7e2fcfba"
+      "bytes": 8951,
+      "sha256": "sha256:8393a9c2563e0cd9b45d38141c79db0c2c8427c86802664a1f688ffd4eabddf9"
     },
     {
       "path": "scripts/grant/repo-strategy-audit.ts",
       "kind": "source",
-      "bytes": 15902,
-      "sha256": "sha256:a78a8bec6c5368e41be52803ace13e1f4d49efe584308894f74e380db62dff12"
+      "bytes": 16883,
+      "sha256": "sha256:f0e75a8aeb2d2ce60967cc95a391c4f5e8ffbd4bc565c93bc04303598710d7b6"
     },
     {
       "path": "scripts/grant/submission-gate.ts",
@@ -622,23 +640,29 @@
       "sha256": "sha256:3cac284bca56d49cdba9a729972b28038f3b14a28a3bfb7cc4bda922be2dc148"
     },
     {
+      "path": "scripts/grant/negative-invariant-audit.ts",
+      "kind": "source",
+      "bytes": 18363,
+      "sha256": "sha256:00d99635bcf235b034d2011f95490c2e770dd8e3cf27a09d56eb4926af3b0dce"
+    },
+    {
       "path": "scripts/grant/external-review-index.ts",
       "kind": "source",
-      "bytes": 10204,
-      "sha256": "sha256:88f6dbc24e8cc519c6f78a17471719f9f6dbda75a234b82f14effcaf30459c12"
+      "bytes": 10345,
+      "sha256": "sha256:de84be9a6f481cad31b29ddc706ea80d2e32f3dcb4b4409b52ad6e61b08bf98e"
     },
     {
       "path": "scripts/grant/review-readiness.ts",
       "kind": "source",
-      "bytes": 21785,
-      "sha256": "sha256:552ce5cd31d0142e396586839cf6413ae30ebaffe22865fb9933b92b18d34974"
+      "bytes": 22731,
+      "sha256": "sha256:cd0b47f5787d7068c605698301eccb9660ac15e029fb3f26f8bd0925038d06e0"
     },
     {
       "path": "scripts/grant/evidence-manifest.ts",
       "kind": "source",
-      "bytes": 10869,
-      "sha256": "sha256:596d119456d14eb7c50db1c9adf63b461ef3cca3731924223d85c02c5f5ace2b"
+      "bytes": 11203,
+      "sha256": "sha256:d500db4b2559cb66eda6d05aac6dcce641be9767b0cf8dbc3b1b5d4061de0349"
     }
   ],
-  "manifestHash": "sha256:a8548a72a03fa224cf48c6996c2904f1bb20f7ae8062dca606e183bfa4d574d1"
+  "manifestHash": "sha256:061036c972ecc6de38c63ff1c3e18807945696be9d6e757dfef3913923748e22"
 }

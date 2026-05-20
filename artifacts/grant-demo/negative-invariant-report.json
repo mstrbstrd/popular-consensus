@@ -1,0 +1,142 @@
+{
+  "protocol": "popular-consensus",
+  "schemaVersion": "ef-protocol-replay-kit-negative-invariant-audit-v1",
+  "generatedAt": "2026-05-20T00:08:38.759Z",
+  "command": "pnpm grant:negative-invariants",
+  "status": "NegativeInvariantsPreserved",
+  "formalSubmissionReady": false,
+  "productionDeploymentReady": false,
+  "checksPassed": 10,
+  "checksTotal": 10,
+  "failedChecks": [],
+  "notes": [
+    "Legacy data-union schema code may exist elsewhere in the monorepo; this audit checks that grant evidence and replay-kit artifacts do not rely on it.",
+    "The audit checks negative-space constraints for grant review and does not replace external cryptography or EF review."
+  ],
+  "checks": [
+    {
+      "id": "protocol-manifests-do-not-import-platform",
+      "ok": true,
+      "invariant": "Protocol packages must not declare platform package dependencies.",
+      "detail": "No forbidden platform package dependencies found.",
+      "evidence": [
+        "packages/shared/package.json",
+        "packages/artifacts/package.json",
+        "packages/privacy/package.json",
+        "packages/protocol-slice/package.json",
+        "packages/replay/package.json",
+        "packages/contracts/package.json"
+      ]
+    },
+    {
+      "id": "protocol-source-does-not-import-platform",
+      "ok": true,
+      "invariant": "Protocol source must not import platform paths or packages.",
+      "detail": "No forbidden source imports found.",
+      "evidence": [
+        "packages/shared/src",
+        "packages/artifacts/src",
+        "packages/privacy/src",
+        "packages/protocol-slice/src",
+        "packages/replay/src",
+        "packages/contracts/src"
+      ]
+    },
+    {
+      "id": "grant-path-has-no-web-client-dependency",
+      "ok": true,
+      "invariant": "Grant demos and evidence scripts must not depend on the web client or e2e stack.",
+      "detail": "No web-client/e2e dependencies found in grant scripts.",
+      "evidence": [
+        "package.json",
+        "scripts/grant"
+      ]
+    },
+    {
+      "id": "grant-scope-excludes-product-and-data-union",
+      "ok": true,
+      "invariant": "Grant scope must exclude product monetization, customer workflows, token launch, and data-union monetization.",
+      "detail": "Product/data-union exclusions are explicit.",
+      "evidence": [
+        "grant/ef-protocol-replay-kit/scope-boundary.md",
+        "grant/ef-protocol-replay-kit/office-hours-brief.md",
+        "grant/ef-protocol-replay-kit/19-grant-track-issue.md"
+      ]
+    },
+    {
+      "id": "grant-evidence-does-not-use-product-records",
+      "ok": true,
+      "invariant": "Grant exports, reports, and replay fixtures must not rely on product/data-union monetization records.",
+      "detail": "No product/data-union/token records found in grant evidence fixtures.",
+      "evidence": [
+        "artifacts/grant-demo/full-lifecycle-report.json",
+        "artifacts/grant-demo/production-slice-export.json",
+        "artifacts/grant-demo/community-export.json",
+        "artifacts/grant-demo/tampered-production-slice-export.json",
+        "packages/replay/test/fixtures/clean-production-slice-export.json",
+        "packages/replay/test/fixtures/clean-community-export.json",
+        "packages/replay/test/fixtures/tampered-result-hash.json",
+        "packages/replay/test/fixtures/missing-archive-artifact.json",
+        "packages/replay/test/fixtures/reordered-events.json"
+      ]
+    },
+    {
+      "id": "grant-pitch-is-not-token-centered",
+      "ok": true,
+      "invariant": "Grant pitch must not center token launch or tokenomics.",
+      "detail": "No token-centered pitch terms found in abstract or pre-scope office-hours brief.",
+      "evidence": [
+        "grant/ef-protocol-replay-kit/00-abstract.md",
+        "grant/ef-protocol-replay-kit/office-hours-brief.md"
+      ]
+    },
+    {
+      "id": "no-production-privacy-or-deployment-overclaim",
+      "ok": true,
+      "invariant": "Reports and crypto docs must not claim formal submission or production privacy/deployment readiness.",
+      "detail": "Production and formal-submission non-claims remain explicit.",
+      "evidence": [
+        "artifacts/grant-demo/review-readiness-report.json",
+        "artifacts/grant-demo/reviewer-handoff-report.json",
+        "artifacts/grant-demo/repo-strategy-audit-report.json",
+        "artifacts/grant-demo/submission-gate-report.json",
+        "artifacts/grant-demo/external-review-index.json",
+        "artifacts/grant-demo/contract-hardening-report.json",
+        "artifacts/grant-demo/threshold-custody-report.json",
+        "grant/ef-protocol-replay-kit/11-cryptography-review.md",
+        "grant/ef-protocol-replay-kit/15-threshold-custody-hardening.md"
+      ]
+    },
+    {
+      "id": "license-boundary-is-not-blurred",
+      "ok": true,
+      "invariant": "Protocol, packet, artifact, platform, and npm-publication boundaries must stay separate.",
+      "detail": "License and publication boundaries are explicit.",
+      "evidence": [
+        "LICENSE-BOUNDARY.md",
+        "grant/ef-protocol-replay-kit/09-license-plan.md",
+        "artifacts/grant-demo/protocol-publication-report.json"
+      ]
+    },
+    {
+      "id": "replay-remains-source-of-trust",
+      "ok": true,
+      "invariant": "Grant packet must make replay/export verification the trust source, not the platform database or UI.",
+      "detail": "Replay/source-of-truth language is present.",
+      "evidence": [
+        "grant/ef-protocol-replay-kit/01-protocol-boundary.md",
+        "grant/ef-protocol-replay-kit/README.md",
+        "grant/ef-protocol-replay-kit/04-replay-rules.md"
+      ]
+    },
+    {
+      "id": "protocol-source-reuse-does-not-claim-npm-publication",
+      "ok": true,
+      "invariant": "Protocol source reuse must not be blurred into npm publication readiness.",
+      "detail": "Source reuse is ready while npm publication remains a non-claim.",
+      "evidence": [
+        "artifacts/grant-demo/protocol-publication-report.json"
+      ]
+    }
+  ]
+}

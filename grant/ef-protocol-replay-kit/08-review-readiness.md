@@ -25,6 +25,7 @@ This checklist is the hostile-review pass for the grant-facing protocol slice. I
 | Grant track issue draft | Pass for local coordination handoff; public issue creation remains a maintainer action | `grant/ef-protocol-replay-kit/19-grant-track-issue.md` |
 | Submission gate | Pass for machine-readable pre-submit criteria, with EF feedback still blocking formal submission | `pnpm grant:submission-gate`, `artifacts/grant-demo/submission-gate-report.json`, `grant/ef-protocol-replay-kit/20-submission-gate.md` |
 | Protocol package publication status | Pass for source reuse and license evidence; npm publication readiness remains a non-claim | `pnpm grant:protocol-publication`, `artifacts/grant-demo/protocol-publication-report.json`, `grant/ef-protocol-replay-kit/21-protocol-package-publication.md` |
+| Negative invariant audit | Pass for hostile-review checks against product-scope creep, web-client dependency, token pitch, production overclaims, license blur, and platform truth ownership | `pnpm grant:negative-invariants`, `artifacts/grant-demo/negative-invariant-report.json`, `grant/ef-protocol-replay-kit/22-negative-invariant-audit.md` |
 | Evidence manifest | Pass for SHA-256 manifest of docs, generated reports, transcripts, test vectors, source, and grant scripts | `pnpm grant:evidence-manifest`, `artifacts/grant-demo/evidence-manifest.json` |
 | Machine-readable review readiness | Pass for required files, reports, license boundary, evidence statuses, and documented human blockers | `pnpm grant:review-readiness`, `artifacts/grant-demo/review-readiness-report.json`, `grant/ef-protocol-replay-kit/12-external-review-intake.md` |
 | Tamper detection | Pass for result-hash tamper, reordered events, missing archive root, and duplicate nullifier checks | `packages/replay/src/index.test.ts`, generated report tamper section |
@@ -62,6 +63,7 @@ pnpm grant:reviewer-handoff
 pnpm grant:repo-strategy-audit
 pnpm grant:submission-gate
 pnpm grant:protocol-publication
+pnpm grant:negative-invariants
 pnpm grant:external-review-index
 pnpm grant:evidence-manifest
 pnpm grant:review-readiness

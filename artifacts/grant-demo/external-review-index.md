@@ -8,9 +8,9 @@ Production deployment ready: false
 
 Git available: true
 Branch: codex/north-star-roadmap
-HEAD: c547da70e6e0fe687bb0aab888a219a1881d60eb
-Dirty worktree: false
-Status entries: 0
+HEAD: 42874136cf358744c82a950f8eafd55ebed4809f
+Dirty worktree: true
+Status entries: 29
 
 ## Reviewer Commands
 
@@ -32,11 +32,12 @@ Status entries: 0
 | threshold-custody | ThresholdCustodyEvidenceReady | 10/10 | `artifacts/grant-demo/threshold-custody-report.json` |
 | replay-test-vectors | ReplayTestVectorsReady | 5/5 | `artifacts/grant-demo/replay-test-vectors-report.json` |
 | contract-hardening | ContractHardeningEvidenceReady | 57/57 | `artifacts/grant-demo/contract-hardening-report.json` |
-| packet-lint | PacketReady | 65/65 | `artifacts/grant-demo/packet-lint-report.json` |
+| packet-lint | PacketReady | 68/68 | `artifacts/grant-demo/packet-lint-report.json` |
 | reviewer-handoff | ReviewerHandoffReady | 12/12 | `artifacts/grant-demo/reviewer-handoff-report.json` |
-| repo-strategy-audit | RepoStrategyEvidenceReady | 15/15 | `artifacts/grant-demo/repo-strategy-audit-report.json` |
+| repo-strategy-audit | RepoStrategyEvidenceReady | 16/16 | `artifacts/grant-demo/repo-strategy-audit-report.json` |
 | submission-gate | SubmissionGateEvidenceReady | 14/14 | `artifacts/grant-demo/submission-gate-report.json` |
 | protocol-publication | ProtocolPackagePublicationEvidenceReady | 36/36 | `artifacts/grant-demo/protocol-publication-report.json` |
+| negative-invariants | NegativeInvariantsPreserved | 10/10 | `artifacts/grant-demo/negative-invariant-report.json` |
 
 ## Human Blockers
 

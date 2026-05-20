@@ -1,7 +1,7 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-submission-gate-v1",
-  "generatedAt": "2026-05-19T23:53:01.371Z",
+  "generatedAt": "2026-05-20T00:08:38.058Z",
   "command": "pnpm grant:submission-gate",
   "status": "SubmissionGateEvidenceReady",
   "formalSubmissionReady": false,

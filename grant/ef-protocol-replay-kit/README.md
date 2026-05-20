@@ -21,6 +21,7 @@ The check command runs:
 - `pnpm grant:repo-strategy-audit`
 - `pnpm grant:submission-gate`
 - `pnpm grant:protocol-publication`
+- `pnpm grant:negative-invariants`
 - `pnpm grant:external-review-index`
 - `pnpm grant:evidence-manifest`
 - `pnpm grant:review-readiness`
@@ -45,6 +46,7 @@ Expected result:
 - repo strategy requirements are mapped to current evidence paths
 - the submission gate records machine-proven pre-submit criteria while keeping EF feedback as a blocker
 - protocol package publication status is explicit: source-reuse ready, npm publication not claimed
+- negative invariants are checked directly for product-scope creep, web-client dependency, token pitch, production overclaims, and license blur
 - external review index is generated as a compact evidence table of contents
 - an evidence manifest with content hashes is written for reviewer handoff
 - review readiness evidence is written while keeping formal submission blocked on human review
@@ -150,6 +152,14 @@ pnpm grant:protocol-publication
 
 This writes `artifacts/grant-demo/protocol-publication-report.json`, confirms the protocol package source is MIT-scoped and platform-independent, and keeps `npmPublicationReady: false` while package manifests still use no-publish guards.
 
+For negative invariant evidence, run:
+
+```bash
+pnpm grant:negative-invariants
+```
+
+This writes `artifacts/grant-demo/negative-invariant-report.json` and checks that the grant path does not import platform code, rely on the web client, creep product/data-union monetization into replay evidence, center tokenomics, overclaim production readiness, blur license boundaries, or make the platform the source of truth.
+
 For the external review index, run:
 
 ```bash
@@ -212,6 +222,7 @@ It is not yet a public-chain deployment or an externally reviewed production cry
 - `19-grant-track-issue.md` is the local issue/project-board draft for `EF Grant Track: Protocol Replay Kit`.
 - `20-submission-gate.md` documents the machine-readable pre-submit evidence gate.
 - `21-protocol-package-publication.md` explains source reuse versus npm publication readiness.
+- `22-negative-invariant-audit.md` documents the hostile-review negative invariant gate.
 - `office-hours-brief.md` is the short EF alignment brief.
 - `scope-boundary.md` states what is in and out of grant scope.
 

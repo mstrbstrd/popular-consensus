@@ -33,7 +33,8 @@ const evidenceReports = [
   { id: "reviewer-handoff", path: "artifacts/grant-demo/reviewer-handoff-report.json", expectedStatus: "ReviewerHandoffReady" },
   { id: "repo-strategy-audit", path: "artifacts/grant-demo/repo-strategy-audit-report.json", expectedStatus: "RepoStrategyEvidenceReady" },
   { id: "submission-gate", path: "artifacts/grant-demo/submission-gate-report.json", expectedStatus: "SubmissionGateEvidenceReady" },
-  { id: "protocol-publication", path: "artifacts/grant-demo/protocol-publication-report.json", expectedStatus: "ProtocolPackagePublicationEvidenceReady" }
+  { id: "protocol-publication", path: "artifacts/grant-demo/protocol-publication-report.json", expectedStatus: "ProtocolPackagePublicationEvidenceReady" },
+  { id: "negative-invariants", path: "artifacts/grant-demo/negative-invariant-report.json", expectedStatus: "NegativeInvariantsPreserved" }
 ];
 
 main().catch((error: unknown) => {

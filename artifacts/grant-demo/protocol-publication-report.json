@@ -1,7 +1,7 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-protocol-publication-v1",
-  "generatedAt": "2026-05-19T23:53:01.694Z",
+  "generatedAt": "2026-05-20T00:08:38.348Z",
   "command": "pnpm grant:protocol-publication",
   "status": "ProtocolPackagePublicationEvidenceReady",
   "sourceReuseReady": true,

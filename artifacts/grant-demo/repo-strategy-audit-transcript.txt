@@ -4,7 +4,7 @@ Command: pnpm grant:repo-strategy-audit
 Status: RepoStrategyEvidenceReady
 Formal submission ready: false
 Production deployment ready: false
-Checks: 15/15
+Checks: 16/16
 
 Remaining human blockers:
 - External cryptography review has not been completed.

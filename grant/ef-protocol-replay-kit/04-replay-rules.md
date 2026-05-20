@@ -37,6 +37,7 @@ pnpm grant:evidence-manifest
 pnpm grant:review-readiness
 pnpm grant:repo-strategy-audit
 pnpm grant:external-review-index
+pnpm grant:negative-invariants
 pnpm grant:full-check
 pnpm grant:demo
 pnpm replay:verify
@@ -69,6 +70,8 @@ The replay package is organized as standalone verifier modules: `verifyBundle.ts
 `pnpm grant:packet-lint` checks the grant packet acceptance criteria: short docs, reusable-builder sections, abstract scope hygiene, explicit protocol/platform boundary, and quick/full review commands.
 
 `pnpm grant:repo-strategy-audit` maps the repo strategy requirements to current evidence paths and keeps formal submission and production deployment non-claims explicit.
+
+`pnpm grant:negative-invariants` checks that the grant path preserves the negative space: no platform imports into protocol packages, no web-client dependency for grant evidence, no product/data-union records in replay exports, no token-centered pitch, no production readiness overclaim, no license boundary blur, and no platform source-of-truth claim.
 
 `pnpm grant:external-review-index` writes a compact evidence table of contents with reviewer commands, dependency modes, report statuses, key hashes, and human blockers.
 

@@ -1,18 +1,44 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-external-review-index-v1",
-  "generatedAt": "2026-05-19T23:56:01.764Z",
+  "generatedAt": "2026-05-20T00:08:39.549Z",
   "command": "pnpm grant:external-review-index",
   "status": "ExternalReviewIndexReady",
   "formalSubmissionReady": false,
   "productionDeploymentReady": false,
   "sourceSnapshot": {
     "gitAvailable": true,
-    "headCommit": "c547da70e6e0fe687bb0aab888a219a1881d60eb",
+    "headCommit": "42874136cf358744c82a950f8eafd55ebed4809f",
     "branch": "codex/north-star-roadmap",
-    "dirty": false,
-    "statusEntryCount": 0,
-    "statusPreview": []
+    "dirty": true,
+    "statusEntryCount": 29,
+    "statusPreview": [
+      "M artifacts/grant-demo/contract-hardening-report.json",
+      " M artifacts/grant-demo/crypto-review-report.json",
+      " M artifacts/grant-demo/packet-lint-report.json",
+      " M artifacts/grant-demo/packet-lint-transcript.txt",
+      " M artifacts/grant-demo/protocol-publication-report.json",
+      " M artifacts/grant-demo/replay-test-vectors-report.json",
+      " M artifacts/grant-demo/repo-strategy-audit-report.json",
+      " M artifacts/grant-demo/repo-strategy-audit-transcript.txt",
+      " M artifacts/grant-demo/reviewer-handoff-report.json",
+      " M artifacts/grant-demo/submission-gate-report.json",
+      " M artifacts/grant-demo/threshold-custody-report.json",
+      " M grant/ef-protocol-replay-kit/04-replay-rules.md",
+      " M grant/ef-protocol-replay-kit/08-review-readiness.md",
+      " M grant/ef-protocol-replay-kit/14-reviewer-handoff.md",
+      " M grant/ef-protocol-replay-kit/README.md",
+      " M package.json",
+      " M packages/replay/test/fixtures/clean-production-slice-export.json",
+      " M packages/replay/test/fixtures/reordered-events.json",
+      " M packages/replay/test/fixtures/tampered-result-hash.json",
+      " M scripts/grant/evidence-manifest.ts",
+      " M scripts/grant/external-review-index.ts",
+      " M scripts/grant/packet-lint.ts",
+      " M scripts/grant/repo-strategy-audit.ts",
+      " M scripts/grant/review-readiness.ts",
+      " M scripts/grant/reviewer-handoff.ts"
+    ]
   },
   "reviewerStartHere": [
     {
@@ -124,8 +150,8 @@
       "expectedStatus": "PacketReady",
       "actualStatus": "PacketReady",
       "ok": true,
-      "checksPassed": 65,
-      "checksTotal": 65
+      "checksPassed": 68,
+      "checksTotal": 68
     },
     {
       "id": "reviewer-handoff",
@@ -142,8 +168,8 @@
       "expectedStatus": "RepoStrategyEvidenceReady",
       "actualStatus": "RepoStrategyEvidenceReady",
       "ok": true,
-      "checksPassed": 15,
-      "checksTotal": 15
+      "checksPassed": 16,
+      "checksTotal": 16
     },
     {
       "id": "submission-gate",
@@ -162,6 +188,15 @@
       "ok": true,
       "checksPassed": 36,
       "checksTotal": 36
+    },
+    {
+      "id": "negative-invariants",
+      "path": "artifacts/grant-demo/negative-invariant-report.json",
+      "expectedStatus": "NegativeInvariantsPreserved",
+      "actualStatus": "NegativeInvariantsPreserved",
+      "ok": true,
+      "checksPassed": 10,
+      "checksTotal": 10
     }
   ],
   "failedChecks": [],

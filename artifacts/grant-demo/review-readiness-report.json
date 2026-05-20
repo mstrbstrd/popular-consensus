@@ -1,12 +1,12 @@
 {
   "protocol": "popular-consensus",
   "schemaVersion": "ef-protocol-replay-kit-review-readiness-report-v1",
-  "generatedAt": "2026-05-19T23:56:08.781Z",
+  "generatedAt": "2026-05-20T00:08:40.330Z",
   "command": "pnpm grant:review-readiness",
   "status": "MachineEvidenceReady",
   "formalSubmissionReady": false,
-  "checksPassed": 130,
-  "checksTotal": 130,
+  "checksPassed": 135,
+  "checksTotal": 135,
   "failedChecks": [],
   "humanBlockers": [
     "External cryptography review and production threshold ceremony evidence are not complete.",
@@ -29,6 +29,7 @@
     "pnpm grant:repo-strategy-audit",
     "pnpm grant:submission-gate",
     "pnpm grant:protocol-publication",
+    "pnpm grant:negative-invariants",
     "pnpm grant:external-review-index",
     "pnpm grant:evidence-manifest",
     "pnpm grant:review-readiness",
@@ -186,6 +187,12 @@
       "evidence": "grant/ef-protocol-replay-kit/21-protocol-package-publication.md"
     },
     {
+      "id": "file-grant-ef-protocol-replay-kit-22-negative-invariant-audit-md",
+      "ok": true,
+      "detail": "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md exists and is non-empty",
+      "evidence": "grant/ef-protocol-replay-kit/22-negative-invariant-audit.md"
+    },
+    {
       "id": "file-grant-ef-protocol-replay-kit-license-cc-by-4-0-md",
       "ok": true,
       "detail": "grant/ef-protocol-replay-kit/LICENSE-CC-BY-4.0.md exists and is non-empty",
@@ -280,6 +287,12 @@
       "ok": true,
       "detail": "artifacts/grant-demo/protocol-publication-report.json exists and is non-empty",
       "evidence": "artifacts/grant-demo/protocol-publication-report.json"
+    },
+    {
+      "id": "file-artifacts-grant-demo-negative-invariant-report-json",
+      "ok": true,
+      "detail": "artifacts/grant-demo/negative-invariant-report.json exists and is non-empty",
+      "evidence": "artifacts/grant-demo/negative-invariant-report.json"
     },
     {
       "id": "file-artifacts-grant-demo-external-review-index-json",
@@ -540,6 +553,12 @@
       "evidence": "scripts/grant/protocol-publication.ts"
     },
     {
+      "id": "file-scripts-grant-negative-invariant-audit-ts",
+      "ok": true,
+      "detail": "scripts/grant/negative-invariant-audit.ts exists and is non-empty",
+      "evidence": "scripts/grant/negative-invariant-audit.ts"
+    },
+    {
       "id": "file-scripts-grant-external-review-index-ts",
       "ok": true,
       "detail": "scripts/grant/external-review-index.ts exists and is non-empty",
@@ -736,6 +755,18 @@
       "ok": true,
       "detail": "Protocol package publication report claims source reuse but not npm publication readiness",
       "evidence": "artifacts/grant-demo/protocol-publication-report.json"
+    },
+    {
+      "id": "negative-invariants-preserved",
+      "ok": true,
+      "detail": "Negative invariant audit report is NegativeInvariantsPreserved",
+      "evidence": "artifacts/grant-demo/negative-invariant-report.json"
+    },
+    {
+      "id": "negative-invariants-keep-nonclaims",
+      "ok": true,
+      "detail": "Negative invariant audit keeps formal submission and production deployment non-claims explicit",
+      "evidence": "artifacts/grant-demo/negative-invariant-report.json"
     },
     {
       "id": "external-review-index-ready",
