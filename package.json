@@ -19,6 +19,8 @@
     "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "mvp:audit": "node --import tsx scripts/audit-mvp-readiness.ts",
     "mvp:audit:strict": "node --import tsx scripts/audit-mvp-readiness.ts --strict",
+    "utility:audit": "node --import tsx scripts/audit-public-utility-readiness.ts",
+    "utility:audit:strict": "node --import tsx scripts/audit-public-utility-readiness.ts --strict",
     "testnet:collect-attestation": "node --import tsx scripts/collect-public-testnet-attestation.ts",
     "testnet:audit-outreach": "node --import tsx scripts/audit-public-testnet-outreach.ts",
     "testnet:audit-outreach:strict": "node --import tsx scripts/audit-public-testnet-outreach.ts --strict",
