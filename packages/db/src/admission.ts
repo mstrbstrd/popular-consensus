@@ -12,6 +12,11 @@ export function admissionDatabaseUrl(env: NodeJS.ProcessEnv): string {
       || !/^\/[a-zA-Z][a-zA-Z0-9_]{0,62}$/.test(url.pathname)) {
     throw new Error("ADMISSION_DATABASE_URL_INVALID");
   }
+  // Integration tests truncate their fixtures. An ordinary development database
+  // must never become a reset target merely because RUN_DB_TESTS was enabled.
+  if (env.RUN_DB_TESTS === "true" && !url.pathname.endsWith("_test")) {
+    throw new Error("ADMISSION_DISPOSABLE_TEST_DATABASE_REQUIRED");
+  }
   // Avoid accidental reuse even when different loopback spellings are used.
   if (env.DATABASE_URL) {
     try {

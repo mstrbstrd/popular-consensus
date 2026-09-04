@@ -62,7 +62,7 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql://pc:pc@127.0.0.1:5432/popular_consensus
-      ADMISSION_DATABASE_URL: postgresql://pc:pc@127.0.0.1:5432/popcon_admission
+      ADMISSION_DATABASE_URL: postgresql://pc:pc@127.0.0.1:5432/popcon_admission_test
       RUN_DB_TESTS: "true"
       PC_RUNTIME_MODE: test
       PC_DEV_MODE: "true"
@@ -83,7 +83,7 @@ jobs:
         run: |
           pnpm db:generate
           pnpm db:migrate
-          PGPASSWORD=pc psql -h 127.0.0.1 -U pc -d popular_consensus -v ON_ERROR_STOP=1 -c 'CREATE DATABASE popcon_admission'
+          PGPASSWORD=pc psql -h 127.0.0.1 -U pc -d popular_consensus -v ON_ERROR_STOP=1 -c 'CREATE DATABASE popcon_admission_test'
           pnpm db:admission:migrate
           pnpm db:admission:migrate
           pnpm exec prisma migrate diff --from-url "$ADMISSION_DATABASE_URL" --to-schema-datamodel packages/db/prisma-admission/schema.prisma --exit-code
