@@ -2,6 +2,14 @@
 
 Runnable local demo for the Popular Consensus civic signal protocol.
 
+## Protocol foundation (v0.2 draft)
+
+The [protocol foundation](docs/protocol-foundation/README.md) begins the privacy-first
+digital town square and data-union work: a proposed constitution, decision register,
+invariant catalog, model-migration plan, and isolated draft schemas with rejection
+tests. These additions do not change demo behavior or establish production privacy,
+authentication, compensation, or public-utility readiness.
+
 ## Local Run
 
 ```bash

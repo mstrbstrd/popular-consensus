@@ -1,0 +1,42 @@
+name: Protocol foundation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protocol-foundation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shared-schema-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install pinned package manager
+        run: npm install --global pnpm@10.24.0 --ignore-scripts
+      - name: Install locked dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Check foundation catalog
+        run: |
+          node scripts/check-protocol-foundation.mjs
+          node --test scripts/check-protocol-foundation.test.mjs
+      - name: Test existing and draft shared schemas
+        run: pnpm --filter @pc/shared test
+      - name: Type-check shared schemas
+        run: pnpm --filter @pc/shared typecheck
+      - name: Export structural interchange schemas
+        run: |
+          pnpm exec tsx packages/shared/src/export-foundation-schemas.ts > "$RUNNER_TEMP/foundation-schemas.json"
+          node -e 'const fs = require("node:fs"); const p = require("node:path"); const b = JSON.parse(fs.readFileSync(p.join(process.env.RUNNER_TEMP, "foundation-schemas.json"), "utf8")); if (b.validationScope !== "StructuralOnly" || Object.keys(b.schemas).length !== 5) process.exit(1);'
