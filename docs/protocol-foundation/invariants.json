@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "foundation-invariant-catalog-v0.2-draft",
+  "status": "DraftNotIntegrated",
+  "scope": "TargetRequirementsNotRuntimeGuarantees",
+  "invariants": [
+    {
+      "id": "PUR-01",
+      "requirement": "Community authority and time-bound expression",
+      "coverage": "SpecificationOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": null,
+      "remainingWork": "Authority adoption evidence and method-aware result tests."
+    },
+    {
+      "id": "AUT-01",
+      "requirement": "No caller-selected identity in business intent",
+      "coverage": "SchemaOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": "packages/shared/src/foundation.test.ts",
+      "remainingWork": "Verified authorization, scoped capabilities, replay rejection, anonymous ballot authorization."
+    },
+    {
+      "id": "PRV-01",
+      "requirement": "Privacy before publication and payment",
+      "coverage": "SchemaOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": "packages/shared/src/foundation.test.ts",
+      "remainingWork": "End-to-end disclosure/correlation tests and reviewed privacy profiles."
+    },
+    {
+      "id": "PRV-02",
+      "requirement": "No reusable secrets or production complete keys in public data",
+      "coverage": "SchemaOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": "packages/shared/src/foundation.test.ts",
+      "remainingWork": "Client proof construction, secret isolation, log/storage/backup checks."
+    },
+    {
+      "id": "USE-01",
+      "requirement": "Independent individual, collective, and privacy authorization",
+      "coverage": "SchemaOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": "packages/shared/src/foundation.test.ts",
+      "remainingWork": "Resolve and verify consent, collective policy, purpose, scope, withdrawal, and release policy."
+    },
+    {
+      "id": "USE-02",
+      "requirement": "Honest withdrawal and publication limitations",
+      "coverage": "SchemaOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": "packages/shared/src/foundation.test.ts",
+      "remainingWork": "Retention and prospective-use enforcement; consent comprehension tests."
+    },
+    {
+      "id": "ECO-01",
+      "requirement": "Compensation independent of answer and majority",
+      "coverage": "SchemaOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": "packages/shared/src/foundation.test.ts",
+      "remainingWork": "Entitlement logic and adversarial sponsor/collusion tests."
+    },
+    {
+      "id": "ECO-02",
+      "requirement": "Pre-funded promises and earned compensation survive suppression",
+      "coverage": "SchemaOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": "packages/shared/src/foundation.test.ts",
+      "remainingWork": "Funding/cancellation enforcement, independent dispute resolution, and provider reconciliation."
+    },
+    {
+      "id": "ECO-03",
+      "requirement": "Conserving append-only accounting",
+      "coverage": "SpecificationOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": null,
+      "remainingWork": "Asset-specific journals, exactly-once effects, reversal and conservation property tests."
+    },
+    {
+      "id": "REC-01",
+      "requirement": "Immutable observation and correction lineage",
+      "coverage": "SpecificationOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": null,
+      "remainingWork": "Versioned event replay, legacy provenance, and correction tests."
+    },
+    {
+      "id": "TIM-01",
+      "requirement": "Explicit time and legal transition windows",
+      "coverage": "SchemaOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": "packages/shared/src/foundation.test.ts",
+      "remainingWork": "Canonical time, full state machines, deadline/suspension boundary integration tests."
+    },
+    {
+      "id": "MTH-01",
+      "requirement": "Honest methodology and visible disagreement",
+      "coverage": "SpecificationOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": null,
+      "remainingWork": "Result schema and user-interface methodology/limitation checks."
+    },
+    {
+      "id": "CIV-01",
+      "requirement": "Curation does not buy opinion weight or the only agenda",
+      "coverage": "SpecificationOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": null,
+      "remainingWork": "Plural registries, accessible appeals, concentration and bribery analysis."
+    },
+    {
+      "id": "GOV-01",
+      "requirement": "Bounded and appealable authority",
+      "coverage": "SpecificationOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": null,
+      "remainingWork": "Role matrix, conflict rules, emergency limits, governance/succession drills."
+    },
+    {
+      "id": "EXT-01",
+      "requirement": "Privacy-respecting portability and continuation",
+      "coverage": "SpecificationOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": null,
+      "remainingWork": "Independent exports/replay, selective private portability, and founder-loss drills."
+    },
+    {
+      "id": "PUB-01",
+      "requirement": "Evidence-backed maturity claims",
+      "coverage": "SpecificationOnly",
+      "runtimeEnforcement": "NotIntegrated",
+      "schemaTestFile": null,
+      "remainingWork": "Trust-retirement mechanism, tests, independent operation, recovery, evidence, and readiness update."
+    }
+  ]
+}
