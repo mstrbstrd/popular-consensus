@@ -57,7 +57,8 @@ export const QuestionAcceptanceSnapshotSchema = z.object({
     status: z.enum(["Active", "Suspended", "Revoked"]),
     validFrom: FoundationTimeSchema,
     validUntil: FoundationTimeSchema
-  }).strict()).max(128),
+  }).strict()).max(128).refine((grants) => new Set(grants.map((g) => g.id)).size === grants.length,
+    { message: "Duplicate capability IDs are ambiguous" }),
   question: z.object({
     id: FoundationIdSchema,
     communityId: FoundationIdSchema,

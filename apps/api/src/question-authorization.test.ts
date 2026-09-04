@@ -190,6 +190,32 @@ describe("signed question acceptance", () => {
     expect(Object.keys(command).sort()).toEqual(["schemaVersion", "networkId", "commandId", "commandType", "principalId", "keyId", "nonce", "issuedAt", "expiresAt", "payload"].sort());
     expect(Object.keys(command.payload).sort()).toEqual(["communityId", "questionId", "expectedRevision", "expectedQuestionVersion"].sort());
   });
+  it("selects the same capability regardless of storage row order", () => {
+    const { command, snapshot, keys } = fixture();
+    snapshot.capabilities.push({ ...snapshot.capabilities[0], id: "grant-0" });
+    const request = signed(command, keys.privateKey);
+    const first = evaluateQuestionAcceptance(request, snapshot);
+    snapshot.capabilities.reverse();
+    expect(evaluateQuestionAcceptance(request, snapshot)).toEqual(first);
+    expect(first).toMatchObject({ actor: { capabilityId: "grant-0" } });
+  });
+  it("rejects contradictory duplicate capability IDs", () => {
+    const { command, snapshot, keys } = fixture();
+    snapshot.capabilities.push({ ...snapshot.capabilities[0], status: "Revoked" });
+    expect(evaluateQuestionAcceptance(signed(command, keys.privateKey), snapshot)).toEqual({ outcome: "Rejected", code: "INVALID_SNAPSHOT" });
+  });
+  it("rejects public PEM concatenated with private key material", () => {
+    const { command, snapshot, keys } = fixture();
+    snapshot.verificationMethod!.publicKeyPem += keys.privateKey.export({ format: "pem", type: "pkcs8" }).toString();
+    expect(evaluateQuestionAcceptance(signed(command, keys.privateKey), snapshot)).toEqual({ outcome: "Rejected", code: "KEY_NOT_VALID" });
+  });
+  it("does not claim durable replay protection for an unchanged snapshot", () => {
+    const { command, snapshot, keys } = fixture();
+    const request = signed(command, keys.privateKey);
+    const first = evaluateQuestionAcceptance(request, snapshot);
+    expect(evaluateQuestionAcceptance(request, snapshot)).toEqual(first);
+    expect(first.outcome).toBe("AuthorizedTransition");
+  });
   it("modifying a signed payload invalidates the signature", () => {
     const { command, snapshot, keys } = fixture(); const request = signed(command, keys.privateKey);
     request.command.payload.expectedRevision += 1;

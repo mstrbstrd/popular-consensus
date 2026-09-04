@@ -61,7 +61,7 @@ export function evaluateQuestionAcceptance(input: unknown, trustedSnapshot: unkn
   try {
     // Accept only a public SPKI key from the trusted resolver, never a key
     // supplied in the command or a private-key PEM coerced into a public key.
-    if (!key.publicKeyPem.startsWith("-----BEGIN PUBLIC KEY-----")) return reject("KEY_NOT_VALID");
+    if (!key.publicKeyPem.startsWith("-----BEGIN PUBLIC KEY-----") || key.publicKeyPem.includes("PRIVATE KEY")) return reject("KEY_NOT_VALID");
     const publicKey = createPublicKey(key.publicKeyPem);
     if (publicKey.asymmetricKeyType !== "ed25519") return reject("KEY_NOT_VALID");
     if (!verify(null, Buffer.from(signedText, "utf8"), publicKey, Buffer.from(authorization.signatureHex, "hex"))) {
@@ -74,10 +74,11 @@ export function evaluateQuestionAcceptance(input: unknown, trustedSnapshot: unkn
   const nextNonce = (BigInt(s.nextNonce) + 1n).toString();
   if (nextNonce.length > 20) return reject("NONCE_EXHAUSTED");
   if (q.id !== c.payload.questionId || q.communityId !== c.payload.communityId) return reject("TARGET_MISMATCH");
-  const grant = s.capabilities.find((g) => g.principalId === c.principalId
+  const grant = s.capabilities.filter((g) => g.principalId === c.principalId
     && g.communityId === q.communityId && (g.questionId === null || g.questionId === q.id)
     && g.action === "QuestionAccept" && g.status === "Active"
-    && g.validFrom <= now && now < g.validUntil);
+    && g.validFrom <= now && now < g.validUntil)
+    .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)[0];
   if (!grant) return reject("CAPABILITY_DENIED");
   if (q.revision !== c.payload.expectedRevision || q.version !== c.payload.expectedQuestionVersion) return reject("STALE_STATE");
   if (q.revision === Number.MAX_SAFE_INTEGER) return reject("REVISION_EXHAUSTED");
