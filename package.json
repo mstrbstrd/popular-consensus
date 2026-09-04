@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "pnpm --parallel --filter @pc/api --filter @pc/web dev",
     "dev:chain": "anvil --host 127.0.0.1 --port 8545",
-    "db:generate": "DATABASE_URL=${DATABASE_URL:-postgresql://pc:pc@localhost:5432/popular_consensus} prisma generate --schema packages/db/prisma/schema.prisma",
+    "db:generate": "DATABASE_URL=${DATABASE_URL:-postgresql://pc:pc@localhost:5432/popular_consensus} prisma generate --schema packages/db/prisma/schema.prisma && pnpm db:admission:generate",
     "db:migrate": "DATABASE_URL=${DATABASE_URL:-postgresql://pc:pc@localhost:5432/popular_consensus} prisma db push --schema packages/db/prisma/schema.prisma",
+    "db:admission:generate": "ADMISSION_DATABASE_URL=${ADMISSION_DATABASE_URL:-postgresql://localhost/popcon_admission} prisma generate --schema packages/db/prisma-admission/schema.prisma",
+    "db:admission:migrate": "prisma migrate deploy --schema packages/db/prisma-admission/schema.prisma",
+    "admission:bootstrap": "node --import tsx apps/api/src/admission-bootstrap.ts",
+    "admission:dev": "node --import tsx apps/api/src/admission-server.ts",
     "contracts:build": "pnpm --filter @pc/contracts build",
     "contracts:deploy:local": "pnpm --filter @pc/contracts deploy:local",
     "privacy:setup": "pnpm --filter @pc/privacy test",

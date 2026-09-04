@@ -36,7 +36,64 @@ jobs:
         run: pnpm --filter @pc/shared test
       - name: Type-check shared schemas
         run: pnpm --filter @pc/shared typecheck
+      - name: Test existing privacy and artifact packages
+        run: |
+          pnpm --filter @pc/privacy test
+          pnpm --filter @pc/artifacts test
       - name: Export structural interchange schemas
         run: |
           pnpm exec tsx packages/shared/src/export-foundation-schemas.ts > "$RUNNER_TEMP/foundation-schemas.json"
           node -e 'const fs = require("node:fs"); const p = require("node:path"); const b = JSON.parse(fs.readFileSync(p.join(process.env.RUNNER_TEMP, "foundation-schemas.json"), "utf8")); if (b.validationScope !== "StructuralOnly" || Object.keys(b.schemas).length !== 5) process.exit(1);'
+
+  api-authorization-and-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pc
+          POSTGRES_PASSWORD: pc
+          POSTGRES_DB: popular_consensus
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pc -d popular_consensus"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://pc:pc@127.0.0.1:5432/popular_consensus
+      ADMISSION_DATABASE_URL: postgresql://pc:pc@127.0.0.1:5432/popcon_admission_test
+      RUN_DB_TESTS: "true"
+      PC_RUNTIME_MODE: test
+      PC_DEV_MODE: "true"
+      PC_DEMO_MODE: "true"
+      HOST: "127.0.0.1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install pinned package manager and locked dependencies
+        run: |
+          npm install --global pnpm@10.24.0 --ignore-scripts
+          pnpm install --frozen-lockfile --ignore-scripts
+      - name: Prepare isolated disposable databases and verify admission migrations
+        run: |
+          pnpm db:generate
+          pnpm db:migrate
+          PGPASSWORD=pc psql -h 127.0.0.1 -U pc -d popular_consensus -v ON_ERROR_STOP=1 -c 'CREATE DATABASE popcon_admission_test'
+          pnpm db:admission:migrate
+          pnpm db:admission:migrate
+          pnpm exec prisma migrate diff --from-url "$ADMISSION_DATABASE_URL" --to-schema-datamodel packages/db/prisma-admission/schema.prisma --exit-code
+      - name: Test authorization, transactions, routes and existing DB-backed flows
+        run: |
+          if pnpm --filter @pc/api test > "$RUNNER_TEMP/api-tests.log" 2>&1; then
+            node -e 'const fs=require("node:fs"); const p=require("node:path"); const s=fs.readFileSync(p.join(process.env.RUNNER_TEMP,"api-tests.log"),"utf8").replace(/\u001b\[[0-9;]*m/g,""); console.log(s.split("\n").filter(l=>l.includes(".test.ts")||l.includes("Test Files")||l.includes("Tests ")||l.includes("Duration")).join("\n"));'
+          else
+            tail -n 120 "$RUNNER_TEMP/api-tests.log"
+            exit 1
+          fi
+      - name: Type-check API and authorization modules
+        run: pnpm --filter @pc/api typecheck

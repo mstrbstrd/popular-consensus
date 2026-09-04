@@ -2,75 +2,88 @@
 
 Status: reviewable draft, not a production protocol release.
 
-This is the first implementation slice of the privacy-first digital town square
-and data-union plan. It does not replace the runnable v0.1 demo or claim to retire
-any existing trust assumption.
+This work starts the privacy-first digital town square and data-union plan.
+F0 established the constitution and draft policies. F1a added signed question
+acceptance evaluation and loopback-only legacy startup. F1b adds a narrow local
+HTTP service that applies this operation atomically to a separate admission
+store. It does not replace the v0.1 demo or retire its trust assumptions.
 
 ## Start here
 
-1. [Constitution](constitution.md): purpose, participant rights, and negative-space invariants.
-2. [Decision register](decisions.md): accepted design direction versus unresolved mechanisms.
-3. [Model migration](model-migration.md): schema boundaries, current-model changes, and ordered delivery gates.
-4. [Invariant catalog](invariants.json): machine-readable IDs and deliberately limited enforcement status.
+1. [Constitution](constitution.md): purpose, participant rights, negative-space invariants.
+2. [Decision register](decisions.md): agreed direction versus unresolved mechanisms.
+3. [Model migration](model-migration.md): boundaries, model changes and ordered gates.
+4. [Invariant catalog](invariants.json): whole-system guarantees remain NotIntegrated.
+5. [Authorization admission](authorization-admission.md): original F1a evaluator and contract.
+6. [Transactional admission](transactional-admission.md): F1b implementation, local operation, tests and remaining trust.
 
 The existing [MVP invariants](../mvp-invariants.md),
-[decentralization roadmap](../decentralized-protocol-roadmap.md), and
-[whitepaper](../popular-consensus-blueprint-whitepaper.md) remain useful context.
-The MVP documentation describes the existing implementation. This folder specifies
-its proposed successor. Where they differ, use explicit migration decisions;
-do not claim that adding this folder changes running behavior.
+[decentralization roadmap](../decentralized-protocol-roadmap.md) and
+[whitepaper](../popular-consensus-blueprint-whitepaper.md) remain context.
+Where implementation and successor specifications differ, use explicit migration
+decisions, not silent upgrades of historical records or readiness claims.
 
-## What this slice actually implements
+## Implemented boundaries
 
-`packages/shared/src/foundation.ts` introduces isolated, strict draft schemas for:
+`packages/shared/src/foundation.ts` defines five strict draft policy/intent
+schemas. Parsing does not establish consent, funding, signatures or actual
+privacy. A supplied hash is a reference, not proof that its evidence was reviewed.
+No production credential, tally, consensus, payment provider or token is selected.
 
-- question creation intent, with advisory authority and an ordered UTC window;
-- contribution policies with disabled commercial use or explicit bounded opt-in;
-- privacy design targets that cannot declare themselves cryptographically verified;
-- fixed participation reward policies, separate from answer choice;
-- aggregate-use intent requiring consent, community approval, and policy references.
+`packages/shared/src/question-authorization.ts` and
+`apps/api/src/question-authorization.ts` implement a strict administrative
+Ed25519 command and side-effect-free guard. Alone this proposes a transition; it
+does not consume a nonce or write state. Private ballots are not forced through
+this attributable administrative signature profile.
 
-Existing API DTOs, Prisma tables, contract interfaces, demo routes, and storage are
-unchanged. The new schemas are not imported into the application entrypoint. Use
-an explicit import from `packages/shared/src/foundation.ts` during migration; do
-not change the meaning of the existing `CreateQuestionRequestSchema` in place.
+`apps/api/src/question-admission.ts` now resolves persisted authority/state and
+atomically applies this one transition. `apps/api/src/admission-server.ts` exposes
+its strict versioned endpoint without importing any legacy routes. Models and
+reviewed SQL migrations live in `packages/db/prisma-admission`; the database must
+be separate from the legacy demo. Bootstrap is an explicit trusted local CLI,
+not decentralized enrollment or an HTTP authority shortcut. Receipts identify
+their trust profile as LocalDatabase.
 
-Parsing is NOT authentication, permission, funding, cryptographic verification,
-privacy protection, or a valid state transition. A supplied hash is only a
-well-formed reference until its content and authority have been verified.
-`PrivacyProfileDraft.assurance = DesignTarget` is intentionally not deployable
-proof of privacy. No credential, tally, consensus, payment provider, or token is
-selected by these schemas.
+Legacy API DTOs, tables, contracts and browser flows are not migrated. Normal
+local demo operation remains supported. Both service startup paths remain local
+only. Do not expose the legacy API through proxies/tunnels or follow historical
+public-testnet runbooks. Loopback does not repair legacy authorization or CORS.
 
 ## Checks
 
-From the repository root:
+From the repository root, with separate disposable local databases configured:
 
 ```bash
+pnpm db:generate
+pnpm db:migrate
+pnpm db:admission:migrate
 node scripts/check-protocol-foundation.mjs
 node --test scripts/check-protocol-foundation.test.mjs
-pnpm --filter @pc/shared exec vitest run src/foundation.test.ts
 pnpm --filter @pc/shared test
 pnpm --filter @pc/shared typecheck
+RUN_DB_TESTS=true pnpm --filter @pc/api test
+pnpm --filter @pc/api typecheck
 pnpm exec tsx packages/shared/src/export-foundation-schemas.ts > foundation-schemas.json
 ```
 
-The exporter produces a JSON Schema 2020-12 bundle for structural interchange.
-Its `StructuralOnly` label is mandatory: ordinary JSON Schema does not express the
-cross-field `closesAt > opensAt` rule, and none of the schemas verifies referenced
-evidence. Independent consumers must also implement the published semantic rules.
-There are no new dependencies or changes to the existing lockfile.
+Read the transactional admission document before configuring the database or
+bootstrap. Do not run disposable test reset operations against retained data.
+The original db:migrate remains the legacy demo's db push. Admission uses actual
+versioned migrate deploy. No live database is changed by committing this code.
 
-`Protocol foundation / shared-schema-contracts` runs the catalog check, shared
-unit tests, shared type checking, and schema export on pull requests. It is not a
-full API/database, browser, contract, cryptography, or deployment audit. Branch
-protection and required checks are separate repository settings, not enabled by
-adding a workflow file.
+The exporter still contains five StructuralOnly JSON Schemas, not the complete
+administrative command/receipt profile or cross-field semantic guarantees.
+No dependencies or lockfile versions changed.
 
-## Merge boundary
+CI checks catalog/shared/privacy/artifact tests; migration application,
+reapplication and drift; real PostgreSQL admission and legacy API tests; and
+shared/API typechecking. This is not a browser, contract, independent crypto,
+full backup/restore or deployment audit. Branch protection is a separate setting.
 
-This PR establishes reviewable purpose and schema-level rejection behavior only.
-Do not mark a runtime invariant enforced, a trust assumption retired, or a public
-utility gate complete on the strength of these checks. The next implementation
-slice must add authenticated actor context and executable transition guards,
-with compatibility adapters and adversarial integration tests.
+## Release boundary
+
+F1 is partially implemented. No whole-system invariant or public-utility gate is
+complete. The next slice is protocol-governed key/capability lifecycle, explicit
+migration provenance and signed application integration. The current admission
+bootstrap/database operator is still trusted; canonical ordering, eligibility,
+private tally, data-use consent and rewards remain separate unfinished gates.

@@ -1,0 +1,133 @@
+// Isolated, local-only F1 admission store. This is not canonical network state.
+// Legacy UserAccount roles and credentials are deliberately not imported.
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/admission"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ADMISSION_DATABASE_URL")
+}
+
+model AdmissionNetwork {
+  id            String   @id @db.VarChar(128)
+  bootstrapHash String   @db.VarChar(71)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  principals    AdmissionPrincipal[]
+  communities   AdmissionCommunity[]
+}
+
+model AdmissionPrincipal {
+  networkId String @db.VarChar(128)
+  id        String @db.VarChar(128)
+  status    String @default("Active") @db.VarChar(16)
+  nextNonce String @default("0") @db.VarChar(20)
+  network   AdmissionNetwork @relation(fields: [networkId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  keys      AdmissionVerificationMethod[]
+  grants    AdmissionCapabilityGrant[]
+  questions AdmissionQuestion[]
+  receipts  AdmissionCommandReceipt[]
+
+  @@id([networkId, id])
+}
+
+model AdmissionVerificationMethod {
+  networkId    String @db.VarChar(128)
+  id           String @db.VarChar(128)
+  principalId  String @db.VarChar(128)
+  status       String @default("Active") @db.VarChar(16)
+  publicKeyPem String @db.VarChar(1024)
+  validFrom    DateTime @db.Timestamptz(3)
+  validUntil   DateTime @db.Timestamptz(3)
+  principal    AdmissionPrincipal @relation(fields: [networkId, principalId], references: [networkId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([networkId, id])
+}
+
+model AdmissionCommunity {
+  networkId          String @db.VarChar(128)
+  id                 String @db.VarChar(128)
+  status             String @default("Active") @db.VarChar(16)
+  emergencySuspended Boolean @default(false)
+  network            AdmissionNetwork @relation(fields: [networkId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  questions          AdmissionQuestion[]
+  grants             AdmissionCapabilityGrant[]
+
+  @@id([networkId, id])
+}
+
+model AdmissionQuestion {
+  networkId              String @db.VarChar(128)
+  id                     String @db.VarChar(128)
+  communityId            String @db.VarChar(128)
+  proposerPrincipalId    String @db.VarChar(128)
+  revision               BigInt @default(0)
+  version                Int @default(1)
+  status                 String @default("Submitted") @db.VarChar(16)
+  intentJson             String
+  challengeWindowEndsAt  DateTime @db.Timestamptz(3)
+  unresolvedChallenges   Int @default(0)
+  unresolvedAppeals      Int @default(0)
+  community              AdmissionCommunity @relation(fields: [networkId, communityId], references: [networkId, id], onDelete: Restrict, onUpdate: Restrict)
+  proposer               AdmissionPrincipal @relation(fields: [networkId, proposerPrincipalId], references: [networkId, id], onDelete: Restrict, onUpdate: Restrict)
+  receipts               AdmissionCommandReceipt[]
+  events                 AdmissionAcceptanceEvent[]
+
+  @@id([networkId, id])
+}
+
+model AdmissionCapabilityGrant {
+  networkId   String @db.VarChar(128)
+  id          String @db.VarChar(128)
+  principalId String @db.VarChar(128)
+  communityId String @db.VarChar(128)
+  questionId  String? @db.VarChar(128)
+  action      String @db.VarChar(32)
+  status      String @default("Active") @db.VarChar(16)
+  validFrom   DateTime @db.Timestamptz(3)
+  validUntil  DateTime @db.Timestamptz(3)
+  principal   AdmissionPrincipal @relation(fields: [networkId, principalId], references: [networkId, id], onDelete: Restrict, onUpdate: Restrict)
+  community   AdmissionCommunity @relation(fields: [networkId, communityId], references: [networkId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([networkId, id])
+  @@index([networkId, principalId, communityId])
+}
+
+model AdmissionCommandReceipt {
+  networkId    String @db.VarChar(128)
+  commandId    String @db.VarChar(128)
+  commandHash  String @db.VarChar(71)
+  envelopeHash String @db.VarChar(71)
+  envelopeJson String
+  principalId  String @db.VarChar(128)
+  keyId        String @db.VarChar(128)
+  capabilityId String @db.VarChar(128)
+  nonce        String @db.VarChar(20)
+  questionId   String @db.VarChar(128)
+  communityId  String @db.VarChar(128)
+  revision     BigInt
+  acceptedAt   DateTime @db.Timestamptz(3)
+  eventHash    String @db.VarChar(71)
+  principal    AdmissionPrincipal @relation(fields: [networkId, principalId], references: [networkId, id], onDelete: Restrict, onUpdate: Restrict)
+  question     AdmissionQuestion @relation(fields: [networkId, questionId], references: [networkId, id], onDelete: Restrict, onUpdate: Restrict)
+  event        AdmissionAcceptanceEvent?
+
+  @@id([networkId, commandId])
+  @@unique([networkId, principalId, nonce])
+}
+
+model AdmissionAcceptanceEvent {
+  networkId   String @db.VarChar(128)
+  commandId   String @db.VarChar(128)
+  questionId  String @db.VarChar(128)
+  revision    BigInt
+  eventHash   String @db.VarChar(71)
+  payloadJson String
+  receipt     AdmissionCommandReceipt @relation(fields: [networkId, commandId], references: [networkId, commandId], onDelete: Restrict, onUpdate: Restrict)
+  question    AdmissionQuestion @relation(fields: [networkId, questionId], references: [networkId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([networkId, commandId])
+  @@unique([networkId, questionId, revision])
+  @@unique([networkId, eventHash])
+}
