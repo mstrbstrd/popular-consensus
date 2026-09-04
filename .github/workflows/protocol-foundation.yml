@@ -62,6 +62,7 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql://pc:pc@127.0.0.1:5432/popular_consensus
+      ADMISSION_DATABASE_URL: postgresql://pc:pc@127.0.0.1:5432/popcon_admission
       RUN_DB_TESTS: "true"
       PC_RUNTIME_MODE: test
       PC_DEV_MODE: "true"
@@ -78,11 +79,21 @@ jobs:
         run: |
           npm install --global pnpm@10.24.0 --ignore-scripts
           pnpm install --frozen-lockfile --ignore-scripts
-      - name: Prepare disposable test database
+      - name: Prepare isolated disposable databases and verify admission migrations
         run: |
           pnpm db:generate
           pnpm db:migrate
-      - name: Test authorization, runtime rejection, and existing DB-backed API flows
-        run: pnpm --filter @pc/api test
+          PGPASSWORD=pc psql -h 127.0.0.1 -U pc -d popular_consensus -v ON_ERROR_STOP=1 -c 'CREATE DATABASE popcon_admission'
+          pnpm db:admission:migrate
+          pnpm db:admission:migrate
+          pnpm exec prisma migrate diff --from-url "$ADMISSION_DATABASE_URL" --to-schema-datamodel packages/db/prisma-admission/schema.prisma --exit-code
+      - name: Test authorization, transactions, routes and existing DB-backed flows
+        run: |
+          if pnpm --filter @pc/api test > "$RUNNER_TEMP/api-tests.log" 2>&1; then
+            node -e 'const fs=require("node:fs"); const p=require("node:path"); const s=fs.readFileSync(p.join(process.env.RUNNER_TEMP,"api-tests.log"),"utf8").replace(/\u001b\[[0-9;]*m/g,""); console.log(s.split("\n").filter(l=>l.includes(".test.ts")||l.includes("Test Files")||l.includes("Tests ")||l.includes("Duration")).join("\n"));'
+          else
+            tail -n 120 "$RUNNER_TEMP/api-tests.log"
+            exit 1
+          fi
       - name: Type-check API and authorization modules
         run: pnpm --filter @pc/api typecheck

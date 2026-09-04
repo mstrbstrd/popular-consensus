@@ -3,91 +3,87 @@
 Status: reviewable draft, not a production protocol release.
 
 This work starts the privacy-first digital town square and data-union plan.
-It does not replace the runnable v0.1 demo or claim to retire any existing trust
-assumption. F0 established the constitution and draft policies. F1a adds a signed
-question-acceptance evaluator and loopback-only legacy API startup containment.
+F0 established the constitution and draft policies. F1a added signed question
+acceptance evaluation and loopback-only legacy startup. F1b adds a narrow local
+HTTP service that applies this operation atomically to a separate admission
+store. It does not replace the v0.1 demo or retire its trust assumptions.
 
 ## Start here
 
-1. [Constitution](constitution.md): purpose, participant rights, and negative-space invariants.
-2. [Decision register](decisions.md): accepted design direction versus unresolved mechanisms.
-3. [Model migration](model-migration.md): schema boundaries, current-model changes, and ordered delivery gates.
-4. [Invariant catalog](invariants.json): machine-readable IDs and deliberately limited enforcement status.
-5. [Authorization admission](authorization-admission.md): F1a scope, real signature checks, runtime limits, and the required atomic persistence adapter.
+1. [Constitution](constitution.md): purpose, participant rights, negative-space invariants.
+2. [Decision register](decisions.md): agreed direction versus unresolved mechanisms.
+3. [Model migration](model-migration.md): boundaries, model changes and ordered gates.
+4. [Invariant catalog](invariants.json): whole-system guarantees remain NotIntegrated.
+5. [Authorization admission](authorization-admission.md): original F1a evaluator and contract.
+6. [Transactional admission](transactional-admission.md): F1b implementation, local operation, tests and remaining trust.
 
 The existing [MVP invariants](../mvp-invariants.md),
-[decentralization roadmap](../decentralized-protocol-roadmap.md), and
-[whitepaper](../popular-consensus-blueprint-whitepaper.md) remain useful context.
-The MVP documentation describes the existing implementation. This folder specifies
-its proposed successor. Where they differ, use explicit migration decisions.
+[decentralization roadmap](../decentralized-protocol-roadmap.md) and
+[whitepaper](../popular-consensus-blueprint-whitepaper.md) remain context.
+Where implementation and successor specifications differ, use explicit migration
+decisions, not silent upgrades of historical records or readiness claims.
 
-## F0 policy schemas
+## Implemented boundaries
 
-`packages/shared/src/foundation.ts` introduces isolated, strict draft schemas for:
-
-- question creation intent, with advisory authority and an ordered UTC window;
-- contribution policies with disabled commercial use or explicit bounded opt-in;
-- privacy design targets that cannot declare themselves cryptographically verified;
-- fixed participation reward policies, separate from answer choice;
-- aggregate-use intent requiring consent, community approval, and policy references.
-
-These policy schemas are not imported into live routes. Prisma tables, contract
-interfaces, and storage remain unchanged. Use explicit imports during migration;
-do not change the meaning of the existing `CreateQuestionRequestSchema` in place.
-
-Parsing is NOT authentication, permission, funding, cryptographic verification,
-privacy protection, or a valid state transition. A supplied hash is only a
-well-formed reference until its content and authority have been verified.
-`PrivacyProfileDraft.assurance = DesignTarget` is intentionally not deployable
-proof of privacy. No production credential, tally, consensus, payment provider,
-or token is selected by these schemas.
-
-## F1a authorization and runtime boundary
+`packages/shared/src/foundation.ts` defines five strict draft policy/intent
+schemas. Parsing does not establish consent, funding, signatures or actual
+privacy. A supplied hash is a reference, not proof that its evidence was reviewed.
+No production credential, tally, consensus, payment provider or token is selected.
 
 `packages/shared/src/question-authorization.ts` and
-`apps/api/src/question-authorization.ts` implement a strict signed administrative
-command and a side-effect-free acceptance evaluator with real Ed25519 signature
-verification. The result is a proposed conditional transition, not a durable
-receipt. Nonce/revision updates, key enrollment, transactional route integration,
-and full authorization migration remain required. Private ballots are not forced
-through public-profile authentication by this administrative command profile.
+`apps/api/src/question-authorization.ts` implement a strict administrative
+Ed25519 command and side-effect-free guard. Alone this proposes a transition; it
+does not consume a nonce or write state. Private ballots are not forced through
+this attributable administrative signature profile.
 
-The existing `config.ts` now enforces literal loopback bindings and rejects public
-runtime modes and `NODE_ENV=production`. Do not expose the legacy API through
-proxies or tunnels; loopback is not authentication or a browser security boundary.
-Normal local demo operation remains supported. See the admission document before
-changing startup configuration or following any historical testnet runbook.
+`apps/api/src/question-admission.ts` now resolves persisted authority/state and
+atomically applies this one transition. `apps/api/src/admission-server.ts` exposes
+its strict versioned endpoint without importing any legacy routes. Models and
+reviewed SQL migrations live in `packages/db/prisma-admission`; the database must
+be separate from the legacy demo. Bootstrap is an explicit trusted local CLI,
+not decentralized enrollment or an HTTP authority shortcut. Receipts identify
+their trust profile as LocalDatabase.
+
+Legacy API DTOs, tables, contracts and browser flows are not migrated. Normal
+local demo operation remains supported. Both service startup paths remain local
+only. Do not expose the legacy API through proxies/tunnels or follow historical
+public-testnet runbooks. Loopback does not repair legacy authorization or CORS.
 
 ## Checks
 
-From the repository root:
+From the repository root, with separate disposable local databases configured:
 
 ```bash
+pnpm db:generate
+pnpm db:migrate
+pnpm db:admission:migrate
 node scripts/check-protocol-foundation.mjs
 node --test scripts/check-protocol-foundation.test.mjs
 pnpm --filter @pc/shared test
 pnpm --filter @pc/shared typecheck
-pnpm --filter @pc/api exec vitest run src/question-authorization.test.ts src/runtime-policy.test.ts
+RUN_DB_TESTS=true pnpm --filter @pc/api test
+pnpm --filter @pc/api typecheck
 pnpm exec tsx packages/shared/src/export-foundation-schemas.ts > foundation-schemas.json
 ```
 
-The exporter remains a five-schema JSON Schema 2020-12 bundle for structural
-interchange. It does not export the new administrative command profile yet.
-Its `StructuralOnly` label is mandatory: ordinary JSON Schema does not express the
-cross-field `closesAt > opensAt` rule, and none of those five schemas verifies
-referenced evidence. Independent consumers must implement the semantic rules.
-There are no new dependencies or changes to the existing lockfile.
+Read the transactional admission document before configuring the database or
+bootstrap. Do not run disposable test reset operations against retained data.
+The original db:migrate remains the legacy demo's db push. Admission uses actual
+versioned migrate deploy. No live database is changed by committing this code.
 
-CI checks the catalog, shared/privacy/artifact tests, schema export, API signature
-and runtime tests, existing DB-backed API tests with disposable PostgreSQL, and
-shared/API typechecking. This is not a browser, contract, cryptographic-security,
-or deployment audit. Branch protection and required checks are separate settings.
+The exporter still contains five StructuralOnly JSON Schemas, not the complete
+administrative command/receipt profile or cross-field semantic guarantees.
+No dependencies or lockfile versions changed.
+
+CI checks catalog/shared/privacy/artifact tests; migration application,
+reapplication and drift; real PostgreSQL admission and legacy API tests; and
+shared/API typechecking. This is not a browser, contract, independent crypto,
+full backup/restore or deployment audit. Branch protection is a separate setting.
 
 ## Release boundary
 
-Whole-system invariants remain `NotIntegrated`; F1 is only partially implemented.
-Do not mark a trust assumption retired or a public-utility gate complete based on
-helper tests. The next slice must implement durable key/capability/nonce models
-and an atomic route adapter, including concurrent delivery, rollback, recovery,
-revocation races, and replay tests. Public operation stays blocked until the
-legacy write and protected-read surfaces have been migrated and reviewed.
+F1 is partially implemented. No whole-system invariant or public-utility gate is
+complete. The next slice is protocol-governed key/capability lifecycle, explicit
+migration provenance and signed application integration. The current admission
+bootstrap/database operator is still trusted; canonical ordering, eligibility,
+private tally, data-use consent and rewards remain separate unfinished gates.
