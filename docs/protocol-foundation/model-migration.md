@@ -1,6 +1,6 @@
 # Model migration and delivery gates
 
-## Four categories, not one public database
+## Data classes, not one public database
 
 Classify every model and field as normative public evidence, restricted evidence,
 application projection, operational data, or secret. Normative means relevant to
